@@ -33,6 +33,9 @@ function Scene() {
   const points = rooms.flatMap(r => r.pts)
   const b = points.length ? bbox(points) : { minX: 0, maxX: 400, minY: 0, maxY: 300 }
   const cx = (b.minX + b.maxX) / 2, cz = (b.minY + b.maxY) / 2
+  // Konečná mřížka kolem bytu, která se k okraji vytrácí. Nekonečná mřížka s jemnými čarami při pohledu
+  // pod malým úhlem vibrovala (moaré), protože se daleko slévaly čáry hustší než pixely.
+  const gridSize = Math.max(3000, Math.max(b.maxX - b.minX, b.maxY - b.minY) * 4)
   const isSelected = (type: string, id: string) => selection?.type === type && selection.id === id
 
   return (
@@ -41,8 +44,9 @@ function Scene() {
       <ambientLight intensity={0.7} />
       <directionalLight position={[cx + 500, 900, cz + 300]} intensity={1.1} />
       {/* hrubší mřížka (50/500 cm): jemná 10cm mřížka při pohledu pod malým úhlem dělala moaré */}
-      <Grid position={[cx, -1, cz]} args={[4000, 4000]} cellSize={50} sectionSize={500}
-        cellThickness={0.6} cellColor="#d5d9df" sectionColor="#b3b9c2" fadeDistance={4000} infiniteGrid />
+      <Grid position={[cx, -1, cz]} args={[gridSize, gridSize]} cellSize={100} sectionSize={500}
+        cellThickness={0.9} sectionThickness={1.4} cellColor="#d5d9df" sectionColor="#b3b9c2"
+        fadeDistance={gridSize * 0.7} fadeStrength={2} />
 
       {rooms.map(room => <RoomFloor key={room.id} room={room} />)}
       <WallsMesh opacity={wallOpacity} />
@@ -107,7 +111,7 @@ export function View3D() {
 
   return (
     <Canvas
-      camera={{ position: [cx + span * 0.9, span, cz + span * 1.1], fov: 45, near: 10, far: 30000 }}
+      camera={{ position: [cx + span * 0.9, span, cz + span * 1.1], fov: 45, near: 20, far: 15000 }}
       onPointerMissed={() => select(null)}   // klik do prázdna zruší výběr (r3f ho nevyvolá po tažení kamery)
     >
       <Scene />
