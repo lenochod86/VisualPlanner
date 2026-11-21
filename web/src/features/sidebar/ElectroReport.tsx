@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { CABLE_TYPES, ELECTRIC_KINDS, kindsOf, systemOfLine, systemOfPoint, type System } from '../../domain/electricCatalog'
-import { buildElectricReport, reportToCsv } from '../../report/electricReport'
+import { buildElectricReport, plumbingBillOfItems, reportToCsv } from '../../report/electricReport'
 import { useProjectStore } from '../../store/projectStore'
 
 const meters = (n: number) => n.toFixed(1).replace('.', ',')
@@ -21,6 +21,8 @@ export function ElectroReport({ system = 'electro' }: { system?: System }) {
   const electric = useProjectStore(s => s.electric)
   const cables = useProjectStore(s => s.cables)
   const report = useMemo(() => buildElectricReport({ rooms, electric, cables }, system), [rooms, electric, cables, system])
+
+  const items = plumbingBillOfItems(report)
 
   if (!electric.some(p => systemOfPoint(p.kind) === system) && !cables.some(c => systemOfLine(c.type) === system)) return null
 
@@ -62,15 +64,12 @@ export function ElectroReport({ system = 'electro' }: { system?: System }) {
         </table>
       )}
 
-      {plumbing && report.types.some(t => t.fittings) && (
+      {plumbing && items.length > 0 && (
         <table className="report-table">
-          <thead><tr><th>Tvarovky</th><th>90°</th><th>45°</th><th>T</th><th>Trubek</th></tr></thead>
+          <thead><tr><th>Položka</th><th>MJ</th><th>Množství</th></tr></thead>
           <tbody>
-            {report.types.map(t => t.fittings && (
-              <tr key={t.type} title={CABLE_TYPES[t.type].label}>
-                <td>{CABLE_TYPES[t.type].label.split(' PPR')[0].replace('Odpad ', 'Odpad ')}</td>
-                <td>{t.fittings.elbow90}</td><td>{t.fittings.elbow45}</td><td>{t.fittings.tee}</td><td>{t.fittings.sticks}</td>
-              </tr>
+            {items.map((item, i) => (
+              <tr key={item.name}><td>{i + 1}. {item.name}</td><td>{item.unit}</td><td>{item.quantity}</td></tr>
             ))}
           </tbody>
         </table>

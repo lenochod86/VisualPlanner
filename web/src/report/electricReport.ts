@@ -109,6 +109,33 @@ export function buildElectricReport(
   }
 }
 
+/** Řádek položkového soupisu: název, měrná jednotka a množství. */
+export interface BillItem { name: string; unit: 'ks' | 'm'; quantity: number }
+
+/**
+ * Položkový soupis vodoinstalace: nejdřív armatury a body (ks), pak pro každý typ potrubí samostatné položky:
+ * trubky (ks po tyčích), koleno 90°, koleno 45° a T-kus. Položky s nulovým množstvím se vynechají.
+ */
+export function plumbingBillOfItems(report: ElectricReport): BillItem[] {
+  const items: BillItem[] = kindsOf('plumbing')
+    .filter(k => report.totals[k] > 0)
+    .map(k => ({ name: ELECTRIC_KINDS[k].label, unit: 'ks', quantity: report.totals[k] }))
+  for (const t of report.types) {
+    const f = t.fittings
+    if (!f) continue
+    const label = CABLE_TYPES[t.type].label
+    const pipe = { name: `Trubka ${label}`, unit: 'ks' as const, quantity: f.sticks }
+    const parts = [
+      pipe,
+      { name: `Koleno 90° ${label}`, unit: 'ks' as const, quantity: f.elbow90 },
+      { name: `Koleno 45° ${label}`, unit: 'ks' as const, quantity: f.elbow45 },
+      { name: `T-kus ${label}`, unit: 'ks' as const, quantity: f.tee },
+    ]
+    items.push(...parts.filter(p => p.quantity > 0))
+  }
+  return items
+}
+
 const decimal = (n: number) => n.toFixed(2).replace('.', ',')
 const cell = (value: string | number) => {
   const text = String(value)
@@ -138,9 +165,9 @@ export function reportToCsv(report: ElectricReport): string {
     line('Celkem', '', decimal(report.totalLengthM), ''),
     ...(plumbing ? [
       '',
-      line('Tvarovky a trubky'),
-      line('Typ potrubí', 'Koleno 90°', 'Koleno 45°', 'T-kus', 'Trubek k nákupu [ks]'),
-      ...report.types.map(t => line(CABLE_TYPES[t.type].label, t.fittings?.elbow90 ?? 0, t.fittings?.elbow45 ?? 0, t.fittings?.tee ?? 0, t.fittings?.sticks ?? 0)),
+      line('Položkový soupis'),
+      line('Č.', 'Položka', 'MJ', 'Množství'),
+      ...plumbingBillOfItems(report).map((item, i) => line(i + 1, item.name, item.unit, item.quantity)),
     ] : []),
   ]
   return '﻿' + rows.join('\r\n') + '\r\n'

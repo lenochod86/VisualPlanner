@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { buildElectricReport } from '../report/electricReport'
+import { buildElectricReport, plumbingBillOfItems } from '../report/electricReport'
 import { selectProject, useProjectStore } from './projectStore'
 import { canEditInMode, modeOf } from './uiStore'
 
@@ -80,5 +80,21 @@ describe('tvarovky v bilanci vody', () => {
     expect(cold.fittings!.sticks).toBe(Math.ceil((cold.lengthM * 100 * 1.1) / 400))
     // elektro tvarovky nemá
     expect(buildElectricReport(selectProject(state()), 'electro').types.every(t => !t.fittings)).toBe(true)
+  })
+})
+
+describe('položkový soupis vody', () => {
+  it('každá tvarovka je samostatná položka daného typu potrubí', () => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    const room = state().addRoom('rect')
+    const main = state().addElectric('water-main', room)!
+    const tap = state().addElectric('tap', room)!
+    state().updateElectric(tap, { attach: { edge: 1, along: 100 } })
+    state().addCable(main, tap, 'pipe-cold')
+    const items = plumbingBillOfItems(buildElectricReport(selectProject(state()), 'plumbing'))
+    const names = items.map(i => i.name)
+    expect(names).toEqual(expect.arrayContaining(['Přípojka vody', 'Výtok (baterie)', 'Trubka Studená voda PPR 20', 'Koleno 90° Studená voda PPR 20']))
+    expect(names.some(n => n.startsWith('T-kus'))).toBe(false)             // nulové položky se vynechají
+    expect(items.every(i => i.quantity > 0 && i.unit === 'ks')).toBe(true)
   })
 })

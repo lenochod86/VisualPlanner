@@ -3,7 +3,7 @@
 import { CABLE_TYPES, ELECTRIC_KINDS, kindsOf, type System } from '../domain/electricCatalog'
 import type { Project } from '../domain/types'
 import { buildCeilingReport, PROFILE_PIECE_LENGTH } from './ceilingReport'
-import { buildElectricReport } from './electricReport'
+import { buildElectricReport, plumbingBillOfItems } from './electricReport'
 
 const MARGIN = 10
 const ROW = 4.6          // výška řádku tabulky (mm)
@@ -47,14 +47,12 @@ function installationTables(project: Project, system: System): SummaryTable[] {
       total: ['Celkem', '', decimal(report.totalLengthM), String(report.types.reduce((sum, t) => sum + t.orderM, 0))],
     })
   }
-  const piped = report.types.filter(t => t.fittings)
-  if (plumbing && piped.length > 0) {
-    const sum = (pick: (f: NonNullable<typeof piped[number]['fittings']>) => number) => piped.reduce((total, t) => total + pick(t.fittings!), 0)
+  // položkový soupis (jako rozpočet): každá armatura, trubka a tvarovka je samostatná položka
+  const items = plumbing ? plumbingBillOfItems(report) : []
+  if (items.length > 0) {
     tables.push({
-      title: 'Vodoinstalace: tvarovky a trubky',
-      header: ['Typ potrubí', 'Koleno 90°', 'Koleno 45°', 'T-kus', 'Trubek'], weights: [3.2, 1.3, 1.3, 1, 1.1],
-      rows: piped.map(t => [shortLabel(CABLE_TYPES[t.type].label), String(t.fittings!.elbow90), String(t.fittings!.elbow45), String(t.fittings!.tee), String(t.fittings!.sticks)]),
-      total: ['Celkem', String(sum(f => f.elbow90)), String(sum(f => f.elbow45)), String(sum(f => f.tee)), String(sum(f => f.sticks))],
+      title: 'Vodoinstalace: položkový soupis', header: ['Položka', 'MJ', 'Množství'], weights: [5, 0.8, 1.3],
+      rows: items.map((item, i) => [`${i + 1}. ${item.name}`, item.unit, String(item.quantity)]),
     })
   }
   if (report.circuits.length > 0) {
