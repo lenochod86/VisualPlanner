@@ -14,22 +14,32 @@ interface Props {
   onWaypointPointerDown: (e: PointerEvent, index: number) => void
   /** Tažení za "+" uprostřed úseku vloží nový bod na pozici `index` v `cable.via`. */
   onInsertPointerDown: (e: PointerEvent, index: number, at: Pos3) => void
+  /**
+   * Která část se kreslí: `hit` = jen neviditelná plocha pro kliknutí (patří pod elektro body, aby nezabírala
+   * kliknutí na zásuvku nebo rozvaděč, do kterého kabel ústí), `top` = viditelná čára a úchyty (patří úplně nahoru),
+   * `all` = vše najednou.
+   */
+  part?: 'all' | 'hit' | 'top'
 }
 
 /** Kabel v půdorysu jako čárkovaná čára (vede ve zdi / stropě); vybraný má úchyty pro úpravu trasy. */
-export function CableView({ cable, polyline, selected, k, onSelect, onWaypointPointerDown, onInsertPointerDown }: Props) {
+export function CableView({ cable, polyline, selected, k, onSelect, onWaypointPointerDown, onInsertPointerDown, part = 'all' }: Props) {
   const points = polyline.map(p => `${p.x},${p.y}`).join(' ')
   const color = CABLE_TYPES[cable.type].color
 
   return (
     <g>
       {/* široká neviditelná čára usnadní trefení */}
-      <polyline points={points} fill="none" stroke="transparent" strokeWidth={10 * k}
-        style={{ cursor: 'pointer' }} onPointerDown={onSelect} />
-      <polyline points={points} fill="none" stroke={color} strokeWidth={(selected ? 3 : 2) * k}
-        strokeDasharray={`${8 * k} ${4 * k}`} pointerEvents="none" />
+      {part !== 'top' && (
+        <polyline points={points} fill="none" stroke="transparent" strokeWidth={10 * k}
+          style={{ cursor: 'pointer' }} onPointerDown={onSelect} />
+      )}
+      {part !== 'hit' && (
+        <polyline points={points} fill="none" stroke={color} strokeWidth={(selected ? 3 : 2) * k}
+          strokeDasharray={`${8 * k} ${4 * k}`} pointerEvents="none" />
+      )}
 
-      {selected && (
+      {selected && part !== 'hit' && (
         <>
           {/* "+" uprostřed každého úseku: vloží nový bod trasy */}
           {polyline.slice(0, -1).map((a, i) => {

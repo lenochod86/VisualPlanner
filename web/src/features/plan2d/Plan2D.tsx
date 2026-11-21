@@ -98,14 +98,14 @@ export function Plan2D() {
         })}
         </g>
   )
-  const cablesJsx = (
+  const cablesJsxFor = (part: 'all' | 'hit' | 'top') => (
         <g {...layerProps(electroLayer)}>
         {cables.map(cable => {
           const polyline = cablePolyline(cable, electric, rooms)
           if (!polyline) return null
           return (
             <CableView
-              key={cable.id} cable={cable} polyline={polyline} k={viewport.k}
+              key={cable.id} cable={cable} polyline={polyline} k={viewport.k} part={part}
               selected={selection?.type === 'cable' && selection.id === cable.id}
               onSelect={e => interaction.selectCable(e, cable.id)}
               onWaypointPointerDown={(e, index) => interaction.beginWaypointDrag(e, cable.id, index)}
@@ -115,6 +115,7 @@ export function Plan2D() {
         })}
         </g>
   )
+  const cablesJsx = cablesJsxFor('all')
   const labelsJsx = (
     <>
         {rooms.map(room => (
@@ -185,10 +186,11 @@ export function Plan2D() {
 
         {furnitureJsx}
 
-        {/* V záložce Elektro je elektro (kabely, body) úplně nahoře, nad stoupačkami, dveřmi i popisky, ať se nic neschová.
+        {/* V záložce Elektro je elektro úplně nahoře, nad stoupačkami, dveřmi i popisky, ať se nic neschová: viditelné čáry kabelů
+            a jejich úchyty jsou nad elektro body (nad rozvaděčem), jen plocha pro kliknutí na kabel zůstává pod body.
             Jinak jsou popisky nad nábytkem a okna, dveře a elektro body ještě výš, ať jdou vždy chytit. */}
         {mode === 'electro'
-          ? <>{labelsJsx}{obstaclesJsx}{cablesJsx}{pointsJsx}</>
+          ? <>{labelsJsx}{obstaclesJsx}{cablesJsxFor('hit')}{pointsJsx}{cablesJsxFor('top')}</>
           : <>{cablesJsx}{labelsJsx}{obstaclesJsx}{pointsJsx}</>}
 
 
