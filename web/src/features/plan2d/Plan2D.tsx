@@ -7,7 +7,7 @@ import { bbox } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
 import { useFurnitureIssues } from '../../store/useFurnitureIssues'
 import { useWallModel } from '../../store/useWallModel'
-import { useUiStore } from '../../store/uiStore'
+import { canEditInMode, useUiStore } from '../../store/uiStore'
 import { CableView } from './CableView'
 import { EdgeLengthEditor } from './EdgeLengthEditor'
 import { DistanceDims } from './DistanceDims'
@@ -65,8 +65,8 @@ export function Plan2D() {
   }, [fitRequest])
 
   // Vybraná věc na zdi dostane úchyty pro změnu šířky.
-  const selectedObstacle = selection?.type === 'obstacle' ? obstacles.find(o => o.id === selection.id) : undefined
-  const selectedFurniture = selection?.type === 'furniture' ? furniture.find(f => f.id === selection.id) : undefined
+  const selectedObstacle = selection?.type === 'obstacle' && canEditInMode('obstacle', mode) ? obstacles.find(o => o.id === selection.id) : undefined
+  const selectedFurniture = selection?.type === 'furniture' && canEditInMode('furniture', mode) ? furniture.find(f => f.id === selection.id) : undefined
   const handleItem: (Placed & { inWall: boolean; collection: 'obstacles' | 'furniture' }) | undefined =
     selectedObstacle ? { ...selectedObstacle, inWall: OBSTACLE_KINDS[selectedObstacle.kind].inWall, collection: 'obstacles' }
     : selectedFurniture ? { ...selectedFurniture, inWall: false, collection: 'furniture' }
@@ -125,8 +125,9 @@ export function Plan2D() {
         ))}
     </>
   )
+  // okna, dveře a další stavební prvky se upravují jen v záložce Půdorys; jinde nereagují na myš
   const obstaclesJsx = (
-    <>
+    <g pointerEvents={canEditInMode('obstacle', mode) ? undefined : 'none'}>
         {obstacles.map(obstacle => {
           const room = rooms.find(r => r.id === obstacle.roomId)
           if (!room) return null
@@ -139,7 +140,7 @@ export function Plan2D() {
             />
           )
         })}
-    </>
+    </g>
   )
   const pointsJsx = (
         <g {...layerProps(electroLayer)}>
@@ -203,7 +204,7 @@ export function Plan2D() {
 
         {interaction.drawRect && (
           <rect {...interaction.drawRect} fill="#2f6fed22" stroke="#2f6fed" strokeWidth={2 * viewport.k}
-            strokeDasharray={`${6 * viewport.k}`} pointerEvents="none" />
+            strokeDasharray={`${6 * viewport.k}`} pointerEvents='none' />
         )}
       </svg>
 

@@ -76,3 +76,17 @@ export const useUiStore = create<UiState>()(set => ({
   setHoveredWall: hoveredWall => set({ hoveredWall }),
   requestFit: () => set(s => ({ fitRequest: s.fitRequest + 1 })),
 }))
+
+/**
+ * Která záložka smí upravovat jaký druh věcí (přesouvat, měnit rozměry, mazat): každá záložka edituje svou vrstvu.
+ * Platí stejně pro 2D plán, 3D pohled, postranní panel i klávesové zkratky.
+ */
+export const SELECTION_MODE: Record<NonNullable<Selection>['type'], Mode> = {
+  room: 'plan',
+  obstacle: 'plan',      // okna, dveře, stoupačky, topení
+  furniture: 'equipment',
+  electric: 'electro',
+  cable: 'electro',
+}
+
+export const canEditInMode = (type: NonNullable<Selection>['type'], mode: Mode) => SELECTION_MODE[type] === mode

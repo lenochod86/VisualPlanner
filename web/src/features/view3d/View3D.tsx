@@ -14,6 +14,9 @@ import { RoomFloor } from './RoomFloor'
 import { useDrag3D } from './useDrag3D'
 import { WallsMesh } from './WallsMesh'
 
+/** V záložce Elektro je nábytek průsvitný (nejvýš tolik), ať vynikne elektro. */
+const ELECTRO_TAB_FURNITURE_OPACITY = 0.25
+
 /** Vlastní 3D scéna; musí být uvnitř <Canvas>, aby mohla používat three.js hooky (např. přesouvání). */
 function Scene() {
   const rooms = useProjectStore(s => s.rooms)
@@ -23,7 +26,8 @@ function Scene() {
   const cables = useProjectStore(s => s.cables)
   const selection = useUiStore(s => s.selection)
   const electroView = useUiStore(s => s.electroView)
-  const inElectroTab = useUiStore(s => s.mode === 'electro')
+  const mode = useUiStore(s => s.mode)
+  const inElectroTab = mode === 'electro'
   const wallOpacity = useUiStore(s => s.wallOpacity)
   const furnitureOpacity = useUiStore(s => s.furnitureOpacity)
   const ceilingView = useUiStore(s => s.ceilingView)
@@ -57,7 +61,7 @@ function Scene() {
         const room = rooms.find(r => r.id === item.roomId)
         return room && (
           <FurnitureMesh
-            key={item.id} furniture={item} room={room} walls={walls} opacity={furnitureOpacity}
+            key={item.id} furniture={item} room={room} walls={walls} opacity={inElectroTab ? Math.min(furnitureOpacity, ELECTRO_TAB_FURNITURE_OPACITY) : furnitureOpacity}
             selected={isSelected('furniture', item.id)}
             issue={issues.some(i => i.furnitureId === item.id)}
             onGrab={(e, center) => grab(e, { collection: 'furniture', id: item.id }, center)}

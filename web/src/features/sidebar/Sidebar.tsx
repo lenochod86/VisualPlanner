@@ -1,5 +1,8 @@
 import { useProjectStore } from '../../store/projectStore'
-import { useUiStore } from '../../store/uiStore'
+import { canEditInMode, useUiStore } from '../../store/uiStore'
+import { OBSTACLE_KINDS } from '../../domain/catalog'
+import { ELECTRIC_KINDS } from '../../domain/electricCatalog'
+import { FURNITURE_KINDS } from '../../domain/furnitureCatalog'
 import { CableProperties } from './CableProperties'
 import { ElectricProperties } from './ElectricProperties'
 import { ElectroReport } from './ElectroReport'
@@ -11,6 +14,16 @@ import { FurniturePanel } from './FurniturePanel'
 import { ObstacleProperties } from './ObstacleProperties'
 import { RoomProperties } from './RoomProperties'
 import { RoomsPanel } from './RoomsPanel'
+
+/** Poznámka u vybrané věci, kterou tahle záložka neupravuje. */
+function LockedNote({ title, where, extra }: { title: string; where: string; extra?: string }) {
+  return (
+    <section>
+      <h2>Vybráno: {title}</h2>
+      <small>Upravuje se v záložce {where}. {extra}</small>
+    </section>
+  )
+}
 
 /**
  * Levý panel. Nahoře nástroje podle záložky z horní lišty (Půdorys / Vybavení / Elektro),
@@ -32,18 +45,22 @@ export function Sidebar() {
       {mode === 'equipment' && <FurnitureIssues />}
       {mode === 'electro' && <ElectroPanel />}
 
-      {/* místnosti a jejich rozměry se upravují jen v záložce Půdorys */}
-      {room && mode === 'plan' && <RoomProperties room={room} />}
-      {room && mode !== 'plan' && (
-        <section>
-          <h2>Vybraná místnost: {room.name}</h2>
-          <small>Místnosti a jejich rozměry se upravují v záložce Půdorys. Nové věci se přidávají do této místnosti.</small>
-        </section>
-      )}
-      {obstacle && <ObstacleProperties obstacle={obstacle} />}
-      {furniture && <FurnitureProperties furniture={furniture} />}
-      {electric && <ElectricProperties point={electric} />}
-      {cable && <CableProperties cable={cable} />}
+      {/* Každá záložka upravuje jen svou vrstvu; vybranou věc z jiné záložky panel jen pojmenuje a řekne, kde se upravuje. */}
+      {room && (canEditInMode('room', mode)
+        ? <RoomProperties room={room} />
+        : <LockedNote title={`Místnost: ${room.name}`} where='Půdorys' extra="Nové věci se přidávají do této místnosti." />)}
+      {obstacle && (canEditInMode('obstacle', mode)
+        ? <ObstacleProperties obstacle={obstacle} />
+        : <LockedNote title={OBSTACLE_KINDS[obstacle.kind].label} where='Půdorys' />)}
+      {furniture && (canEditInMode('furniture', mode)
+        ? <FurnitureProperties furniture={furniture} />
+        : <LockedNote title={FURNITURE_KINDS[furniture.kind].label} where='Vybavení' />)}
+      {electric && (canEditInMode('electric', mode)
+        ? <ElectricProperties point={electric} />
+        : <LockedNote title={ELECTRIC_KINDS[electric.kind].label} where='Elektro' />)}
+      {cable && (canEditInMode('cable', mode)
+        ? <CableProperties cable={cable} />
+        : <LockedNote title="Kabel" where='Elektro' />)}
 
       {mode === 'plan' && <FlatSummary />}
       {mode === 'electro' && <ElectroReport />}

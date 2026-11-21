@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { redo, undo } from './store/history'
 import { useProjectStore } from './store/projectStore'
-import { useUiStore } from './store/uiStore'
+import { canEditInMode, useUiStore } from './store/uiStore'
 
 /** Ctrl+Z / Ctrl+Y (nebo Ctrl+Shift+Z) = zpět/znovu, Delete maže vybrané, Esc ruší výběr a kreslení. */
 export function useKeyboardShortcuts() {
@@ -19,18 +19,16 @@ export function useKeyboardShortcuts() {
       } else if ((e.ctrlKey || e.metaKey) && key === 'y') {
         e.preventDefault()
         redo()
-      } else if (key === 'r' && ui.selection?.type === 'furniture') {
+      } else if (key === 'r' && ui.selection?.type === 'furniture' && canEditInMode('furniture', ui.mode)) {
         useProjectStore.getState().rotateFurniture(ui.selection.id, e.shiftKey ? -90 : 90)
       } else if (e.key === 'Escape') {
         ui.select(null)
         ui.setCableStart(null)
         ui.setTool('select')
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selection) {
+        if (!canEditInMode(ui.selection.type, ui.mode)) return          // věc se maže jen v záložce, která ji upravuje
         const project = useProjectStore.getState()
-        if (ui.selection.type === 'room') {
-          if (ui.mode !== 'plan') return          // místnosti se mažou jen v záložce Půdorys
-          project.deleteRoom(ui.selection.id)
-        }
+        if (ui.selection.type === 'room') project.deleteRoom(ui.selection.id)
         else if (ui.selection.type === 'furniture') project.deleteFurniture(ui.selection.id)
         else if (ui.selection.type === 'electric') project.deleteElectric(ui.selection.id)
         else if (ui.selection.type === 'cable') project.deleteCable(ui.selection.id)
