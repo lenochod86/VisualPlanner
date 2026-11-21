@@ -4,6 +4,7 @@ import type { Placed } from '../../domain/types'
 import { cablePolyline } from '../../geometry/electric'
 import { bbox } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
+import { useFurnitureIssues } from '../../store/useFurnitureIssues'
 import { useWallModel } from '../../store/useWallModel'
 import { useUiStore } from '../../store/uiStore'
 import { CableView } from './CableView'
@@ -30,6 +31,7 @@ export function Plan2D() {
   const hoveredWall = useUiStore(s => s.hoveredWall)
   const cableStart = useUiStore(s => s.cableStart)
   const walls = useWallModel()
+  const issues = useFurnitureIssues()
 
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -85,6 +87,7 @@ export function Plan2D() {
             <FurnitureView
               key={item.id} furniture={item} room={room} walls={walls} k={viewport.k}
               selected={selection?.type === 'furniture' && selection.id === item.id}
+              issue={issues.some(i => i.furnitureId === item.id)}
               onPointerDown={e => interaction.beginItemDrag(e, { collection: 'furniture', id: item.id })}
             />
           )

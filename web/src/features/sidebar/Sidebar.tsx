@@ -6,6 +6,7 @@ import { ElectroReport } from './ElectroReport'
 import { ElectroPanel } from './ElectroPanel'
 import { FlatSummary } from './FlatSummary'
 import { FurnitureProperties } from './FurnitureProperties'
+import { FurnitureIssues } from './FurnitureIssues'
 import { FurniturePanel } from './FurniturePanel'
 import { ObstacleProperties } from './ObstacleProperties'
 import { RoomProperties } from './RoomProperties'
@@ -28,6 +29,7 @@ export function Sidebar() {
     <aside className="sidebar">
       {mode === 'plan' && <RoomsPanel />}
       {mode === 'equipment' && <FurniturePanel />}
+      {mode === 'equipment' && <FurnitureIssues />}
       {mode === 'electro' && <ElectroPanel />}
 
       {room && <RoomProperties room={room} />}

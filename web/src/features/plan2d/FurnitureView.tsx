@@ -9,12 +9,14 @@ interface Props {
   room: Room
   walls: WallModel
   selected: boolean
+  /** Má kolizi (přesah do zdi, překrytí…)? Kreslí se červeně. */
+  issue: boolean
   k: number
   onPointerDown: (e: PointerEvent) => void
 }
 
 /** Symbol nábytku v půdorysu: obdélník s tmavším pruhem na zadní straně (u zdi) a názvem. */
-export function FurnitureView({ furniture, room, walls, selected, k, onPointerDown }: Props) {
+export function FurnitureView({ furniture, room, walls, selected, issue, k, onPointerDown }: Props) {
   const spec = FURNITURE_KINDS[furniture.kind]
   const p = resolvePlacement(furniture, room, walls)
   const { w, d } = furniture
@@ -23,8 +25,8 @@ export function FurnitureView({ furniture, room, walls, selected, k, onPointerDo
   return (
     <g onPointerDown={onPointerDown} style={{ cursor: 'grab' }}>
       <g transform={`translate(${p.x} ${p.y}) rotate(${(p.rot * 180) / Math.PI})`}>
-        <rect x={-w / 2} y={-d / 2} width={w} height={d} fill={spec.color}
-          stroke={selected ? '#2f6fed' : '#555'} strokeWidth={(selected ? 2 : 1) * k} />
+        <rect x={-w / 2} y={-d / 2} width={w} height={d} fill={issue ? '#f8c9c6' : spec.color}
+          stroke={selected ? '#2f6fed' : issue ? '#d32f2f' : '#555'} strokeWidth={(selected || issue ? 2 : 1) * k} />
         <rect x={-w / 2} y={-d / 2} width={w} height={Math.min(8, d * 0.2)} fill="#0003" pointerEvents="none" />
       </g>
       {showLabel && (

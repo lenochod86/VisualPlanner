@@ -1,6 +1,7 @@
 import { FURNITURE_KINDS } from '../../domain/furnitureCatalog'
 import type { Furniture } from '../../domain/types'
 import { useProjectStore } from '../../store/projectStore'
+import { useFurnitureIssues } from '../../store/useFurnitureIssues'
 import { useUiStore } from '../../store/uiStore'
 import { NumberField } from './NumberField'
 import { PlacedFields } from './PlacedFields'
@@ -13,10 +14,12 @@ export function FurnitureProperties({ furniture }: { furniture: Furniture }) {
   const deleteFurniture = useProjectStore(s => s.deleteFurniture)
   const select = useUiStore(s => s.select)
   const onWall = !!furniture.attach
+  const issues = useFurnitureIssues().filter(i => i.furnitureId === furniture.id)
 
   return (
     <section>
       <h2>{FURNITURE_KINDS[furniture.kind].label}</h2>
+      {issues.map((issue, i) => <small key={i} className="error">⚠ {issue.message}</small>)}
       <PlacedFields item={furniture} onChange={patch => updateFurniture(furniture.id, patch)} />
 
       {onWall

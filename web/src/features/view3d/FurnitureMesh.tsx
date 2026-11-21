@@ -12,6 +12,8 @@ interface Props {
   /** 0-1; menší hodnota udělá nábytek průhledný (aby šlo vidět za něj). */
   opacity: number
   selected: boolean
+  /** Má kolizi? Kolem kusu se pak kreslí červený rámeček. */
+  issue: boolean
   /** Stisk myši na nábytku (výběr a začátek přesouvání); dostává jeho střed v půdorysu. */
   onGrab: (e: ThreeEvent<PointerEvent>, center: Pt) => void
 }
@@ -20,11 +22,11 @@ interface Props {
  * Kus nábytku jako skupina těles. Lokální osy skupiny: x = šířka, z = hloubka (+z míří od zdi do místnosti),
  * stejně jako v půdorysu, takže otočení kolem Y o -rot sedí na 2D symbol.
  */
-export function FurnitureMesh({ furniture: f, room, walls, opacity, selected, onGrab }: Props) {
+export function FurnitureMesh({ furniture: f, room, walls, opacity, selected, issue, onGrab }: Props) {
   const p = resolvePlacement(f, room, walls)
   return (
     <group position={[p.x, f.elev, p.y]} rotation={[0, -p.rot, 0]} onPointerDown={e => onGrab(e, { x: p.x, y: p.y })}>
-      {selected && <SelectionBox size={[f.w, f.h, f.d]} center={[0, f.h / 2, 0]} />}
+      {(selected || issue) && <SelectionBox size={[f.w, f.h, f.d]} center={[0, f.h / 2, 0]} color={selected ? '#2f6fed' : '#d32f2f'} />}
       {FURNITURE_MODELS[f.kind].map((part, i) => {
         const partOpacity = (part.opacity ?? 1) * opacity
         const size: [number, number, number] = [

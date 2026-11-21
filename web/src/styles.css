@@ -94,3 +94,9 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .report-table th:not(:first-child), .report-table td:not(:first-child) { text-align: right; white-space: nowrap; }
 .report-table .total-row td { font-weight: 600; border-bottom: none; }
 .wall-row .wall-material { grid-column: 1 / -1; font-size: 11px; padding: 1px 2px; color: #445; }
+
+/* ---- kontrola rozmístění ---- */
+.sidebar .ok { color: #2e7d32; }
+.issue-list { list-style: none; margin: 0; padding: 0; }
+.issue-list button { width: 100%; text-align: left; margin-bottom: 3px; font-size: 12px; border-color: #f0b9b5; background: #fdf1f0; }
+.sidebar small.error { color: #b3261e; }

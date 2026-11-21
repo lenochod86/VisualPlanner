@@ -4,6 +4,7 @@ import { cablePolyline } from '../../geometry/electric'
 import { bbox } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
+import { useFurnitureIssues } from '../../store/useFurnitureIssues'
 import { useWallModel } from '../../store/useWallModel'
 import { CeilingMesh } from './CeilingMesh'
 import { CableMesh, ElectricPointMesh } from './ElectricMesh'
@@ -27,6 +28,7 @@ function Scene() {
   const ceilingView = useUiStore(s => s.ceilingView)
   const walls = useWallModel()
   const grab = useDrag3D()
+  const issues = useFurnitureIssues()
 
   const points = rooms.flatMap(r => r.pts)
   const b = points.length ? bbox(points) : { minX: 0, maxX: 400, minY: 0, maxY: 300 }
@@ -52,6 +54,7 @@ function Scene() {
           <FurnitureMesh
             key={item.id} furniture={item} room={room} walls={walls} opacity={furnitureOpacity}
             selected={isSelected('furniture', item.id)}
+            issue={issues.some(i => i.furnitureId === item.id)}
             onGrab={(e, center) => grab(e, { collection: 'furniture', id: item.id }, center)}
           />
         )
