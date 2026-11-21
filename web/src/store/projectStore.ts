@@ -13,7 +13,7 @@ import type {
 import { autoRoute, cablePolyline, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
 import { clamp } from '../geometry/math'
-import { rotatePatch } from '../geometry/placement'
+import { freeRotationPatch, resolvePlacement } from '../geometry/placement'
 import { bbox, edgeInfo, setEdgeLength, translatePts } from '../geometry/polygon'
 import { rectPts, shapePts } from '../geometry/shapes'
 import { applyWallThickness, buildWallModel } from '../geometry/walls'
@@ -41,8 +41,10 @@ interface ProjectState extends Project {
   /** Přidá nábytek do místnosti (připnutý uprostřed první stěny). Vrací id. */
   addFurniture: (kind: FurnitureKind, roomId: string) => string | null
   updateFurniture: (id: string, patch: Partial<Furniture>) => void
-  /** Otočí o 90°: u nábytku na zdi prohodí šířku a hloubku, volný natočí. */
-  rotateFurniture: (id: string) => void
+  /** Otočí nábytek o `degrees` (výchozí 90°) kolem jeho středu; stojí-li u zdi, uvolní se z ní a zůstane na místě. */
+  rotateFurniture: (id: string, degrees?: number) => void
+  /** Nastaví natočení nábytku na libovolný úhel ve stupních (uvolní ho ze zdi, zůstane na místě). */
+  setFurnitureRotation: (id: string, degrees: number) => void
   deleteFurniture: (id: string) => void
 
   /** Přidá elektrický bod do místnosti (nástěnný uprostřed první stěny, světlo uprostřed místnosti). */
@@ -196,9 +198,22 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   updateFurniture: (id, patch) =>
     set(s => ({ furniture: s.furniture.map(f => (f.id === id ? { ...f, ...patch } : f)) })),
 
-  rotateFurniture: id => {
-    const item = get().furniture.find(f => f.id === id)
-    if (item) get().updateFurniture(id, rotatePatch(item))
+  rotateFurniture: (id, degrees = 90) => {
+    const { furniture, rooms } = get()
+    const item = furniture.find(f => f.id === id)
+    if (!item) return
+    const room = rooms.find(r => r.id === item.roomId)
+    const current = room ? resolvePlacement(item, room, buildWallModel(rooms)).rot : item.rot
+    get().setFurnitureRotation(id, (current * 180) / Math.PI + degrees)
+  },
+
+  setFurnitureRotation: (id, degrees) => {
+    const { furniture, rooms } = get()
+    const item = furniture.find(f => f.id === id)
+    if (!item) return
+    const patch = freeRotationPatch(item, rooms.find(r => r.id === item.roomId), buildWallModel(rooms), (degrees * Math.PI) / 180)
+    // ručně natočený kus se už nepřichytává ke zdi, jinak by ho další tažení vrátilo do původní polohy u zdi
+    get().updateFurniture(id, { ...patch, snapToWalls: false })
   },
 
   deleteFurniture: id => set(s => ({ furniture: s.furniture.filter(f => f.id !== id) })),

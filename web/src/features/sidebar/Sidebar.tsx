@@ -43,7 +43,7 @@ export function Sidebar() {
 
       <small className="hint">
         Táhni stěnu = změna rozměru. Klik na číslo = zadání rozměru. Kolečko = zoom, tažení pozadí = posun.
-        Nábytek a prvky jdou tahat i ve 3D. Delete = smazat vybrané, R = otočit nábytek, Esc = zrušit výběr,
+        Nábytek a prvky jdou tahat i ve 3D. Delete = smazat vybrané, R = otočit nábytek (Shift+R opačně), Esc = zrušit výběr,
         Ctrl+Z / Ctrl+Y = zpět / znovu.
       </small>
     </aside>

@@ -115,3 +115,4 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .plan-panel .pane-title { left: 40px; }
 .view3d-panel.open.wide { width: auto; flex: 1; }   /* půdorys je sbalený: 3D dostane zbytek šířky */
 .panel-toggle:disabled { opacity: .35; cursor: default; }
+.check { display: flex; gap: 6px; align-items: center; margin: 6px 0 2px; font-size: 13px; }

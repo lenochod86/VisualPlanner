@@ -2,7 +2,7 @@ import { DEFAULT_CEILING } from '../domain/materials'
 import { describe, expect, it } from 'vitest'
 import type { Placed, Room } from '../domain/types'
 import {
-  dragFurniturePatch, resizeAlongWall, resolvePlacement, rotatePatch, roomAt,
+  dragFurniturePatch, freeRotationPatch, resizeAlongWall, resolvePlacement, roomAt,
 } from './placement'
 import { shapePts } from './shapes'
 import { buildWallModel } from './walls'
@@ -55,9 +55,17 @@ describe('ostatní', () => {
     expect(roomAt(rooms, { x: 450, y: 100 })).toBeUndefined()   // zeď/mezera
   })
 
-  it('otočení na zdi prohodí šířku a hloubku, volné se natočí o 90°', () => {
-    expect(rotatePatch(onTopWall)).toEqual({ w: 90, d: 200 })
-    expect(rotatePatch(sofa).rot).toBeCloseTo(Math.PI / 2)
+  it('volné otočení uvolní věc ze zdi, nechá ji na místě a natočí', () => {
+    const patch = freeRotationPatch(onTopWall, A, walls, Math.PI / 2)
+    expect(patch.attach).toBeUndefined()
+    expect(patch.x).toBeCloseTo(200)
+    expect(patch.y).toBeCloseTo(45)                 // stála 45 cm od horní zdi (půl hloubky gauče)
+    expect(patch.rot).toBeCloseTo(Math.PI / 2)
+  })
+
+  it('kus s vypnutým přichytáváním se u zdi nepřichytí a drží natočení', () => {
+    const patch = dragFurniturePatch({ ...sofa, rot: 1, snapToWalls: false }, rooms, walls, { x: 200, y: 50 })
+    expect(patch).toMatchObject({ attach: undefined, x: 200, y: 50, rot: 1 })
   })
 
   it('tažení za konec nechá druhý konec na místě a hlídá minimum', () => {

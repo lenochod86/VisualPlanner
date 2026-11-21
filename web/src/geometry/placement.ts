@@ -63,25 +63,34 @@ export function dragObstaclePatch(room: Room, cursor: Pt, inWall: boolean): Part
   return { attach: undefined, x: snap(cursor.x), y: snap(cursor.y) }
 }
 
+/** Nábytek: věc v místnosti, která se navíc může (nemusí) přichytávat ke zdi. */
+export type Snappable = Placed & { snapToWalls?: boolean }
+
 /**
  * Změna nábytku při tažení: přejde do místnosti pod kurzorem a jeho zadní hrana se přichytí ke zdi,
  * když je blíž než FURNITURE_WALL_SNAP. Jinak stojí volně a drží natočení, které měl.
+ * Kus s vypnutým přichytáváním (uživatel ho volně otočil) se ke zdi nepřichytává nikdy.
  */
-export function dragFurniturePatch(item: Placed, rooms: Room[], walls: WallModel, cursor: Pt): Partial<Placed> {
+export function dragFurniturePatch(item: Snappable, rooms: Room[], walls: WallModel, cursor: Pt): Partial<Placed> {
   const current = rooms.find(r => r.id === item.roomId)
   const room = roomAt(rooms, cursor) ?? current
   if (!room) return {}
   const near = nearestEdge(room.pts, cursor)
-  if (near.dist < item.d / 2 + FURNITURE_WALL_SNAP) {
+  if (item.snapToWalls !== false && near.dist < item.d / 2 + FURNITURE_WALL_SNAP) {
     return { roomId: room.id, attach: { edge: near.edge, along: snap(near.along) } }
   }
   const rot = current ? resolvePlacement(item, current, walls).rot : item.rot
   return { roomId: room.id, attach: undefined, x: snap(cursor.x), y: snap(cursor.y), rot }
 }
 
-/** Otočení o 90°: u věci na zdi se prohodí šířka s hloubkou (zůstane u zdi), volná se natočí. */
-export const rotatePatch = (item: Placed): Partial<Placed> =>
-  item.attach ? { w: item.d, d: item.w } : { rot: item.rot + Math.PI / 2 }
+/**
+ * Volné natočení věci na úhel `rot` (rad): věc se uvolní ze zdi, zůstane na místě, kde stála, a natočí se.
+ * (Přichytávání ke zdi se vypíná zvlášť, viz `Snappable` - jinak by ji tažení vrátilo ke zdi.)
+ */
+export function freeRotationPatch(item: Placed, room: Room | undefined, walls: WallModel, rot: number): Partial<Placed> {
+  const here = room ? resolvePlacement(item, room, walls) : { x: item.x, y: item.y }
+  return { attach: undefined, x: here.x, y: here.y, rot }
+}
 
 /**
  * Tažení za konec věci podél zdi: tažený konec se posune na polohu `t` (cm od začátku stěny),

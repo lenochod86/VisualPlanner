@@ -20,7 +20,7 @@ export function useKeyboardShortcuts() {
         e.preventDefault()
         redo()
       } else if (key === 'r' && ui.selection?.type === 'furniture') {
-        useProjectStore.getState().rotateFurniture(ui.selection.id)
+        useProjectStore.getState().rotateFurniture(ui.selection.id, e.shiftKey ? -90 : 90)
       } else if (e.key === 'Escape') {
         ui.select(null)
         ui.setCableStart(null)

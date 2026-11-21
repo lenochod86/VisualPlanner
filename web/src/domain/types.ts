@@ -61,7 +61,11 @@ export interface Obstacle extends Placed { kind: ObstacleKind }
 export type FurnitureKind =
   | 'bed-single' | 'bed-double' | 'sofa' | 'table' | 'chair' | 'tv' | 'wardrobe' | 'kitchen-unit'
   | 'wc-free' | 'wc-wall' | 'shower' | 'bathtub' | 'sink'
-export interface Furniture extends Placed { kind: FurnitureKind }
+export interface Furniture extends Placed {
+  kind: FurnitureKind
+  /** Přichytává se tažení ke zdi? Výchozí ano; po volném otočení se vypne (ať si kus drží natočení). */
+  snapToWalls?: boolean
+}
 
 /** Celý uložený projekt (to, co jde na server / do souboru). */
 export interface Project {

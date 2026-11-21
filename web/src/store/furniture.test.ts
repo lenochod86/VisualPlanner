@@ -32,11 +32,24 @@ describe('nábytek ve store', () => {
     expect(state().furniture[0]).toMatchObject({ x: 150, y: 120 })
   })
 
-  it('otočení na zdi prohodí rozměry a jde vrátit zpět', () => {
+  it('otočení postele u zdi ji volně natočí na místě, rozměry nechá a jde vrátit zpět', () => {
     const id = state().addFurniture('bed-single', roomId)!
+    const before = state().furniture[0]
     state().rotateFurniture(id)
-    expect([state().furniture[0].w, state().furniture[0].d]).toEqual([200, 80])
+    const bed = state().furniture[0]
+    expect([bed.w, bed.d]).toEqual([80, 200])          // rozměry zůstaly
+    expect(bed.attach).toBeUndefined()                  // uvolněná ze zdi
+    expect(bed.snapToWalls).toBe(false)
+    expect(bed.rot).toBeCloseTo(Math.PI / 2)
     undo()
-    expect([state().furniture[0].w, state().furniture[0].d]).toEqual([80, 200])
+    expect(state().furniture[0]).toEqual(before)
+  })
+
+  it('natočení jde zadat na libovolný úhel a Shift+R vrací zpět', () => {
+    const id = state().addFurniture('sofa', roomId)!
+    state().setFurnitureRotation(id, 30)
+    expect(state().furniture[0].rot).toBeCloseTo((30 * Math.PI) / 180)
+    state().rotateFurniture(id, -90)
+    expect(state().furniture[0].rot).toBeCloseTo((-60 * Math.PI) / 180)
   })
 })
