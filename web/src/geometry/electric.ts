@@ -121,10 +121,11 @@ const WIRING_GROUPS: { kinds: ElectricKind[]; type: CableType; label: string }[]
 ]
 
 /**
- * Navrhne kabely pro body, které zatím žádný kabel nemají: každý se napojí na nejbližší už napojený bod
- * stejné skupiny (zásuvky mezi sebou, světla mezi sebou). Když ve skupině není napojený žádný bod,
- * začne se od prvního a ostatní se k němu řetězí podle nejbližšího souseda. Okruh se přebírá od souseda,
- * jinak vznikne nový ("Zásuvky", "Zásuvky 2" …). Hotové kabely se nemění.
+ * Navrhne kabely pro body, které zatím žádný kabel nemají. Primárně se napojuje k ROZVADĚČI: ten je kořenem
+ * sítě, takže se k němu připojí nejbližší bod a od něj se řetězí další (zásuvky se zásuvkami, světla se světly,
+ * vždy na nejbližší už napojený bod nebo rozvaděč). Každý kabel vedoucí přímo z rozvaděče začíná nový okruh
+ * ("Zásuvky", "Zásuvky 2" …), řetězené body převezmou okruh souseda. Bez rozvaděče se začne od prvního bodu
+ * skupiny. Hotové kabely se nemění.
  */
 export function planAutoConnections(project: { rooms: Room[]; electric: ElectricPoint[]; cables: Cable[] }): PlannedCable[] {
   const { rooms, electric, cables } = project
@@ -152,10 +153,14 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
   for (const group of WIRING_GROUPS) {
     const points = electric.filter(p => group.kinds.includes(p.kind))
     const connected = (p: ElectricPoint) => cables.some(c => c.fromId === p.id || c.toId === p.id)
-    const network = points.filter(connected)
+    const boards = electric.filter(p => p.kind === 'board')
+    const network = [...boards, ...points.filter(connected)]       // rozvaděč je vždy součástí sítě
     const pending = points.filter(p => !connected(p))
-    if (points.length < 2 || pending.length === 0) continue
-    if (network.length === 0) network.push(pending.shift()!)     // nikdo není napojený: začneme prvním bodem
+    if (pending.length === 0) continue
+    if (network.length === 0) {                                     // bez rozvaděče a bez napojených: začneme prvním bodem
+      if (pending.length < 2) continue
+      network.push(pending.shift()!)
+    }
 
     while (pending.length > 0) {
       let best: { p: ElectricPoint; q: ElectricPoint; d: number } | null = null
@@ -164,9 +169,11 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
         if (!best || d < best.d) best = { p, q, d }
       }
       const { p, q } = best!
-      const circuit = circuitOf.get(q.id) ?? uniqueCircuit(group.label)
+      // z rozvaděče začíná vždy nový okruh; od bodu se okruh přebírá (a rozvaděči se okruh nepřiřazuje)
+      const circuit = q.kind === 'board' ? uniqueCircuit(group.label) : (circuitOf.get(q.id) ?? uniqueCircuit(group.label))
       planned.push({ fromId: q.id, toId: p.id, type: group.type, circuit })
-      circuitOf.set(p.id, circuit); circuitOf.set(q.id, circuit)
+      circuitOf.set(p.id, circuit)
+      if (q.kind !== 'board') circuitOf.set(q.id, circuit)
       network.push(p)
       pending.splice(pending.indexOf(p), 1)
     }

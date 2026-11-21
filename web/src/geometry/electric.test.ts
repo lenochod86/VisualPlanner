@@ -131,3 +131,35 @@ describe('planAutoConnections', () => {
     expect(plan[0].circuit).toBe('Zásuvky 2')
   })
 })
+
+describe('planAutoConnections: primárně k rozvaděči', () => {
+  const at = (id: string, kind: ElectricPoint['kind'], x: number, y: number): ElectricPoint =>
+    ({ id, roomId: 'A', kind, name: '', x, y, height: 30 })
+  const board: ElectricPoint = { id: 'rozv', roomId: 'A', kind: 'board', name: '', x: 0, y: 0, height: 150, attach: { edge: 3, along: 150 } }
+
+  it('nejbližší bod se napojí na rozvaděč a od něj se řetězí další', () => {
+    const electric = [board, at('far', 'light', 300, 100), at('near', 'light', 60, 100), at('mid', 'light', 180, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    expect(plan.map(c => [c.fromId, c.toId])).toEqual([['rozv', 'near'], ['near', 'mid'], ['mid', 'far']])
+  })
+
+  it('jediná zásuvka se napojí na rozvaděč, ne na nic', () => {
+    const plan = planAutoConnections({ rooms: [A], electric: [board, at('s', 'socket', 100, 0)], cables: [] })
+    expect(plan).toEqual([{ fromId: 'rozv', toId: 's', type: 'cyky-3x2.5', circuit: 'Zásuvky' }])
+  })
+
+  it('řetězené body převezmou okruh, každý nový odvod z rozvaděče má vlastní okruh', () => {
+    const electric = [board, at('s1', 'socket', 60, 100), at('s2', 'socket', 120, 100), at('l1', 'light', 80, 0)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    const socketCircuits = plan.filter(c => c.type === 'cyky-3x2.5').map(c => c.circuit)
+    expect(new Set(socketCircuits).size).toBe(1)               // s1 z rozvaděče, s2 z s1 -> jeden okruh
+    expect(plan.find(c => c.type === 'cyky-3x1.5')!.circuit).toBe('Světla')
+  })
+
+  it('rozvaděč se kvůli napojení nepřepisuje: jeho existující kabely zůstanou', () => {
+    const existing: Cable = { id: 'x', type: 'cyky-3x2.5', circuit: 'Kuchyň', fromId: 'rozv', toId: 's1', via: [] }
+    const electric = [board, at('s1', 'socket', 60, 100), at('s2', 'socket', 120, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [existing] })
+    expect(plan).toEqual([{ fromId: 's1', toId: 's2', type: 'cyky-3x2.5', circuit: 'Kuchyň' }])   // s2 je blíž k s1 než k rozvaděči
+  })
+})

@@ -46,7 +46,7 @@ export function ElectroPanel() {
         </button>
         <button
           disabled={electricCount === 0}
-          title="Napojí zásuvky na zásuvky a světla na světla (jen body bez kabelu) a přetrasuje všechny kabely; ruční úpravy tras zahodí"
+          title="Napojí nenapojené zásuvky a světla (k rozvaděči, pak řetězově na nejbližší) a přetrasuje všechny kabely; ruční úpravy tras zahodí"
           onClick={() => {
             beginGesture()                         // celé napojení a přetrasování je jeden krok v undo
             const { added, rerouted } = autoConnectAndRerouteAll()

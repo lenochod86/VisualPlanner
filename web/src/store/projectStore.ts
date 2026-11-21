@@ -60,7 +60,7 @@ interface ProjectState extends Project {
   /** Zahodí ruční úpravy a vytvoří trasu znovu automaticky. */
   rerouteCable: (id: string) => void
   /**
-   * "Přetrasovat vše": napojí zásuvky na zásuvky a světla na světla (jen body bez kabelu) a pak znovu
+   * "Přetrasovat vše": napojí nenapojené zásuvky a světla (primárně k rozvaděči, pak na nejbližší bod) a pak znovu
    * automaticky přetrasuje všechny kabely. Vrací počet nově vytvořených kabelů a počet přetrasovaných.
    */
   autoConnectAndRerouteAll: () => { added: number; rerouted: number }
