@@ -6,7 +6,7 @@
 import { FURNITURE_WALL_SNAP, MIN_OBSTACLE_WIDTH, OBSTACLE_WALL_SNAP } from '../config'
 import type { Placed, Pt, Room } from '../domain/types'
 import { clamp, snap } from './math'
-import { containsPoint, edgeInfo, type EdgeInfo } from './polygon'
+import { containsPoint, edgeInfo, polygonArea, type EdgeInfo } from './polygon'
 import type { WallModel } from './walls'
 
 export interface Placement { x: number; y: number; rot: number }
@@ -74,8 +74,20 @@ export function nearestEdge(pts: Pt[], p: Pt): { edge: number; dist: number; alo
   return best
 }
 
-/** Místnost, ve které leží bod (vnitřek, bez zdí). */
-export const roomAt = (rooms: Room[], p: Pt): Room | undefined => rooms.find(r => containsPoint(r.pts, p))
+/**
+ * Místnost, ve které leží bod (vnitřek, bez zdí). Leží-li bod v několika místnostech (kuchyňský kout uvnitř
+ * obýváku), vrátí nejvnitřnější, tedy tu s nejmenší plochou, aby šlo věci přichytávat i ke stěnám kouta.
+ */
+export function roomAt(rooms: Room[], p: Pt): Room | undefined {
+  let best: Room | undefined
+  let bestArea = Infinity
+  for (const room of rooms) {
+    if (!containsPoint(room.pts, p)) continue
+    const area = polygonArea(room.pts)
+    if (area < bestArea) { best = room; bestArea = area }
+  }
+  return best
+}
 
 /** Změna překážky při tažení kurzorem: okna/dveře jsou vždy na zdi, ostatní se ke zdi přichytí z blízka. */
 export function dragObstaclePatch(room: Room, cursor: Pt, inWall: boolean): Partial<Placed> {

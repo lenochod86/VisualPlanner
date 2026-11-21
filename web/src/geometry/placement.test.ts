@@ -4,6 +4,7 @@ import type { Placed, Room } from '../domain/types'
 import {
   dragFurniturePatch, resizeAlongWall, resolvePlacement, rotatedPatch, roomAt,
 } from './placement'
+import { dragElectricPatch } from './electric'
 import { shapePts } from './shapes'
 import { buildWallModel } from './walls'
 
@@ -91,5 +92,23 @@ describe('ostatní', () => {
     expect(resizeAlongWall(w, 400, 'end', 300)).toEqual({ w: 150, attach: { edge: 0, along: 225 } })
     expect(resizeAlongWall(w, 400, 'end', 100).w).toBe(10)
     expect(resizeAlongWall(w, 400, 'end', 999).attach.along).toBe(275)
+  })
+})
+
+describe('roomAt: vnořené místnosti', () => {
+  const big: Room = { ...A, id: 'big' }
+  const nook: Room = { ...A, id: 'nook', pts: shapePts('rect', 100, 100, 100, 100) }   // kout uvnitř velké místnosti
+
+  it('bod uvnitř kouta patří koutu (nejmenší místnost), jinde velké místnosti', () => {
+    expect(roomAt([big, nook], { x: 150, y: 150 })?.id).toBe('nook')
+    expect(roomAt([nook, big], { x: 150, y: 150 })?.id).toBe('nook')        // na pořadí nezáleží
+    expect(roomAt([big, nook], { x: 300, y: 250 })?.id).toBe('big')
+  })
+
+  it('tažený vypínač se přichytí ke stěně kouta, když je kurzor uvnitř kouta', () => {
+    const point = { id: 'v', roomId: 'big', kind: 'switch' as const, name: '', x: 0, y: 0, height: 105, attach: { edge: 0, along: 50 } }
+    const patch = dragElectricPatch(point, [big, nook], { x: 190, y: 150 })   // těsně u pravé stěny kouta (x = 200)
+    expect(patch.roomId).toBe('nook')
+    expect(patch.attach?.edge).toBe(1)                                        // pravá stěna kouta
   })
 })
