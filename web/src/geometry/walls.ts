@@ -147,3 +147,21 @@ export function outerPolygon(pts: Pt[], thicknesses: number[]): Pt[] {
     return intersect(prev.point, prev.dir, cur.point, cur.dir)
   })
 }
+
+/**
+ * Půdorys zdi jedné stěny: čtyřúhelník mezi vnitřním a vnějším lícem.
+ * Konec zdi je v pokosu jen tam, kde na něj navazuje další viditelná stěna téže místnosti;
+ * u skryté sousední stěny je konec rovný (kolmý), jinak by zůstal šikmý řez do prázdna.
+ */
+export function wallQuad(pts: Pt[], thicknesses: number[], visible: boolean[], i: number): Pt[] {
+  const n = pts.length
+  const j = (i + 1) % n, prev = (i + n - 1) % n
+  const outer = outerPolygon(pts, thicknesses)
+  const e = edgeInfo(pts, i)
+  const squareEnd = (p: Pt): Pt => ({ x: p.x + e.outward.x * thicknesses[i], y: p.y + e.outward.y * thicknesses[i] })
+  return [
+    pts[i], pts[j],
+    visible[j] ? outer[j] : squareEnd(pts[j]),
+    visible[prev] ? outer[i] : squareEnd(pts[i]),
+  ]
+}

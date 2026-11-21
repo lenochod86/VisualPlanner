@@ -15,7 +15,7 @@ import * as THREE from 'three'
 import type { Pt, Room } from '../../domain/types'
 import type { Opening } from '../../geometry/openings'
 import { edgeInfo } from '../../geometry/polygon'
-import { outerPolygon, type WallModel } from '../../geometry/walls'
+import { wallQuad, type WallModel } from '../../geometry/walls'
 
 const toRing = (pts: Pt[]): Ring => pts.map(p => [p.x, p.y])
 
@@ -57,14 +57,14 @@ export function buildWallPieces(rooms: Room[], walls: WallModel): WallPiece[] {
 
   for (const room of rooms) {
     const n = room.pts.length
-    const outer = outerPolygon(room.pts, walls.thicknesses(room))
+    const thicknesses = walls.thicknesses(room)
+    const visible = walls.visibility(room)
     for (let edge = 0; edge < n; edge++) {
       const info = walls.info(room.id, edge)
       if (!info.visible) continue                      // skrytá / průhledná stěna se nekreslí
       // stěna uvnitř jiné místnosti (kuchyňský kout v obýváku) smí ležet v jejím vnitřku, jinak by se odečetla
       const interiors = inners.filter((_, i) => !info.containedIn.includes(rooms[i].id))
-      const next = (edge + 1) % n
-      const quad: Geom = [toRing([room.pts[edge], room.pts[next], outer[next], outer[edge]])]
+      const quad: Geom = [toRing(wallQuad(room.pts, thicknesses, visible, edge))]
       const footprint = polygonClipping.difference(
         quad, ...partnerHalfCuts(room, edge, rooms, walls), ...interiors, ...pieces.map(p => p.footprint),
       )

@@ -8,7 +8,7 @@ import { formatAreaM2 } from '../format'
 import { cablePolyline, electricPosition } from '../geometry/electric'
 import { resolvePlacement, wallThicknessFor } from '../geometry/placement'
 import { bbox, centroid, edgeInfo, polygonArea } from '../geometry/polygon'
-import { buildWallModel, outerPolygon, type WallModel } from '../geometry/walls'
+import { buildWallModel, outerPolygon, wallQuad, type WallModel } from '../geometry/walls'
 
 export interface PlanSvgOptions {
   /** Kóty: délky stěn a celkové vnější rozměry. */
@@ -106,11 +106,11 @@ function floorsSvg(rooms: Room[]): string {
 /** Zdi: čtyřúhelník každé viditelné stěny mezi vnitřním a vnějším lícem (sdílené zdi se překryjí beze změny vzhledu). */
 function wallsSvg(rooms: Room[], walls: WallModel): string {
   return rooms.flatMap(r => {
-    const outer = outerPolygon(r.pts, walls.thicknesses(r))
+    const thicknesses = walls.thicknesses(r)
     const visible = walls.visibility(r)
     return r.pts.map((_, i) => {
       const j = (i + 1) % r.pts.length
-      if (visible[i]) return `<path d="${ring([r.pts[i], r.pts[j], outer[j], outer[i]])}" fill="#3b3f45"/>`
+      if (visible[i]) return `<path d="${ring(wallQuad(r.pts, thicknesses, visible, i))}" fill="#3b3f45"/>`
       // skrytá stěna: jen tenká čárkovaná čára na jejím líci
       return `<line x1="${n(r.pts[i].x)}" y1="${n(r.pts[i].y)}" x2="${n(r.pts[j].x)}" y2="${n(r.pts[j].y)}" stroke="#888" stroke-width="0.15" stroke-dasharray="1.5 1" vector-effect="non-scaling-stroke"/>`
     })

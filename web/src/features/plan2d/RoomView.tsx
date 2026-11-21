@@ -3,7 +3,7 @@ import { ROOM_TYPES } from '../../domain/catalog'
 import type { Pt, Room } from '../../domain/types'
 import { formatAreaM2 } from '../../format'
 import { centroid, edgeInfo, polygonArea } from '../../geometry/polygon'
-import { outerPolygon } from '../../geometry/walls'
+import { wallQuad } from '../../geometry/walls'
 import { DimensionLabel } from './DimensionLabel'
 
 interface Props {
@@ -26,9 +26,7 @@ export function RoomView({ room, thicknesses, visibleEdges, selected, highlighte
   const points = room.pts.map(p => `${p.x},${p.y}`).join(' ')
   const label = centroid(room.pts)
   // zeď každé viditelné stěny = čtyřúhelník mezi vnitřním a vnějším lícem (rohy v pokosu)
-  const outer = outerPolygon(room.pts, thicknesses)
-  const n = room.pts.length
-  const walls = room.pts.map((_, i) => (visibleEdges[i] ? ring([room.pts[i], room.pts[(i + 1) % n], outer[(i + 1) % n], outer[i]]) : '')).join('')
+  const walls = room.pts.map((_, i) => (visibleEdges[i] ? ring(wallQuad(room.pts, thicknesses, visibleEdges, i)) : '')).join('')
   const highlighted = highlightedEdge === null ? null : edgeInfo(room.pts, highlightedEdge)
 
   return (
