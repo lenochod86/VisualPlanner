@@ -87,6 +87,49 @@ function shelf(): ModelPart[] {
   ]
 }
 
+/** Kuchyňská linka se sporákem (vlevo) a dřezem (vpravo); ostatní skříňky jsou jen dvířka a zásuvky. */
+function kitchenUnit(): ModelPart[] {
+  const chrome = '#c9ced3', dark = '#2a2d31'
+  const parts: ModelPart[] = [
+    box([0, 1], [0, 0.08], [0.05, 0.95], '#2f2f2f'),                    // sokl
+    box([0, 1], [0.08, 0.95], [0, 0.99], '#e8e4dc'),                    // skříňky
+    box([0, 1], [0.95, 1], [0, 1], '#4a4a4a'),                          // pracovní deska
+  ]
+  // spáry mezi dvířky
+  for (const x of [0.1, 0.35, 0.475, 0.6, 0.75, 0.9]) parts.push(box([x - 0.002, x + 0.002], [0.1, 0.93], [0.985, 1], '#9a958b'))
+  // sporák: trouba s okénkem a madlem, ovladače
+  parts.push(
+    box([0.105, 0.345], [0.12, 0.8], [0.985, 0.998], dark),             // dvířka trouby
+    box([0.125, 0.325], [0.2, 0.66], [0.99, 1], '#0e1114'),             // sklo trouby
+    box([0.13, 0.32], [0.715, 0.735], [0.99, 1], chrome),               // madlo
+    box([0.105, 0.345], [0.82, 0.93], [0.985, 0.998], dark),            // ovládací panel
+  )
+  for (const x of [0.135, 0.185, 0.235, 0.285]) parts.push(cylZ([x - 0.0075, x + 0.0075], [0.845, 0.884], [0.99, 1], chrome))   // ovladače
+  // varná deska: černé sklo a čtyři hořáky (kruhy 14 cm)
+  parts.push(box([0.1, 0.35], [1, 1.01], [0.12, 0.88], '#15171a'))
+  for (const x of [0.1625, 0.2875]) for (const z of [0.32, 0.68]) {
+    parts.push(cyl([x - 0.03, x + 0.03], [1.01, 1.02], [z - 0.12, z + 0.12], '#555b61'))
+    parts.push(cyl([x - 0.018, x + 0.018], [1.02, 1.026], [z - 0.072, z + 0.072], '#26292c'))
+  }
+  // zásuvky uprostřed
+  for (const y of [0.52, 0.8]) parts.push(box([0.38, 0.57], [y, y + 0.015], [0.985, 1], chrome))
+  // dřez: nerezová deska, jedna hluboká miska, kapací plocha s drážkami, odtok
+  parts.push(
+    box([0.58, 0.92], [1, 1.006], [0.08, 0.92], chrome),
+    box([0.6, 0.72], [1.006, 1.012], [0.18, 0.82], '#7f868d'),          // miska
+    cyl([0.645, 0.665], [1.012, 1.016], [0.46, 0.54], '#3a3d42'),       // odtok
+  )
+  for (const x of [0.78, 0.81, 0.84, 0.87]) parts.push(box([x, x + 0.004], [1.006, 1.011], [0.15, 0.85], '#8e959c'))   // drážky kapací plochy
+  // baterie nad dřezem: sloupek, výtok, výtok dolů a páčka
+  parts.push(
+    cyl([0.64, 0.657], [1.006, 1.2], [0.04, 0.107], chrome),
+    cylZ([0.642, 0.655], [1.167, 1.2], [0.06, 0.3], chrome),
+    cyl([0.64, 0.657], [1.12, 1.2], [0.27, 0.33], chrome),
+    box([0.66, 0.69], [1.1, 1.13], [0.05, 0.09], chrome),
+  )
+  return parts
+}
+
 /** Regál: zadní stěna, dva boky, police a řada knih na každé polici. */
 function bookcase(): ModelPart[] {
   const parts: ModelPart[] = [
@@ -148,13 +191,9 @@ export const FURNITURE_MODELS: Record<FurnitureKind, ModelPart[]> = {
     box([0.495, 0.505], [0.02, 0.98], [0.985, 1.001], '#6b5a44'),   // spára mezi dveřmi
   ],
 
-  'kitchen-unit': [
-    box([0, 1], [0, 0.08], [0.05, 0.95], '#2f2f2f'),      // sokl
-    box([0, 1], [0.08, 0.95], [0, 1], '#e8e4dc'),         // skříňky
-    box([0, 1], [0.95, 1], [0, 1], '#4a4a4a'),            // pracovní deska
-    box([0.1, 0.35], [0.95, 1.004], [0.15, 0.85], '#1e1e1e'),   // varná deska
-    box([0.6, 0.85], [0.95, 1.004], [0.15, 0.85], '#c3c7cb'),   // dřez
-  ],
+  // kuchyňská linka (240 × 60 × 90 cm): vlevo sporák (varná deska se čtyřmi hořáky, dole trouba s okénkem a madlem,
+  // nad ní ovladače), uprostřed zásuvky, vpravo dřez s kapací plochou a baterií. Baterie a hořáky trčí nad desku.
+  'kitchen-unit': kitchenUnit(),
 
   'wc-free': [
     cyl([0.05, 0.95], [0, 0.5], [0.32, 1], '#ffffff'),    // mísa
@@ -169,11 +208,24 @@ export const FURNITURE_MODELS: Record<FurnitureKind, ModelPart[]> = {
     cyl([0.1, 0.9], [0.34, 0.37], [0.22, 1], '#f0f0f0'),        // prkénko
   ],
 
+  // sprchový kout (90 × 90 × 200 cm, zády k zadní a levé zdi): vanička s odtokem, sklo v rámu, nástěnná baterie
+  // se dvěma ovladači, tropický déšť (talíř 40 cm na rameni) a ruční sprcha na držáku
   shower: [
-    box([0, 1], [0, 0.05], [0, 1], '#e6e6e6'),                  // vanička
-    box([0.985, 1], [0.05, 1], [0, 1], '#9fd3ee', 0.25),        // sklo vpravo
-    box([0, 1], [0.05, 1], [0.985, 1], '#9fd3ee', 0.25),        // sklo vpředu
-    cyl([0.05, 0.09], [0.4, 1], [0.03, 0.07], '#b8bec6'),       // sprchová tyč
+    box([0, 1], [0, 0.04], [0, 1], '#e6e6e6'),                          // vanička
+    cyl([0.47, 0.53], [0.04, 0.043], [0.47, 0.53], '#8d8f93'),          // odtok
+    box([0.985, 1], [0.04, 1], [0, 1], '#9fd3ee', 0.25),                // sklo vpravo
+    box([0, 1], [0.04, 1], [0.985, 1], '#9fd3ee', 0.25),                // sklo vpředu
+    box([0.985, 1], [0.04, 1], [0.985, 1], '#c9ced3'),                  // rám: svislý profil v rohu
+    box([0, 1], [0.985, 1], [0.985, 1], '#c9ced3'),                     // rám: horní profil vpředu
+    box([0.985, 1], [0.985, 1], [0, 1], '#c9ced3'),                     // rám: horní profil vpravo
+    box([0.32, 0.68], [0.51, 0.57], [0, 0.025], '#c9ced3'),             // baterie: deska na zdi
+    cylZ([0.385, 0.455], [0.525, 0.555], [0.025, 0.085], '#b8bec6'),    // baterie: levý ovladač
+    cylZ([0.545, 0.615], [0.525, 0.555], [0.025, 0.085], '#b8bec6'),    // baterie: pravý ovladač
+    cylZ([0.485, 0.515], [0.9825, 0.996], [0, 0.5], '#c9ced3'),         // rameno dešťové sprchy
+    cyl([0.28, 0.72], [0.955, 0.97], [0.28, 0.72], '#c9ced3'),          // tropický déšť: talíř
+    cyl([0.3, 0.7], [0.952, 0.955], [0.3, 0.7], '#7c828a'),             // tropický déšť: trysky
+    box([0.74, 0.8], [0.64, 0.68], [0, 0.04], '#c9ced3'),               // držák ruční sprchy
+    cyl([0.75, 0.79], [0.55, 0.68], [0.012, 0.052], '#b8bec6'),         // ruční sprcha
   ],
 
   bathtub: [
@@ -181,10 +233,15 @@ export const FURNITURE_MODELS: Record<FurnitureKind, ModelPart[]> = {
     box([0.05, 0.95], [0.85, 1.004], [0.1, 0.9], '#cfe6f2'),    // vnitřek vany
   ],
 
+  // umyvadlo na zdi: keramika, mísa s odtokem a stojánková baterie s výtokem a páčkou (trčí nad hranu)
   sink: [
     box([0, 1], [0, 0.7], [0, 1], '#fafafa'),
-    box([0.1, 0.9], [0.65, 0.705], [0.12, 0.88], '#d7e6ee'),    // mísa
-    cyl([0.46, 0.54], [0.7, 1], [0.04, 0.12], '#b8bec6'),       // baterie
+    box([0.1, 0.9], [0.695, 0.705], [0.12, 0.88], '#d7e6ee'),           // mísa
+    cyl([0.467, 0.533], [0.7, 0.71], [0.505, 0.595], '#8d8f93'),        // odtok
+    cyl([0.46, 0.54], [0.7, 1.15], [0.04, 0.14], '#c9ced3'),            // baterie: sloupek
+    cylZ([0.48, 0.52], [1.0, 1.125], [0.05, 0.3], '#c9ced3'),           // baterie: výtok
+    cyl([0.48, 0.52], [0.9, 1.125], [0.27, 0.33], '#c9ced3'),           // baterie: konec výtoku
+    box([0.54, 0.66], [1.04, 1.08], [0.07, 0.1], '#b8bec6'),            // baterie: páčka
   ],
 
   // pračka a sušička: bílá skříň, kulaté okénko na čelní straně (průměr 38 / 28 cm při výchozích rozměrech)

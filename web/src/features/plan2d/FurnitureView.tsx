@@ -16,6 +16,23 @@ interface Props {
 }
 
 /** Symbol nábytku v půdorysu: obdélník s tmavším pruhem na zadní straně (u zdi) a názvem. */
+/** Sporák (čtyři hořáky) a dřez (miska a kapací plocha) na kuchyňské lince; polohy odpovídají 3D modelu. */
+function KitchenSymbols({ w, d, k }: { w: number; d: number; k: number }) {
+  const x = (f: number) => -w / 2 + f * w, y = (f: number) => -d / 2 + f * d
+  const burner = Math.min(w * 0.06, d * 0.24) / 2
+  return (
+    <g pointerEvents="none">
+      <rect x={x(0.1)} y={y(0.12)} width={w * 0.25} height={d * 0.76} fill="#2b2e32" stroke="#111" strokeWidth={1 * k} />
+      {[0.1625, 0.2875].flatMap(cx => [0.32, 0.68].map(cy => (
+        <circle key={`${cx}-${cy}`} cx={x(cx)} cy={y(cy)} r={burner} fill="none" stroke="#cfd3d8" strokeWidth={1.2 * k} />
+      )))}
+      <rect x={x(0.58)} y={y(0.08)} width={w * 0.34} height={d * 0.84} fill="#dde1e5" stroke="#777" strokeWidth={1 * k} />
+      <rect x={x(0.6)} y={y(0.18)} width={w * 0.12} height={d * 0.64} fill="#aab1b8" stroke="#444" strokeWidth={1 * k} />
+      {[0.78, 0.81, 0.84, 0.87].map(gx => <line key={gx} x1={x(gx)} y1={y(0.15)} x2={x(gx)} y2={y(0.85)} stroke="#9aa1a8" strokeWidth={0.8 * k} />)}
+    </g>
+  )
+}
+
 export function FurnitureView({ furniture, room, walls, selected, issue, k, onPointerDown }: Props) {
   const spec = FURNITURE_KINDS[furniture.kind]
   const p = resolvePlacement(furniture, room, walls)
@@ -39,6 +56,7 @@ export function FurnitureView({ furniture, room, walls, selected, issue, k, onPo
               <rect x={-w / 2} y={-d / 2} width={w} height={Math.min(8, d * 0.2)} fill="#0003" pointerEvents="none" />
             </>
           )}
+        {furniture.kind === 'kitchen-unit' && <KitchenSymbols w={w} d={d} k={k} />}
       </g>
       {showLabel && (
         <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize={11 * k}

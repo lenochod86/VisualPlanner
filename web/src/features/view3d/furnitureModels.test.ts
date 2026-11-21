@@ -13,8 +13,10 @@ describe('katalog nábytku a 3D modely', () => {
       for (const range of [p.x, p.y, p.z]) {
         expect(range[0]).toBeLessThan(range[1])                       // část má kladný rozměr
         expect(range[0]).toBeGreaterThanOrEqual(-0.001)
-        expect(range[1]).toBeLessThanOrEqual(1.03)                    // trčí nejvýš pár milimetrů (madla, okénko)
       }
+      expect(p.x[1]).toBeLessThanOrEqual(1.03)                        // do stran a do hloubky trčí nejvýš pár milimetrů (madla, okénko)
+      expect(p.z[1]).toBeLessThanOrEqual(1.03)
+      expect(p.y[1]).toBeLessThanOrEqual(1.6)                         // baterie, plotny a hořáky trčí nad nominální výšku kusu
     }
     expect(FURNITURE_CATEGORIES[FURNITURE_KINDS[kind].category]).toBeDefined()
   })

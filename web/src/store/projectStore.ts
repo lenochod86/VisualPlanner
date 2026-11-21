@@ -13,6 +13,7 @@ import type {
 import { autoRoute, cablePolyline, electricPosition, PIPE_RUN_HEIGHT, planAutoConnections, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
 import { wallPipeRoute } from '../geometry/pipeRoute'
+import { fixtureWiringPoints } from './fixtureWiring'
 import { clamp } from '../geometry/math'
 import { resolvePlacement, rotatedPatch } from '../geometry/placement'
 import { bbox, edgeInfo, setEdgeLength, translatePts } from '../geometry/polygon'
@@ -219,7 +220,9 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const room = get().rooms.find(r => r.id === roomId)
     if (!room) return null
     const furniture: Furniture = { id: newId(), kind, ...newPlaced(room, FURNITURE_KINDS[kind]) }
-    set(s => ({ furniture: [...s.furniture, furniture] }))
+    // umyvadlo a sprchový kout si berou přípojky SV, TUV a odpad; přidá se to jedním krokem (jedno zpět)
+    const plumbing = fixtureWiringPoints(furniture, room, buildWallModel(get().rooms), newId)
+    set(s => ({ furniture: [...s.furniture, furniture], electric: [...s.electric, ...plumbing] }))
     return furniture.id
   },
 

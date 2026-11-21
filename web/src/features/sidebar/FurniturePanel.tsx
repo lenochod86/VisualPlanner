@@ -36,6 +36,7 @@ export function FurniturePanel() {
         </div>
       ))}
       <small>Přidá se do vybrané místnosti. Tažením (v půdorysu i ve 3D) přichytíte ke zdi; za konce změníte šířku.</small>
+      <small>Umyvadlo a sprchový kout přidají i přípojky studené (SV) a teplé (TUV) vody a odpad (záložka Vodoinstalace).</small>
     </section>
   )
 }
