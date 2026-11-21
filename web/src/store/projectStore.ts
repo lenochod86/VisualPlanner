@@ -12,6 +12,7 @@ import type {
 } from '../domain/types'
 import { autoRoute, cablePolyline, electricPosition, PIPE_RUN_HEIGHT, planAutoConnections, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
+import { wallPipeRoute } from '../geometry/pipeRoute'
 import { clamp } from '../geometry/math'
 import { resolvePlacement, rotatedPatch } from '../geometry/placement'
 import { bbox, edgeInfo, setEdgeLength, translatePts } from '../geometry/polygon'
@@ -305,8 +306,13 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const polyline = cable && cablePolyline({ ...cable, via: [] }, electric, rooms)
     if (!cable || !polyline) return
     const roomOf = (pointId: string) => rooms.find(r => r.id === electric.find(p => p.id === pointId)?.roomId)
+    // potrubí vede po stěnách (nejkratší cesta kolem zdí); kde to nejde, běžnou pravoúhlou trasou
+    const pipeVia = () => {
+      const runZ = PIPE_RUN_HEIGHT[cable.type as PipeType], from = roomOf(cable.fromId), to = roomOf(cable.toId)
+      return (from && to && wallPipeRoute(polyline[0], polyline[1], from, to, runZ, rooms)) || autoRoute(polyline[0], polyline[1], runZ, rooms, false)
+    }
     const via = systemOfLine(cable.type) === 'plumbing'
-      ? autoRoute(polyline[0], polyline[1], PIPE_RUN_HEIGHT[cable.type as PipeType], rooms, false)
+      ? pipeVia()
       : autoRoute(polyline[0], polyline[1], runHeight(roomOf(cable.fromId), roomOf(cable.toId)), rooms)
     get().updateCable(id, { via })
   },
