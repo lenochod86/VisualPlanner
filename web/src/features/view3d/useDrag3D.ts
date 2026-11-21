@@ -12,6 +12,17 @@ const SELECTION_TYPE: Record<DragTarget['collection'], NonNullable<Selection>['t
   electric: 'electric',
 }
 
+/** Pomocná značka objektů, které zakrývají vše za sebou (zdi, plný strop): `userData.occluder`. */
+interface HitLike { distance: number; object: { userData?: { occluder?: boolean } } }
+
+/**
+ * Je objekt, do kterého míří paprsek ve vzdálenosti `distance`, zakrytý? Tj. leží před ním (blíž ke kameře)
+ * nějaký zakrývající objekt. Takový objekt není vidět, a tak ho nejde chytit ani tahat.
+ */
+export function isOccluded(hits: HitLike[], distance: number): boolean {
+  return hits.some(h => h.object.userData?.occluder === true && h.distance < distance - 0.5)
+}
+
 /** Funkce, kterou volá 3D objekt při stisku myši: vybere ho a začne ho tahat po podlaze. */
 export type GrabHandler = (e: ThreeEvent<PointerEvent>, target: DragTarget, center: Pt) => void
 
@@ -27,6 +38,10 @@ export function useDrag3D(): GrabHandler {
 
   return useCallback<GrabHandler>((e, target, center) => {
     if (e.nativeEvent.button !== 0) return        // pravé / prostřední tlačítko patří kameře
+    // Objekt za zdí není vidět, takže ho nechytíme a pohyb myši patří kameře. Výjimkou je elektro v režimu
+    // "rentgen": ten se kreslí přes zdi, tedy je vidět a jde chytit.
+    const seenThroughWalls = target.collection === 'electric' && useUiStore.getState().electroView === 'xray'
+    if (!seenThroughWalls && isOccluded(e.intersections, e.distance)) return
     e.stopPropagation()
     useUiStore.getState().select({ type: SELECTION_TYPE[target.collection], id: target.id })
 
