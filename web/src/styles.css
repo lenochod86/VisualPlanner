@@ -80,7 +80,7 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .status.offline { color: #b3261e; }
 
 /* ---- plátno a 3D: plovoucí ovládací prvky ---- */
-.fit-button { position: absolute; z-index: 3; top: 6px; right: 8px; }
+.plan-tools { position: absolute; z-index: 3; top: 6px; right: 8px; display: flex; align-items: flex-start; gap: 6px; }
 .view-menu { position: absolute; z-index: 3; top: 6px; left: 38px; }
 .view-menu-popover { margin-top: 4px; width: 280px; padding: 8px 12px; background: #fff; border: 1px solid #d5d9df; border-radius: 8px; box-shadow: 0 4px 16px #0002; }
 .view-menu-popover small { display: block; color: #667; margin-top: 4px; }
@@ -100,3 +100,9 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .issue-list { list-style: none; margin: 0; padding: 0; }
 .issue-list button { width: 100%; text-align: left; margin-bottom: 3px; font-size: 12px; border-color: #f0b9b5; background: #fdf1f0; }
 .sidebar small.error { color: #b3261e; }
+
+/* ---- tisk ---- */
+.print-menu { position: relative; }
+.print-popover { position: absolute; right: 0; top: 100%; margin-top: 4px; width: 280px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; background: #fff; border: 1px solid #d5d9df; border-radius: 8px; box-shadow: 0 4px 16px #0002; font-size: 13px; }
+.print-popover label { display: flex; gap: 6px; align-items: center; }
+.print-popover small { color: #667; }
