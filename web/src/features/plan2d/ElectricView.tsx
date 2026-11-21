@@ -1,7 +1,7 @@
 import type { PointerEvent } from 'react'
 import { ELECTRIC_KINDS } from '../../domain/electricCatalog'
 import type { ElectricPoint, Room } from '../../domain/types'
-import { electricPosition } from '../../geometry/electric'
+import { boardSize, electricPosition } from '../../geometry/electric'
 
 interface Props {
   point: ElectricPoint
@@ -20,6 +20,9 @@ export function ElectricView({ point, room, selected, pending, k, onPointerDown 
   const stroke = pending ? '#ff9800' : selected ? '#2f6fed' : '#222'
   const line = { stroke, strokeWidth: (selected || pending ? 2 : 1.2) * k, fill: '#fff' }
   const r = size / 2
+  // rozvaděč se kreslí ve skutečných rozměrech (šířka × hloubka), jen na dálku nejméně jako čitelná značka
+  const board = boardSize(point)
+  const boardW = Math.max(board.w, size), boardD = Math.max(board.d, 8 * k)
 
   return (
     <g
@@ -51,8 +54,8 @@ export function ElectricView({ point, room, selected, pending, k, onPointerDown 
       )}
       {point.kind === 'board' && (
         <>
-          <rect x={-size} y={0} width={size * 2} height={size} {...line} />
-          <text x={0} y={size * 0.55} textAnchor="middle" dominantBaseline="middle" fontSize={size * 0.7}
+          <rect x={-boardW / 2} y={0} width={boardW} height={boardD} {...line} />
+          <text x={0} y={boardD / 2} textAnchor="middle" dominantBaseline="middle" fontSize={Math.min(boardD, boardW) * 0.7}
             fill={stroke} pointerEvents="none">R</text>
         </>
       )}

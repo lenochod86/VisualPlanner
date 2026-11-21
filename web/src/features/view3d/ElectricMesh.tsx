@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { CABLE_TYPES } from '../../domain/electricCatalog'
 import type { Cable, ElectricPoint, Pt, Room } from '../../domain/types'
-import { electricPosition, type Pos3 } from '../../geometry/electric'
+import { boardSize, electricPosition, type Pos3 } from '../../geometry/electric'
 import { SelectionBox } from './SelectionBox'
 import type { ThreeEvent } from '@react-three/fiber'
 
@@ -29,9 +29,12 @@ interface PointProps {
 export function ElectricPointMesh({ point, room, xray, selected, onGrab }: PointProps) {
   const p = electricPosition(point, room)
   const order = xray ? 10 : 0
+  const board = boardSize(point)   // u rozvaděče je počátek skupiny na jeho horní hraně (p.z), skříň visí pod ním
   return (
     <group position={[p.x, p.z, p.y]} rotation={[0, -p.rot, 0]} onPointerDown={e => onGrab(e, { x: p.x, y: p.y })}>
-      {selected && <SelectionBox size={[20, 20, 20]} center={[0, 0, 6]} />}
+      {selected && (point.kind === 'board'
+        ? <SelectionBox size={[board.w, board.h, board.d]} center={[0, -board.h / 2, board.d / 2]} />
+        : <SelectionBox size={[20, 20, 20]} center={[0, 0, 6]} />)}
       {point.kind === 'socket' && (
         <mesh position={[0, 0, 0.8]} renderOrder={order}><boxGeometry args={[8, 8, 1.6]} /><Material color="#ffffff" xray={xray} /></mesh>
       )}
@@ -42,7 +45,9 @@ export function ElectricPointMesh({ point, room, xray, selected, onGrab }: Point
         <mesh position={[0, 0, 0.8]} renderOrder={order}><boxGeometry args={[8, 8, 1.6]} /><Material color="#f1efe6" xray={xray} /></mesh>
       )}
       {point.kind === 'board' && (
-        <mesh position={[0, 0, 6]} renderOrder={order}><boxGeometry args={[40, 60, 12]} /><Material color="#9aa5b1" xray={xray} /></mesh>
+        <mesh position={[0, -board.h / 2, board.d / 2]} renderOrder={order}>
+          <boxGeometry args={[board.w, board.h, board.d]} /><Material color="#9aa5b1" xray={xray} />
+        </mesh>
       )}
       {point.kind === 'light' && (
         <mesh position={[0, -1.5, 0]} renderOrder={order}>

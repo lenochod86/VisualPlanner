@@ -33,3 +33,6 @@ export const CABLE_TYPES: Record<CableType, CableSpec> = {
   'cyky-5x2.5': { label: 'CYKY-J 5×2,5 (třífázové)',     color: '#8a4de0', radius: 0.9 },
   'cyky-5x4':   { label: 'CYKY-J 5×4 (sporák, trouba)',  color: '#2fa36b', radius: 1.0 },
 }
+
+/** Výchozí rozměry rozvaděče (šířka × výška × hloubka, cm). */
+export const BOARD_DEFAULT_SIZE = { w: 40, h: 60, d: 12 }

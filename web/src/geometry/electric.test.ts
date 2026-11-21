@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CEILING } from '../domain/materials'
 import type { Cable, ElectricPoint, Room } from '../domain/types'
-import { autoRoute, cablePolyline, dragElectricPatch, electricPosition, polylineLength, runHeight } from './electric'
+import { autoRoute, boardSize, cablePolyline, dragElectricPatch, electricPosition, polylineLength, runHeight } from './electric'
 import { shapePts } from './shapes'
 
 const room = (id: string, x: number, ceiling = {}): Room => ({
@@ -62,5 +62,30 @@ describe('trasování', () => {
     const cable: Cable = { id: 'c', type: 'cyky-3x1.5', circuit: '', fromId: 's', toId: 'l', via: [{ x: 100, y: 0, z: 230 }] }
     expect(cablePolyline(cable, [socket, light], [A, B])).toHaveLength(3)
     expect(cablePolyline({ ...cable, toId: 'nic' }, [socket, light], [A, B])).toBeNull()
+  })
+})
+
+describe('rozvaděč', () => {
+  const board: ElectricPoint = {
+    id: 'b', roomId: 'A', kind: 'board', name: '', x: 0, y: 0, height: 150, attach: { edge: 0, along: 200 },
+  }
+
+  it('má výchozí rozměry a zadané je přebijí', () => {
+    expect(boardSize(board)).toEqual({ w: 40, h: 60, d: 12 })
+    expect(boardSize({ ...board, w: 60, h: 90 })).toEqual({ w: 60, h: 90, d: 12 })
+  })
+
+  it('výška od podlahy je spodní hrana, kabel se připojuje na horní hraně', () => {
+    expect(electricPosition(board, A).z).toBe(210)                    // 150 + 60
+    expect(electricPosition({ ...board, h: 90 }, A).z).toBe(240)
+  })
+
+  it('široký rozvaděč se nepustí blíž ke konci zdi, než aby se vešel', () => {
+    const p = electricPosition({ ...board, w: 100, attach: { edge: 0, along: 10 } }, A)
+    expect(p.x).toBe(50)                                              // střed nejméně půl šířky od rohu
+  })
+
+  it('zásuvce zůstává zadaná výška (střed) beze změny', () => {
+    expect(electricPosition(socket, A).z).toBe(30)
   })
 })

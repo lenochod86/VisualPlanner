@@ -1,5 +1,5 @@
 // Elektro: poloha bodů, trasy kabelů, jejich automatické trasování a délka.
-import { ELECTRIC_KINDS } from '../domain/electricCatalog'
+import { BOARD_DEFAULT_SIZE, ELECTRIC_KINDS } from '../domain/electricCatalog'
 import type { Cable, ElectricPoint, Pt, Room, Waypoint } from '../domain/types'
 import { ceilingLevel } from './ceiling'
 import { clamp, snap } from './math'
@@ -20,14 +20,30 @@ const CORNER_MARGIN = 5
 const RUN_BELOW_SLAB = 30
 const RUN_ABOVE_SDK_BOARD = 3
 
+/** Rozměry rozvaděče (šířka × výška × hloubka, cm); chybějící hodnoty se doplní výchozími. */
+export function boardSize(point: Pick<ElectricPoint, 'w' | 'h' | 'd'>): { w: number; h: number; d: number } {
+  return { w: point.w ?? BOARD_DEFAULT_SIZE.w, h: point.h ?? BOARD_DEFAULT_SIZE.h, d: point.d ?? BOARD_DEFAULT_SIZE.d }
+}
+
+/** Jak daleko od konce zdi musí nástěnný bod stát (rozvaděč tak, aby se celý vešel). */
+export function wallMargin(point: ElectricPoint): number {
+  return point.kind === 'board' ? Math.max(CORNER_MARGIN, boardSize(point).w / 2) : CORNER_MARGIN
+}
+
+/**
+ * Poloha bodu pro kabely a měření: x, y v půdorysu a z. U zásuvek a vypínačů je z jejich střed (zadaná výška),
+ * u rozvaděče jeho HORNÍ hrana (zadaná výška je spodní hrana + výška skříně) - tam kabely vstupují.
+ */
 export function electricPosition(point: ElectricPoint, room: Room): ElectricPosition {
   const spec = ELECTRIC_KINDS[point.kind]
   if (spec.mount === 'ceiling') return { x: point.x, y: point.y, z: ceilingLevel(room), rot: 0 }
-  if (!point.attach || point.attach.edge >= room.pts.length) return { x: point.x, y: point.y, z: point.height, rot: 0 }
+  const z = point.kind === 'board' ? point.height + boardSize(point).h : point.height
+  if (!point.attach || point.attach.edge >= room.pts.length) return { x: point.x, y: point.y, z, rot: 0 }
 
   const e = edgeInfo(room.pts, point.attach.edge)
-  const along = clamp(point.attach.along, CORNER_MARGIN, e.len - CORNER_MARGIN)
-  return { x: e.a.x + e.dir.x * along, y: e.a.y + e.dir.y * along, z: point.height, rot: frontRotation(e) }
+  const margin = wallMargin(point)
+  const along = clamp(point.attach.along, margin, e.len - margin)
+  return { x: e.a.x + e.dir.x * along, y: e.a.y + e.dir.y * along, z, rot: frontRotation(e) }
 }
 
 /** Změna bodu při tažení: nástěnné se přichytí ke stěně místnosti pod kurzorem, stropní stojí kde je kurzor. */

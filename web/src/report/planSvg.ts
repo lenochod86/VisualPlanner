@@ -6,7 +6,7 @@ import { OBSTACLE_KINDS, ROOM_TYPES } from '../domain/catalog'
 import type { CableType, Project, Pt, Room } from '../domain/types'
 import { formatAreaM2 } from '../format'
 import { doorSwing } from '../geometry/doors'
-import { cablePolyline, electricPosition } from '../geometry/electric'
+import { boardSize, cablePolyline, electricPosition } from '../geometry/electric'
 import { resolvePlacement, wallThicknessFor } from '../geometry/placement'
 import { bbox, centroid, edgeInfo, polygonArea } from '../geometry/polygon'
 import { buildWallModel, outerPolygon, wallQuad, type WallModel } from '../geometry/walls'
@@ -197,7 +197,11 @@ function electroSvg(project: Project, mm: (v: number) => number): string {
       : point.kind === 'socket-double' ? `<circle cx="${n(-r)}" cy="${n(r)}" r="${n(r)}" fill="#fff" ${stroke}/><circle cx="${n(r)}" cy="${n(r)}" r="${n(r)}" fill="#fff" ${stroke}/>`
       : point.kind === 'switch' ? `<circle cx="0" cy="${n(r)}" r="${n(r * 0.8)}" fill="#fff" ${stroke}/><line x1="0" y1="${n(r)}" x2="${n(r)}" y2="${n(r * 1.9)}" ${stroke}/>`
       : point.kind === 'light' ? `<circle r="${n(r)}" fill="#fff" ${stroke}/><path d="M${n(-r * 0.7)} ${n(-r * 0.7)}L${n(r * 0.7)} ${n(r * 0.7)}M${n(-r * 0.7)} ${n(r * 0.7)}L${n(r * 0.7)} ${n(-r * 0.7)}" fill="none" ${stroke}/>`
-      : `<rect x="${n(-2 * r)}" y="0" width="${n(4 * r)}" height="${n(2 * r)}" fill="#fff" ${stroke}/>`   // rozvaděč
+      : (() => {
+        // rozvaděč: skutečný půdorys skříně (šířka × hloubka), nejméně jako čitelná značka
+        const b = boardSize(point)
+        return `<rect x="${n(-b.w / 2)}" y="0" width="${n(b.w)}" height="${n(Math.max(b.d, mm(1.6)))}" fill="#fff" ${stroke}/>`
+      })()
     return [`<g transform="translate(${n(p.x)} ${n(p.y)}) rotate(${n((p.rot * 180) / Math.PI)})">${shape}</g>`]
   })
   return [...lines, ...symbols].join('\n')

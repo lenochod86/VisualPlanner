@@ -4,7 +4,7 @@ import { attachExtents } from './placement'
 import { clamp } from './math'
 import { ELECTRIC_KINDS } from '../domain/electricCatalog'
 import type { Furniture, Obstacle, ElectricPoint, Pt, Room } from '../domain/types'
-import { electricPosition } from './electric'
+import { boardSize, electricPosition, wallMargin } from './electric'
 import { edgeInfo } from './polygon'
 
 /** Měřená úsečka v půdorysu a její délka v cm. */
@@ -58,7 +58,8 @@ export function electricDistances(point: ElectricPoint, around: Surroundings): D
   // nástěnný bod: poloha podél zdi a okraje všeho, co na téže zdi stojí
   const edge = point.attach.edge
   const e = edgeInfo(room.pts, edge)
-  const s = clamp(point.attach.along, 5, e.len - 5)
+  const margin = wallMargin(point)
+  const s = clamp(point.attach.along, margin, e.len - margin)
   const stops = [0, e.len]
   const addRange = (center: number, extent: number) => {
     const c = clamp(center, extent / 2, e.len - extent / 2)
@@ -71,7 +72,7 @@ export function electricDistances(point: ElectricPoint, around: Surroundings): D
     if (o.roomId === room.id && o.attach?.edge === edge) addRange(o.attach.along, o.w)
   }
   for (const p of around.electric) {
-    if (p.id !== point.id && p.roomId === room.id && p.attach?.edge === edge) addRange(p.attach.along, 2 * POINT_HALF_WIDTH)
+    if (p.id !== point.id && p.roomId === room.id && p.attach?.edge === edge) addRange(p.attach.along, p.kind === 'board' ? boardSize(p).w : 2 * POINT_HALF_WIDTH)
   }
 
   // nejbližší okraj vlevo a vpravo; kóty se kreslí kousek od zdi uvnitř místnosti

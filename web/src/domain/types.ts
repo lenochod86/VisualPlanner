@@ -97,8 +97,12 @@ export interface ElectricPoint {
   y: number
   /** Nástěnné body jsou připnuté ke stěně a drží se jí při změně rozměrů místnosti. */
   attach?: { edge: number; along: number }
-  /** Výška nad podlahou (cm) u nástěnných bodů; stropní body jsou ve výšce stropu. */
+  /** Výška nad podlahou (cm) u nástěnných bodů; stropní body jsou ve výšce stropu. U rozvaděče je to jeho SPODNÍ hrana, u ostatních bodů střed. */
   height: number
+  /** Rozvaděč: šířka, výška a hloubka skříně (cm); bez nich platí výchozí rozměry. */
+  w?: number
+  h?: number
+  d?: number
 }
 
 export type CableType = 'cyky-3x1.5' | 'cyky-3x2.5' | 'cyky-5x1.5' | 'cyky-5x2.5' | 'cyky-5x4'
