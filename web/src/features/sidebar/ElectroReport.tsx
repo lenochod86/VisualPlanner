@@ -62,7 +62,21 @@ export function ElectroReport({ system = 'electro' }: { system?: System }) {
         </table>
       )}
 
-      <small>„Koupit“ = trasa + 10 % rezerva, zaokrouhleno nahoru.</small>
+      {plumbing && report.types.some(t => t.fittings) && (
+        <table className="report-table">
+          <thead><tr><th>Tvarovky</th><th>90°</th><th>45°</th><th>T</th><th>Trubek</th></tr></thead>
+          <tbody>
+            {report.types.map(t => t.fittings && (
+              <tr key={t.type} title={CABLE_TYPES[t.type].label}>
+                <td>{CABLE_TYPES[t.type].label.split(' PPR')[0].replace('Odpad ', 'Odpad ')}</td>
+                <td>{t.fittings.elbow90}</td><td>{t.fittings.elbow45}</td><td>{t.fittings.tee}</td><td>{t.fittings.sticks}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <small>„Koupit“ = trasa + 10 % rezerva, zaokrouhleno nahoru.{plumbing && ' Trubky se prodávají po 4 m (PPR), 2 m (HT 50) a 3 m (HT 110).'}</small>
       <button onClick={() => download(plumbing ? 'vodoinstalace-soupis.csv' : 'elektro-soupis.csv', reportToCsv(report))}>Exportovat CSV</button>
     </section>
   )

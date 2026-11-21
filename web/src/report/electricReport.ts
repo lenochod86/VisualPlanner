@@ -2,8 +2,9 @@
 // Čisté funkce nad projektem (žádné UI), aby šly testovat a použít pro export.
 import { CABLE_RESERVE } from '../config'
 import { CABLE_TYPES, ELECTRIC_KINDS, kindsOf, systemOfLine, systemOfPoint, type System } from '../domain/electricCatalog'
-import type { CableType, PointKind, Project } from '../domain/types'
+import type { CableType, PipeType, PointKind, Project } from '../domain/types'
 import { cablePolyline, polylineLength } from '../geometry/electric'
+import { countElbows, countTees, sticksToBuy } from '../geometry/fittings'
 
 type KindCounts = Record<PointKind, number>
 
@@ -15,6 +16,18 @@ export interface TypeRow {
   lengthM: number
   /** Kolik koupit: délka s rezervou zaokrouhlená nahoru na celé metry. */
   orderM: number
+  /** Jen potrubí: tvarovky a trubky k nákupu. */
+  fittings?: PipeFittings
+}
+
+/** Tvarovky a trubky jednoho typu potrubí. */
+export interface PipeFittings {
+  elbow90: number
+  elbow45: number
+  /** T-kusy: v bodě, kde se stýkají aspoň tři trubky, jsou o dvě méně než trubek. */
+  tee: number
+  /** Kolik trubek (tyčí) koupit s rezervou, nahoru na celé kusy. */
+  sticks: number
 }
 
 export interface ElectricReport {
@@ -65,9 +78,26 @@ export function buildElectricReport(
     const typeRow = types.get(cable.type) ?? { type: cable.type, cables: 0, lengthM: 0, orderM: 0 }
     typeRow.cables++
     typeRow.lengthM += lengthM
+    if (system === 'plumbing') {
+      const elbows = countElbows(polyline)
+      const fittings = typeRow.fittings ?? { elbow90: 0, elbow45: 0, tee: 0, sticks: 0 }
+      fittings.elbow90 += elbows.elbow90
+      fittings.elbow45 += elbows.elbow45
+      typeRow.fittings = fittings
+    }
     types.set(cable.type, typeRow)
   }
-  const typeRows = [...types.values()].map(t => ({ ...t, orderM: Math.ceil(t.lengthM * CABLE_RESERVE) }))
+  const typeRows = [...types.values()].map(t => {
+    const row = { ...t, orderM: Math.ceil(t.lengthM * CABLE_RESERVE) }
+    if (row.fittings) {
+      row.fittings = {
+        ...row.fittings,
+        tee: countTees(cables.filter(c => c.type === t.type)),
+        sticks: sticksToBuy(t.type as PipeType, t.lengthM * 100, CABLE_RESERVE),
+      }
+    }
+    return row
+  })
 
   return {
     system,
@@ -106,6 +136,12 @@ export function reportToCsv(report: ElectricReport): string {
     line(plumbing ? 'Typ potrubí' : 'Typ kabelu', plumbing ? 'Počet úseků' : 'Počet kabelů', 'Délka [m]', `K nákupu s rezervou ${Math.round((CABLE_RESERVE - 1) * 100)} % [m]`),
     ...report.types.map(t => line(CABLE_TYPES[t.type].label, t.cables, decimal(t.lengthM), t.orderM)),
     line('Celkem', '', decimal(report.totalLengthM), ''),
+    ...(plumbing ? [
+      '',
+      line('Tvarovky a trubky'),
+      line('Typ potrubí', 'Koleno 90°', 'Koleno 45°', 'T-kus', 'Trubek k nákupu [ks]'),
+      ...report.types.map(t => line(CABLE_TYPES[t.type].label, t.fittings?.elbow90 ?? 0, t.fittings?.elbow45 ?? 0, t.fittings?.tee ?? 0, t.fittings?.sticks ?? 0)),
+    ] : []),
   ]
   return '﻿' + rows.join('\r\n') + '\r\n'
 }

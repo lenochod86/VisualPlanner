@@ -63,3 +63,22 @@ describe('vodoinstalace', () => {
     expect(canEditInMode('electric', 'plumbing', { point: 'tap' })).toBe(true)
   })
 })
+
+describe('tvarovky v bilanci vody', () => {
+  it('bilance spočítá kolena, T-kusy a trubky podle typu potrubí', () => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    const room = state().addRoom('rect')
+    const main = state().addElectric('water-main', room)!
+    const a = state().addElectric('tap', room)!
+    const b = state().addElectric('tap', room)!
+    const c = state().addElectric('tap', room)!
+    ;[a, b, c].forEach((id, i) => state().updateElectric(id, { attach: { edge: 1, along: 60 + i * 80 } }))   // výtoky na pravé zdi, různě daleko
+    for (const to of [a, b, c]) state().addCable(main, to, 'pipe-cold')           // z přípojky tři větve: 1 T-kus
+    const cold = buildElectricReport(selectProject(state()), 'plumbing').types.find(t => t.type === 'pipe-cold')!
+    expect(cold.fittings!.tee).toBe(1)
+    expect(cold.fittings!.elbow90).toBeGreaterThan(0)                            // trasa vede svisle a vodorovně
+    expect(cold.fittings!.sticks).toBe(Math.ceil((cold.lengthM * 100 * 1.1) / 400))
+    // elektro tvarovky nemá
+    expect(buildElectricReport(selectProject(state()), 'electro').types.every(t => !t.fittings)).toBe(true)
+  })
+})
