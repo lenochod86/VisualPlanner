@@ -1,20 +1,41 @@
 # Visual Planner
 
-Webový plánovač bytu/domu: půdorys (2D) + 3D vizualizace.
+Webový plánovač bytu/domu: půdorys (2D) + 3D vizualizace. Jednotky: cm.
 
 ## Spuštění (Docker)
 
-    docker compose up --build        # dev server s HMR: http://localhost:5173
-    docker compose --profile prod up --build prod   # produkční build v nginx: http://localhost:8080
+    docker compose up --build                                   # dev, http://localhost:5173 (API :3001)
+    docker compose --profile prod up --build web-prod api-prod  # produkce, http://localhost:8080
 
-## Stack
-Vite + React + TypeScript, Zustand (stav, ukládání do localStorage), SVG pro 2D editor,
-three.js přes react-three-fiber/drei pro 3D, Vitest. Jednotky: cm.
+Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `docker compose run --rm web npm test`, `docker compose run --rm api npm test`.
+
+## Struktura
+
+    web/                      frontend (Vite + React + TypeScript)
+      src/config.ts           ladicí konstanty (mřížka, magnet, minima)
+      src/domain/             datový model (types), katalog místností/překážek, výchozí projekt + validace
+      src/geometry/           čistá geometrie bez Reactu a bez stavu (+ testy)
+        polygon.ts            plocha, těžiště, stěny, změna délky/pozice stěny
+        magnet.ts             přichytávání místností k sousedům (sdílená zeď)
+        obstacles.ts          poloha překážek připnutých ke stěně
+      src/store/              Zustand: projectStore (data projektu) a uiStore (výběr, nástroj)
+      src/api/                klient REST API
+      src/features/
+        plan2d/               2D editor: viewport, tažení, vykreslení místností/překážek
+        view3d/               3D scéna (react-three-fiber)
+        sidebar/              panely: přidávání, vlastnosti, přehled bytu, soubor
+        persistence/          načtení + automatické ukládání na server
+    server/                   backend (Fastify + TypeScript)
+      src/routes/             HTTP routy (jen validace vstupu a volání služby)
+      src/services/           aplikační logika
+      src/storage/            úložiště za rozhraním ProjectRepository (soubory, paměť pro testy)
+
+Závislosti míří jedním směrem: `features → store → geometry/domain`; `routes → services → storage`.
 
 ## Roadmapa
-1. [x] Půdorys: obdélník, L levé/pravé, tažení stěn, zadání rozměru u stěny
-2. [x] 3D, překážky (stoupačka, topení, okno, dveře), přichytávání ke stěně
-3. [ ] Nábytek + katalog (WC, geberit, sprcha, vana, umyvadlo, TV, stůl, linka, gauč, postel), snap ke zdi
-4. [ ] Celý byt: sdílené stěny, otvory ve zdech (CSG), materiály, stropy, SDK strop s rastrem profilů
-5. [ ] Elektro: zásuvky, světla, kabely (parametry, trasy), auto-trasování, zobrazení v konstrukcích
-6. [ ] Backend (Fastify + Postgres) pro ukládání projektů, export/import JSON
+1. [x] Půdorys: obdélník, L levé/pravé, tažení stěn, rozměr u každé stěny
+2. [x] 3D, překážky (stoupačka, topení, okno, dveře)
+3. [x] Celý byt: kreslení místností, magnet / sdílená zeď, přehled ploch, ukládání na server, export/import
+4. [ ] Nábytek + katalog (WC, geberit, sprcha, vana, umyvadlo, TV, stůl, linka, gauč, postel), snap ke zdi
+5. [ ] Otvory ve zdech (CSG), materiály, stropy, SDK strop s rastrem profilů
+6. [ ] Elektro: zásuvky, světla, kabely, auto-trasování

@@ -1,0 +1,42 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; font: 14px system-ui, sans-serif; color: #222; }
+
+/* ---- rozložení ---- */
+.app { display: flex; height: 100%; }
+main { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-width: 0; }
+.pane { position: relative; min-width: 0; border-right: 1px solid #d5d9df; }
+.pane-title { position: absolute; z-index: 2; top: 8px; left: 10px; font-size: 12px; color: #667; pointer-events: none; }
+.pane canvas { position: absolute; inset: 0; }
+
+/* ---- postranní panel ---- */
+.sidebar { width: 280px; padding: 12px; overflow-y: auto; border-right: 1px solid #d5d9df; background: #fff; }
+.sidebar h1 { font-size: 18px; margin: 0 0 2px; }
+.sidebar h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #667; margin: 16px 0 6px; }
+.sidebar small { display: block; color: #667; margin-top: 4px; }
+.status.saved { color: #2e7d32; }
+.status.offline, .error { color: #b3261e; }
+.hint { margin-top: 18px; line-height: 1.4; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+button { padding: 6px 10px; border: 1px solid #c3c9d2; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+button:hover:not(:disabled) { background: #e9eef6; }
+button:disabled { opacity: .5; cursor: default; }
+button.active { background: #dce8ff; border-color: #2f6fed; }
+button.danger { margin-top: 8px; color: #b3261e; }
+
+.field { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0; }
+.field input, .field select { width: 120px; padding: 3px 6px; }
+.field input[type=range] { padding: 0; }
+
+.room-list { list-style: none; margin: 0; padding: 0; }
+.room-list button { display: flex; align-items: center; gap: 8px; width: 100%; margin-bottom: 3px; text-align: left; }
+.room-list .grow { flex: 1; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #0003; }
+.total { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e3e6ea; }
+
+/* ---- 2D plán ---- */
+.plan { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+.plan svg { display: block; user-select: none; }
+.plan.drawing svg { cursor: crosshair; }
+.plan.drawing .room { pointer-events: none; }  /* při kreslení se táhne "skrz" existující místnosti */
+.dim-input { position: absolute; width: 64px; transform: translate(-50%, -50%); padding: 2px 4px; text-align: center; }

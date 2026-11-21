@@ -1,24 +1,40 @@
 services:
   web:
-    build:
-      context: .
-      target: dev
-    ports:
-      - "5173:5173"
-    volumes:
-      - .:/app
-      - node_modules:/app/node_modules
+    build: { context: ./web, target: dev }
+    ports: ["5173:5173"]
     environment:
-      - CHOKIDAR_USEPOLLING=true
+      API_URL: http://api:3001
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules
+    depends_on: [api]
 
-  # produkční build: docker compose --profile prod up --build prod
-  prod:
+  api:
+    build: { context: ./server, target: dev }
+    ports: ["3001:3001"]
+    environment:
+      DATA_DIR: /data
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./server:/app
+      - api_node_modules:/app/node_modules
+      - ./data:/data
+
+  # Produkční varianta: docker compose --profile prod up --build web-prod api-prod  ->  http://localhost:8080
+  web-prod:
     profiles: ["prod"]
-    build:
-      context: .
-      target: prod
-    ports:
-      - "8080:80"
+    build: { context: ./web, target: prod }
+    ports: ["8080:80"]
+    depends_on: [api-prod]
+
+  api-prod:
+    profiles: ["prod"]
+    build: { context: ./server, target: prod }
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
 
 volumes:
-  node_modules:
+  web_node_modules:
+  api_node_modules:
