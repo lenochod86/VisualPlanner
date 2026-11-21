@@ -51,7 +51,7 @@ export interface Placed {
   y: number
   rot: number
   /** Připnutí ke stěně: věc sleduje stěnu při změně rozměrů místnosti. */
-  attach?: { edge: number; along: number }
+  attach?: { edge: number; along: number; /** Čtvrtotáčky oproti poloze "zády ke zdi" (0-3); jen nábytek. */ turn?: number }
 }
 
 export type ObstacleKind = 'riser' | 'radiator' | 'window' | 'door' | 'opening'
@@ -63,8 +63,10 @@ export type FurnitureKind =
   | 'wc-free' | 'wc-wall' | 'shower' | 'bathtub' | 'sink'
 export interface Furniture extends Placed {
   kind: FurnitureKind
-  /** Přichytává se tažení ke zdi? Výchozí ano; po volném otočení se vypne (ať si kus drží natočení). */
+  /** Přichytává se tažení ke zdi? Výchozí ano. */
   snapToWalls?: boolean
+  /** Při přichycení ke zdi zachovat natočení kusu (po ručním otočení); jinak se přichytí zády ke zdi. */
+  keepRotation?: boolean
 }
 
 /** Celý uložený projekt (to, co jde na server / do souboru). */

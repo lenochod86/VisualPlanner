@@ -32,22 +32,22 @@ describe('nábytek ve store', () => {
     expect(state().furniture[0]).toMatchObject({ x: 150, y: 120 })
   })
 
-  it('otočení postele u zdi ji volně natočí na místě, rozměry nechá a jde vrátit zpět', () => {
+  it('otočení postele u zdi o 90° ji nechá u zdi bokem, rozměry se nemění a jde vrátit zpět', () => {
     const id = state().addFurniture('bed-single', roomId)!
     const before = state().furniture[0]
     state().rotateFurniture(id)
     const bed = state().furniture[0]
-    expect([bed.w, bed.d]).toEqual([80, 200])          // rozměry zůstaly
-    expect(bed.attach).toBeUndefined()                  // uvolněná ze zdi
-    expect(bed.snapToWalls).toBe(false)
-    expect(bed.rot).toBeCloseTo(Math.PI / 2)
+    expect([bed.w, bed.d]).toEqual([80, 200])           // rozměry zůstaly
+    expect(bed.attach?.turn).toBe(1)                     // pořád u zdi, jen bokem
+    expect(bed.keepRotation).toBe(true)
     undo()
     expect(state().furniture[0]).toEqual(before)
   })
 
   it('natočení jde zadat na libovolný úhel a Shift+R vrací zpět', () => {
     const id = state().addFurniture('sofa', roomId)!
-    state().setFurnitureRotation(id, 30)
+    state().setFurnitureRotation(id, 30)               // 30° není rovnoběžné se zdí: uvolní se a stojí volně
+    expect(state().furniture[0].attach).toBeUndefined()
     expect(state().furniture[0].rot).toBeCloseTo((30 * Math.PI) / 180)
     state().rotateFurniture(id, -90)
     expect(state().furniture[0].rot).toBeCloseTo((-60 * Math.PI) / 180)

@@ -1,6 +1,6 @@
 import type { PointerEvent } from 'react'
 import type { Placed, Room } from '../../domain/types'
-import { resolvePlacement } from '../../geometry/placement'
+import { attachExtents, resolvePlacement } from '../../geometry/placement'
 import { edgeInfo } from '../../geometry/polygon'
 import type { WallModel } from '../../geometry/walls'
 
@@ -18,6 +18,7 @@ export function ItemHandles({ item, room, walls, inWall, k, onPointerDown }: Pro
   if (!item.attach || item.attach.edge >= room.pts.length) return null  // volně stojící věc nemá zeď, podél které by se táhla
   const p = resolvePlacement(item, room, walls, inWall)
   const dir = edgeInfo(room.pts, item.attach.edge).dir
+  const along = attachExtents(item, item.attach.turn).along   // rozměr podél zdi (u věci otočené bokem hloubka)
   const cursor = Math.abs(dir.x) > 0.5 ? 'ew-resize' : 'ns-resize'
 
   return (
@@ -27,7 +28,7 @@ export function ItemHandles({ item, room, walls, inWall, k, onPointerDown }: Pro
         return (
           <circle
             key={end}
-            cx={p.x + dir.x * sign * item.w / 2} cy={p.y + dir.y * sign * item.w / 2}
+            cx={p.x + dir.x * sign * along / 2} cy={p.y + dir.y * sign * along / 2}
             r={6 * k} fill="#fff" stroke="#2f6fed" strokeWidth={2 * k}
             style={{ cursor }}
             onPointerDown={e => onPointerDown(e, end)}

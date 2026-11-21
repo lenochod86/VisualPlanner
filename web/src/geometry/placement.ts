@@ -1,4 +1,8 @@
 // Poloha věcí v místnosti (překážky i nábytek): výpočet skutečné polohy, přichytávání ke zdi a tažení.
+//
+// Věc u zdi je popsaná připnutím { edge, along, turn }: `turn` je počet čtvrtotáček (0-3) oproti základní
+// poloze "zády ke zdi". Při liché čtvrtotáčce stojí věc bokem ke zdi: podél zdi se táhne její hloubka
+// a od zdi její šířka. Tak jde postel otočit o 90° a pořád zůstat u zdi.
 import { FURNITURE_WALL_SNAP, MIN_OBSTACLE_WIDTH, OBSTACLE_WALL_SNAP } from '../config'
 import type { Placed, Pt, Room } from '../domain/types'
 import { clamp, snap } from './math'
@@ -7,24 +11,43 @@ import type { WallModel } from './walls'
 
 export interface Placement { x: number; y: number; rot: number }
 
+const QUARTER = Math.PI / 2
+/** Do kolika stupňů od čtvrtotáčky se ještě natočení pokládá za "rovnoběžné se zdí" (přichytí se). */
+const ALIGN_TOLERANCE_DEG = 12
+
 /** Tloušťka zdi, ke které je věc připnutá (jinak první stěny). */
 export function wallThicknessFor(item: Placed, room: Room, walls: WallModel): number {
   return walls.info(room.id, item.attach?.edge ?? 0).thickness
 }
 
+/** Rozměr věci podél zdi a kolmo na zeď při `turn` čtvrtotáčkách. */
+export function attachExtents(item: Placed, turn = 0): { along: number; perp: number } {
+  const sideways = turn % 2 !== 0
+  return { along: sideways ? item.d : item.w, perp: sideways ? item.w : item.d }
+}
+
+/** Úhel převedený do rozsahu (-π, π]. */
+const normalizeAngle = (a: number) => {
+  const r = ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI
+  return r === -Math.PI ? Math.PI : r
+}
+
 /**
  * Skutečná poloha věci. Je-li připnutá ke stěně, počítá se ze stěny (a tak ji sleduje při změně rozměrů).
- * Lokální osa "dopředu" (+y, od zdi) vždy míří do místnosti. `inWall` = věc leží uprostřed zdi (okno, dveře).
+ * Lokální osa "dopředu" (+y, od zdi) míří do místnosti, u věci otočené o čtvrtotáčky se o ně pootočí.
+ * `inWall` = věc leží uprostřed zdi (okno, dveře).
  */
 export function resolvePlacement(item: Placed, room: Room, walls: WallModel, inWall = false): Placement {
   if (!item.attach || item.attach.edge >= room.pts.length) return { x: item.x, y: item.y, rot: item.rot }
   const e = edgeInfo(room.pts, item.attach.edge)
-  const along = clamp(item.attach.along, item.w / 2, e.len - item.w / 2)
-  const offset = inWall ? -wallThicknessFor(item, room, walls) / 2 : item.d / 2
+  const turn = item.attach.turn ?? 0
+  const { along: alongExtent, perp } = attachExtents(item, turn)
+  const along = clamp(item.attach.along, alongExtent / 2, e.len - alongExtent / 2)
+  const offset = inWall ? -wallThicknessFor(item, room, walls) / 2 : perp / 2
   return {
     x: e.a.x + e.dir.x * along + e.inward.x * offset,
     y: e.a.y + e.dir.y * along + e.inward.y * offset,
-    rot: frontRotation(e),
+    rot: frontRotation(e) + turn * QUARTER,
   }
 }
 
@@ -63,48 +86,73 @@ export function dragObstaclePatch(room: Room, cursor: Pt, inWall: boolean): Part
   return { attach: undefined, x: snap(cursor.x), y: snap(cursor.y) }
 }
 
-/** Nábytek: věc v místnosti, která se navíc může (nemusí) přichytávat ke zdi. */
-export type Snappable = Placed & { snapToWalls?: boolean }
+/** Nábytek: věc v místnosti s volbami přichytávání ke zdi. */
+export type Snappable = Placed & {
+  /** Přichytává se tažení ke zdi? (výchozí ano) */
+  snapToWalls?: boolean
+  /** Zachovat při přichycení natočení, které kus má (jinak se vždy přichytí zády ke zdi). */
+  keepRotation?: boolean
+}
 
 /**
- * Změna nábytku při tažení: přejde do místnosti pod kurzorem a jeho zadní hrana se přichytí ke zdi,
+ * Změna nábytku při tažení: přejde do místnosti pod kurzorem a jeho hrana se přichytí ke zdi,
  * když je blíž než FURNITURE_WALL_SNAP. Jinak stojí volně a drží natočení, které měl.
- * Kus s vypnutým přichytáváním (uživatel ho volně otočil) se ke zdi nepřichytává nikdy.
+ *
+ * Při přichycení se kus normálně otočí zády ke zdi. Pokud ho uživatel natočil ručně (`keepRotation`),
+ * zůstane natočený o nejbližší čtvrtotáčku oproti zdi, takže postel otočená bokem se přichytí bokem.
+ * Natočení, které není rovnoběžné se zdí (např. 30°), se nepřichytává vůbec - kus stojí volně.
  */
 export function dragFurniturePatch(item: Snappable, rooms: Room[], walls: WallModel, cursor: Pt): Partial<Placed> {
   const current = rooms.find(r => r.id === item.roomId)
   const room = roomAt(rooms, cursor) ?? current
   if (!room) return {}
-  const near = nearestEdge(room.pts, cursor)
-  if (item.snapToWalls !== false && near.dist < item.d / 2 + FURNITURE_WALL_SNAP) {
-    return { roomId: room.id, attach: { edge: near.edge, along: snap(near.along) } }
+
+  const heading = current ? resolvePlacement(item, current, walls).rot : item.rot
+  if (item.snapToWalls !== false) {
+    const near = nearestEdge(room.pts, cursor)
+    let turn: number | null = 0
+    if (item.keepRotation) {
+      const turns = normalizeAngle(heading - frontRotation(edgeInfo(room.pts, near.edge))) / QUARTER
+      turn = Math.abs(turns - Math.round(turns)) * 90 <= ALIGN_TOLERANCE_DEG ? ((Math.round(turns) % 4) + 4) % 4 : null
+    }
+    if (turn !== null && near.dist < attachExtents(item, turn).perp / 2 + FURNITURE_WALL_SNAP) {
+      return { roomId: room.id, attach: { edge: near.edge, along: snap(near.along), turn } }
+    }
   }
-  const rot = current ? resolvePlacement(item, current, walls).rot : item.rot
-  return { roomId: room.id, attach: undefined, x: snap(cursor.x), y: snap(cursor.y), rot }
+  return { roomId: room.id, attach: undefined, x: snap(cursor.x), y: snap(cursor.y), rot: heading }
 }
 
 /**
- * Volné natočení věci na úhel `rot` (rad): věc se uvolní ze zdi, zůstane na místě, kde stála, a natočí se.
- * (Přichytávání ke zdi se vypíná zvlášť, viz `Snappable` - jinak by ji tažení vrátilo ke zdi.)
+ * Natočení věci na úhel `rot` (rad). Stojí-li věc u zdi a nový úhel je rovnoběžný se zdí (násobek 90° vůči ní),
+ * zůstane u zdi a jen změní čtvrtotáčku. Jinak se uvolní ze zdi, zůstane na místě a natočí se volně.
  */
-export function freeRotationPatch(item: Placed, room: Room | undefined, walls: WallModel, rot: number): Partial<Placed> {
+export function rotatedPatch(item: Placed, room: Room | undefined, walls: WallModel, rot: number): Partial<Placed> {
+  if (item.attach && room && item.attach.edge < room.pts.length) {
+    const turns = normalizeAngle(rot - frontRotation(edgeInfo(room.pts, item.attach.edge))) / QUARTER
+    if (Math.abs(turns - Math.round(turns)) * 90 < 0.5) {
+      return { attach: { ...item.attach, turn: ((Math.round(turns) % 4) + 4) % 4 } }
+    }
+  }
   const here = room ? resolvePlacement(item, room, walls) : { x: item.x, y: item.y }
   return { attach: undefined, x: here.x, y: here.y, rot }
 }
 
 /**
  * Tažení za konec věci podél zdi: tažený konec se posune na polohu `t` (cm od začátku stěny),
- * druhý konec zůstane na místě. Vrací změnu šířky a středu.
+ * druhý konec zůstane na místě. Mění rozměr podél zdi (u věci otočené bokem je to hloubka) a střed.
  */
 export function resizeAlongWall(
   item: Placed & { attach: NonNullable<Placed['attach']> },
   edgeLength: number,
   end: 'start' | 'end',
   t: number,
-): { w: number; attach: { edge: number; along: number } } {
-  let from = item.attach.along - item.w / 2
-  let to = item.attach.along + item.w / 2
+): Partial<Placed> & { attach: NonNullable<Placed['attach']> } {
+  const turn = item.attach.turn ?? 0
+  const size = attachExtents(item, turn).along
+  let from = item.attach.along - size / 2
+  let to = item.attach.along + size / 2
   if (end === 'start') from = clamp(snap(t), 0, to - MIN_OBSTACLE_WIDTH)
   else to = clamp(snap(t), from + MIN_OBSTACLE_WIDTH, edgeLength)
-  return { w: to - from, attach: { edge: item.attach.edge, along: (from + to) / 2 } }
+  const attach = { ...item.attach, along: (from + to) / 2 }
+  return turn % 2 !== 0 ? { d: to - from, attach } : { w: to - from, attach }
 }

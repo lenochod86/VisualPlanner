@@ -2,7 +2,7 @@ import { DEFAULT_CEILING } from '../domain/materials'
 import { describe, expect, it } from 'vitest'
 import type { Placed, Room } from '../domain/types'
 import {
-  dragFurniturePatch, freeRotationPatch, resizeAlongWall, resolvePlacement, roomAt,
+  dragFurniturePatch, resizeAlongWall, resolvePlacement, rotatedPatch, roomAt,
 } from './placement'
 import { shapePts } from './shapes'
 import { buildWallModel } from './walls'
@@ -35,7 +35,7 @@ describe('resolvePlacement', () => {
 describe('dragFurniturePatch', () => {
   it('blízko zdi se přichytí', () => {
     const patch = dragFurniturePatch(sofa, rooms, walls, { x: 200, y: 50 })  // 50 < 45 + 20
-    expect(patch.attach).toEqual({ edge: 0, along: 200 })
+    expect(patch.attach).toEqual({ edge: 0, along: 200, turn: 0 })
   })
 
   it('uprostřed místnosti stojí volně a drží natočení', () => {
@@ -55,12 +55,30 @@ describe('ostatní', () => {
     expect(roomAt(rooms, { x: 450, y: 100 })).toBeUndefined()   // zeď/mezera
   })
 
-  it('volné otočení uvolní věc ze zdi, nechá ji na místě a natočí', () => {
-    const patch = freeRotationPatch(onTopWall, A, walls, Math.PI / 2)
-    expect(patch.attach).toBeUndefined()
-    expect(patch.x).toBeCloseTo(200)
-    expect(patch.y).toBeCloseTo(45)                 // stála 45 cm od horní zdi (půl hloubky gauče)
-    expect(patch.rot).toBeCloseTo(Math.PI / 2)
+  it('otočení věci u zdi o 90° ji nechá u zdi (jen bokem), o 30° ji uvolní', () => {
+    const sideways = rotatedPatch(onTopWall, A, walls, Math.PI / 2)
+    expect(sideways.attach).toEqual({ edge: 0, along: 200, turn: 1 })
+    const placed = resolvePlacement({ ...onTopWall, ...sideways } as Placed, A, walls)
+    expect(placed.y).toBeCloseTo(100)             // bokem: od zdi míří šířka 200, střed je 100 od zdi
+    expect(placed.rot).toBeCloseTo(Math.PI / 2)
+
+    const free = rotatedPatch(onTopWall, A, walls, (30 * Math.PI) / 180)
+    expect(free.attach).toBeUndefined()
+    expect(free.x).toBeCloseTo(200)
+    expect(free.y).toBeCloseTo(45)                // zůstal tam, kde stál
+  })
+
+  it('ručně otočený kus se přichytí ke zdi bokem, ne zády', () => {
+    const turned = { ...sofa, rot: Math.PI / 2, keepRotation: true }
+    const patch = dragFurniturePatch(turned, rooms, walls, { x: 200, y: 60 })
+    expect(patch.attach).toEqual({ edge: 0, along: 200, turn: 1 })
+    const plain = dragFurniturePatch({ ...sofa, rot: Math.PI / 2 }, rooms, walls, { x: 200, y: 50 })
+    expect(plain.attach).toEqual({ edge: 0, along: 200, turn: 0 })   // bez keepRotation: zády ke zdi jako dřív
+  })
+
+  it('natočení nerovnoběžné se zdí se nepřichytává a drží úhel', () => {
+    const patch = dragFurniturePatch({ ...sofa, rot: 0.5, keepRotation: true }, rooms, walls, { x: 200, y: 50 })
+    expect(patch).toMatchObject({ attach: undefined, x: 200, y: 50, rot: 0.5 })
   })
 
   it('kus s vypnutým přichytáváním se u zdi nepřichytí a drží natočení', () => {

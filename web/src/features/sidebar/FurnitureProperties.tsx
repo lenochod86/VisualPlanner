@@ -40,12 +40,17 @@ export function FurnitureProperties({ furniture }: { furniture: Furniture }) {
         <input type="checkbox" checked={snapping} onChange={e => updateFurniture(furniture.id, { snapToWalls: e.target.checked })} />
         Přichytávat ke zdi při tažení
       </label>
+      <label className="check" title="Po přichycení ke zdi zůstane kus natočený, jak ho máte (např. postel bokem). Jinak se přichytí zády ke zdi.">
+        <input type="checkbox" checked={!!furniture.keepRotation} disabled={!snapping}
+          onChange={e => updateFurniture(furniture.id, { keepRotation: e.target.checked })} />
+        Při přichycení zachovat natočení
+      </label>
       <small>
         {furniture.attach
-          ? 'Stojí u zdi a drží se jí při změně rozměrů místnosti. Otočením se ze zdi uvolní.'
+          ? 'Stojí u zdi a drží se jí při změně rozměrů místnosti, i když je otočený o 90°.'
           : snapping
-            ? 'Stojí volně; při tažení k zdi se přichytí zády ke zdi.'
-            : 'Stojí volně a drží natočení; ke zdi se nepřichytává.'}
+            ? 'Stojí volně; při tažení ke zdi se přichytí. Natočení, které není rovnoběžné se zdí, se nepřichytává.'
+            : 'Stojí volně a ke zdi se nepřichytává.'}
       </small>
 
       <button className="danger" onClick={() => { deleteFurniture(furniture.id); select(null) }}>Smazat</button>
