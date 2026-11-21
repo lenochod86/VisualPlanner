@@ -78,3 +78,16 @@ describe('otvor v tisku', () => {
     expect(svg).not.toMatch(/ A\d+ \d+ 0 0 1 /)
   })
 })
+
+describe('dveře v tisku', () => {
+  const doorArc = (patch: object) => {
+    const p = project()
+    p.obstacles = [{ id: 'd', roomId: 'a', kind: 'door', w: 90, d: 12, h: 205, elev: 0, x: 0, y: 0, rot: 0, attach: { edge: 0, along: 200 }, ...patch }]
+    return buildPlanSvg(p, options).svg.match(/ A90 90 0 0 (\d) /)?.[1]
+  }
+
+  it('strana závěsů mění směr oblouku', () => {
+    expect(doorArc({})).toBeDefined()
+    expect(doorArc({ hinge: 'right' })).not.toBe(doorArc({ hinge: 'left' }))
+  })
+})

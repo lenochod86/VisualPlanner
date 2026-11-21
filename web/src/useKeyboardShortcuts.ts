@@ -27,7 +27,10 @@ export function useKeyboardShortcuts() {
         ui.setTool('select')
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selection) {
         const project = useProjectStore.getState()
-        if (ui.selection.type === 'room') project.deleteRoom(ui.selection.id)
+        if (ui.selection.type === 'room') {
+          if (ui.mode !== 'plan') return          // místnosti se mažou jen v záložce Půdorys
+          project.deleteRoom(ui.selection.id)
+        }
         else if (ui.selection.type === 'furniture') project.deleteFurniture(ui.selection.id)
         else if (ui.selection.type === 'electric') project.deleteElectric(ui.selection.id)
         else if (ui.selection.type === 'cable') project.deleteCable(ui.selection.id)

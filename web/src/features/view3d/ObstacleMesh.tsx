@@ -1,6 +1,9 @@
+import { useEffect, useMemo } from 'react'
+import * as THREE from 'three'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Obstacle, Pt, Room } from '../../domain/types'
+import { doorSwing, swingSectorPoints } from '../../geometry/doors'
 import { resolvePlacement, wallThicknessFor } from '../../geometry/placement'
 import type { WallModel } from '../../geometry/walls'
 import { SelectionBox } from './SelectionBox'
@@ -53,6 +56,22 @@ function DoorModel({ w, h, depth }: { w: number; h: number; depth: number }) {
   )
 }
 
+/** Stín na podlaze, kam dveře při otevírání zasahují (výseč); ukazuje, co nesmí stát v cestě. */
+function DoorSwingShadow({ door, wallThickness }: { door: Obstacle; wallThickness: number }) {
+  const geometry = useMemo(() => {
+    const shape = new THREE.Shape(swingSectorPoints(doorSwing(door, wallThickness)).map(p => new THREE.Vector2(p.x, p.y)))
+    const g = new THREE.ShapeGeometry(shape)
+    g.rotateX(Math.PI / 2)             // plán (x, y) -> podlaha (x, 0, z = y)
+    return g
+  }, [door.w, door.hinge, door.swing, wallThickness])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  return (
+    <mesh geometry={geometry} position={[0, -door.elev + 0.8, 0]} renderOrder={1}>
+      <meshBasicMaterial color="#000000" transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} />
+    </mesh>
+  )
+}
+
 interface Props {
   obstacle: Obstacle
   room: Room
@@ -76,6 +95,7 @@ export function ObstacleMesh({ obstacle, room, walls, selected, onGrab }: Props)
       {selected && <SelectionBox size={[obstacle.w, obstacle.h, depth]} center={[0, obstacle.h / 2, 0]} />}
       {obstacle.kind === 'window' && <WindowModel w={obstacle.w} h={obstacle.h} depth={depth} />}
       {obstacle.kind === 'door' && <DoorModel w={obstacle.w} h={obstacle.h} depth={depth} />}
+      {obstacle.kind === 'door' && <DoorSwingShadow door={obstacle} wallThickness={wallThicknessFor(obstacle, room, walls)} />}
       {obstacle.kind === 'opening' && <OpeningModel w={obstacle.w} h={obstacle.h} depth={depth} />}
       {!spec.inWall && (
         // stoupačka, topení: obyčejný kvádr

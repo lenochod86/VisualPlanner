@@ -32,7 +32,14 @@ export function Sidebar() {
       {mode === 'equipment' && <FurnitureIssues />}
       {mode === 'electro' && <ElectroPanel />}
 
-      {room && <RoomProperties room={room} />}
+      {/* místnosti a jejich rozměry se upravují jen v záložce Půdorys */}
+      {room && mode === 'plan' && <RoomProperties room={room} />}
+      {room && mode !== 'plan' && (
+        <section>
+          <h2>Vybraná místnost: {room.name}</h2>
+          <small>Místnosti a jejich rozměry se upravují v záložce Půdorys. Nové věci se přidávají do této místnosti.</small>
+        </section>
+      )}
       {obstacle && <ObstacleProperties obstacle={obstacle} />}
       {furniture && <FurnitureProperties furniture={furniture} />}
       {electric && <ElectricProperties point={electric} />}

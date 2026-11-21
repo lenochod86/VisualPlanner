@@ -39,11 +39,15 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
   // ---- zahájení tažení (volají komponenty při pointerdown) ----
 
   const beginRoomDrag = (e: PointerEvent, roomId: string) => {
-    useUiStore.getState().select({ type: 'room', id: roomId })
-    begin(e, { kind: 'room', roomId, last: viewport.toWorld(e) })
+    const ui = useUiStore.getState()
+    ui.select({ type: 'room', id: roomId })
+    // mimo záložku Půdorys se místnosti nepřesouvají: klik jen vybere (např. jako cíl pro nový nábytek), tažení posouvá plátno
+    if (ui.mode !== 'plan') begin(e, { kind: 'pan', lastClient: { x: e.clientX, y: e.clientY } })
+    else begin(e, { kind: 'room', roomId, last: viewport.toWorld(e) })
   }
 
   const beginEdgeDrag = (e: PointerEvent, roomId: string, edge: number) => {
+    if (useUiStore.getState().mode !== 'plan') return          // rozměry se mění jen v záložce Půdorys
     useUiStore.getState().select({ type: 'room', id: roomId })
     begin(e, { kind: 'edge', roomId, edge })
   }

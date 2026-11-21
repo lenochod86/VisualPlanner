@@ -13,6 +13,8 @@ interface Props {
   visibleEdges: boolean[]
   selected: boolean
   highlightedEdge: number | null
+  /** Lze stěny tahat (měnit rozměr)? Jen v záložce Půdorys. */
+  editable: boolean
   k: number
   onBodyPointerDown: (e: PointerEvent) => void
   onEdgePointerDown: (e: PointerEvent, edge: number) => void
@@ -20,7 +22,7 @@ interface Props {
 
 const ring = (pts: Pt[]) => `M${pts.map(p => `${p.x} ${p.y}`).join('L')}Z`
 
-export function RoomView({ room, thicknesses, visibleEdges, selected, highlightedEdge, k, onBodyPointerDown, onEdgePointerDown }: Props) {
+export function RoomView({ room, thicknesses, visibleEdges, selected, highlightedEdge, editable, k, onBodyPointerDown, onEdgePointerDown }: Props) {
   const points = room.pts.map(p => `${p.x},${p.y}`).join(' ')
   // zeď každé viditelné stěny = čtyřúhelník mezi vnitřním a vnějším lícem (rohy v pokosu)
   const walls = room.pts.map((_, i) => (visibleEdges[i] ? ring(wallQuad(room.pts, thicknesses, visibleEdges, i)) : '')).join('')
@@ -43,7 +45,7 @@ export function RoomView({ room, thicknesses, visibleEdges, selected, highlighte
       )}
 
       {/* názvy a kóty jsou ve vrstvě RoomLabels nad nábytkem; tady zůstávají jen úchyty pro tažení stěn */}
-      {room.pts.map((_, i) => (
+      {editable && room.pts.map((_, i) => (
         <EdgeHandle key={i} pts={room.pts} edge={i} k={k} onDragStart={e => onEdgePointerDown(e, i)} />
       ))}
     </g>

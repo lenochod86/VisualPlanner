@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
 import type { Placed } from '../../domain/types'
+import { electricDistances } from '../../geometry/distances'
 import { cablePolyline } from '../../geometry/electric'
 import { bbox } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
@@ -9,15 +10,25 @@ import { useWallModel } from '../../store/useWallModel'
 import { useUiStore } from '../../store/uiStore'
 import { CableView } from './CableView'
 import { EdgeLengthEditor } from './EdgeLengthEditor'
-import { ElectricView } from './ElectricView'
+import { DistanceDims } from './DistanceDims'
+import { ElectricView } from "./ElectricView"
 import { FurnitureView } from './FurnitureView'
 import { GridBackground } from './GridBackground'
 import { ItemHandles } from './ItemHandles'
-import { ObstacleView } from './ObstacleView'
+import { ObstacleView } from "./ObstacleView"
 import { RoomLabels } from './RoomLabels'
 import { RoomView } from './RoomView'
 import { usePlanInteraction } from './usePlanInteraction'
 import { useViewport } from './useViewport'
+
+/** Vrstva půdorysu: průsvitnost a to, zda reaguje na myš. */
+const LAYER_ACTIVE = { opacity: 1, interactive: true }
+const LAYER_DIMMED = { opacity: 0.3, interactive: false }
+const LAYER_FAINT = { opacity: 0.16, interactive: false }
+const layerProps = (l: { opacity: number; interactive: boolean }) => ({
+  opacity: l.opacity,
+  pointerEvents: l.interactive ? undefined : ('none' as const),
+})
 
 /** Půdorys (SVG): složí dohromady viewport, interakce a vykreslení místností, nábytku a překážek. */
 export function Plan2D() {
@@ -30,9 +41,16 @@ export function Plan2D() {
   const tool = useUiStore(s => s.tool)
   const fitRequest = useUiStore(s => s.fitRequest)
   const hoveredWall = useUiStore(s => s.hoveredWall)
+  const mode = useUiStore(s => s.mode)
   const cableStart = useUiStore(s => s.cableStart)
   const walls = useWallModel()
   const issues = useFurnitureIssues()
+
+  // Každá záložka upravuje svou vrstvu: ostatní jsou průsvitné a nereagují na myš, aby nepřekážely.
+  // Půdorys = místnosti (nábytek i elektro jen slabě prosvítá), Vybavení = nábytek, Elektro = elektro (nábytek prosvítá).
+  const furnitureLayer = mode === 'equipment' ? LAYER_ACTIVE : mode === 'electro' ? LAYER_DIMMED : LAYER_FAINT
+  const electroLayer = mode === 'electro' ? LAYER_ACTIVE : mode === 'equipment' ? LAYER_DIMMED : LAYER_FAINT
+  const editableRooms = mode === 'plan'
 
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -55,6 +73,12 @@ export function Plan2D() {
     : undefined
   const handleRoom = handleItem && rooms.find(r => r.id === handleItem.roomId)
 
+  const selectedPoint = selection?.type === 'electric' ? electric.find(p => p.id === selection.id) : undefined
+  const distanceLines = useMemo(
+    () => (mode === 'electro' && selectedPoint ? electricDistances(selectedPoint, { rooms, obstacles, furniture, electric }) : []),
+    [mode, selectedPoint, rooms, obstacles, furniture, electric],
+  )
+
   const editedRoom = editing && rooms.find(r => r.id === editing.roomId)
 
   return (
@@ -74,12 +98,14 @@ export function Plan2D() {
           <RoomView
             key={room.id} room={room} thicknesses={walls.thicknesses(room)} visibleEdges={walls.visibility(room)} k={viewport.k}
             highlightedEdge={hoveredWall?.roomId === room.id ? hoveredWall.edge : null}
+            editable={editableRooms}
             selected={selection?.type === 'room' && selection.id === room.id}
             onBodyPointerDown={e => interaction.beginRoomDrag(e, room.id)}
             onEdgePointerDown={(e, edge) => interaction.beginEdgeDrag(e, room.id, edge)}
           />
         ))}
 
+        <g {...layerProps(furnitureLayer)}>
         {furniture.map(item => {
           const room = rooms.find(r => r.id === item.roomId)
           if (!room) return null
@@ -92,7 +118,9 @@ export function Plan2D() {
             />
           )
         })}
+        </g>
 
+        <g {...layerProps(electroLayer)}>
         {cables.map(cable => {
           const polyline = cablePolyline(cable, electric, rooms)
           if (!polyline) return null
@@ -106,10 +134,14 @@ export function Plan2D() {
             />
           )
         })}
+        </g>
 
         {/* názvy a kóty místností nad nábytkem; okna, dveře a elektro body jsou ještě výš, ať jdou vždy chytit */}
         {rooms.map(room => (
-          <RoomLabels key={room.id} room={room} k={viewport.k} onEditDimension={edge => setEditing({ roomId: room.id, edge })} />
+          <RoomLabels
+            key={room.id} room={room} k={viewport.k} showDimensions={mode !== 'electro'}
+            onEditDimension={editableRooms ? (edge => setEditing({ roomId: room.id, edge })) : undefined}
+          />
         ))}
 
         {obstacles.map(obstacle => {
@@ -118,12 +150,14 @@ export function Plan2D() {
           return (
             <ObstacleView
               key={obstacle.id} obstacle={obstacle} room={room} walls={walls} k={viewport.k}
+              swingStyle={mode === 'plan' ? 'arc' : 'shadow'}
               selected={selection?.type === 'obstacle' && selection.id === obstacle.id}
               onPointerDown={e => interaction.beginItemDrag(e, { collection: 'obstacles', id: obstacle.id })}
             />
           )
         })}
 
+        <g {...layerProps(electroLayer)}>
         {electric.map(point => {
           const room = rooms.find(r => r.id === point.roomId)
           if (!room) return null
@@ -136,6 +170,10 @@ export function Plan2D() {
             />
           )
         })}
+        </g>
+
+        {/* vzdálenosti vybraného elektro bodu od zdí a okolí (jen v záložce Elektro) */}
+        {distanceLines.length > 0 && <DistanceDims lines={distanceLines} k={viewport.k} />}
 
         {handleItem && handleRoom && (
           <ItemHandles

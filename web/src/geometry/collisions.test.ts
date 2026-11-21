@@ -78,3 +78,11 @@ describe('otvor ve zdi', () => {
     expect(issuesFor([blocking], [opening]).map(i => i.message)).toContain('Blokuje průchod otvorem')
   })
 })
+
+describe('dveře otevírané ven', () => {
+  it('nábytek před dveřmi, které se otevírají ven, nepřekáží', () => {
+    const outwards: Obstacle = { id: 'd', roomId: 'A', kind: 'door', w: 90, d: 12, h: 205, elev: 0, x: 0, y: 0, rot: 0, swing: 'out', attach: { edge: 0, along: 200 } }
+    const sofa = piece('sofa', { w: 200, d: 90, attach: { edge: 0, along: 200 } })
+    expect(issuesFor([sofa], [outwards])).toEqual([])
+  })
+})

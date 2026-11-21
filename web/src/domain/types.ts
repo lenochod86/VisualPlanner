@@ -56,7 +56,13 @@ export interface Placed {
 
 export type ObstacleKind = 'riser' | 'radiator' | 'window' | 'door' | 'opening'
 /** Stavební prvky: stoupačky, topení, okna, dveře. */
-export interface Obstacle extends Placed { kind: ObstacleKind }
+export interface Obstacle extends Placed {
+  kind: ObstacleKind
+  /** Dveře: strana závěsů při pohledu z místnosti na dveře (výchozí levá). */
+  hinge?: 'left' | 'right'
+  /** Dveře: otevírají se do místnosti (výchozí), nebo ven z ní. */
+  swing?: 'in' | 'out'
+}
 
 export type FurnitureKind =
   | 'bed-single' | 'bed-double' | 'sofa' | 'table' | 'chair' | 'tv' | 'wardrobe' | 'kitchen-unit'

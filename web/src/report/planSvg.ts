@@ -5,6 +5,7 @@ import { FURNITURE_KINDS } from '../domain/furnitureCatalog'
 import { OBSTACLE_KINDS, ROOM_TYPES } from '../domain/catalog'
 import type { CableType, Project, Pt, Room } from '../domain/types'
 import { formatAreaM2 } from '../format'
+import { doorSwing } from '../geometry/doors'
 import { cablePolyline, electricPosition } from '../geometry/electric'
 import { resolvePlacement, wallThicknessFor } from '../geometry/placement'
 import { bbox, centroid, edgeInfo, polygonArea } from '../geometry/polygon'
@@ -55,7 +56,10 @@ export function buildPlanSvg(project: Project, options: PlanSvgOptions): PlanSvg
   const walls = buildWallModel(rooms)
 
   // vnější rozměry bytu (včetně zdí)
-  const outerPoints = rooms.flatMap(r => outerPolygon(r.pts, walls.thicknesses(r)))
+  const outerPoints = [
+    ...rooms.flatMap(r => outerPolygon(r.pts, walls.thicknesses(r))),
+    ...doorSwingPoints(rooms, obstacles, walls),   // dveře otevírané ven přesahují obvod bytu
+  ]
   const box = outerPoints.length ? bbox(outerPoints) : { minX: 0, maxX: 100, minY: 0, maxY: 100 }
   const widthCm = box.maxX - box.minX, heightCm = box.maxY - box.minY
 
@@ -98,6 +102,18 @@ export function buildPlanSvg(project: Project, options: PlanSvgOptions): PlanSvg
 
 // ---- vrstvy výkresu (souřadnice v cm; šířky čar a písmo přes mm()) ----
 
+/** Krajní body zametané plochy všech dveří ve světových souřadnicích (výkres s nimi musí počítat při volbě měřítka). */
+function doorSwingPoints(rooms: Room[], obstacles: Project['obstacles'], walls: WallModel): Pt[] {
+  return obstacles.flatMap(o => {
+    const room = rooms.find(r => r.id === o.roomId)
+    if (o.kind !== 'door' || !room || !o.attach) return []
+    const p = resolvePlacement(o, room, walls, true)
+    const s = doorSwing(o, wallThicknessFor(o, room, walls))
+    const cos = Math.cos(p.rot), sin = Math.sin(p.rot)
+    return [s.hinge, s.closedEnd, s.openEnd].map(q => ({ x: p.x + cos * q.x - sin * q.y, y: p.y + sin * q.x + cos * q.y }))
+  })
+}
+
 function floorsSvg(rooms: Room[]): string {
   return rooms.map(r =>
     `<path d="${ring(r.pts)}" fill="${ROOM_TYPES[r.type].color}" fill-opacity="0.45"/>`).join('\n')
@@ -132,9 +148,12 @@ function openingsSvg(rooms: Room[], obstacles: Project['obstacles'], walls: Wall
       : o.kind === 'opening'
       // otvor: jen boky (špalety) přes tloušťku zdi, bez výplně
       ? [hx, w / 2].map(x => `<line x1="${n(x)}" y1="${n(-t / 2)}" x2="${n(x)}" y2="${n(t / 2)}" ${stroke}/>`).join('')
-      // dveře: zavěšené na levém konci, křídlo kolmo do místnosti (+y), oblouk = dráha otevírání
-      : `<line x1="${n(hx)}" y1="${n(t / 2)}" x2="${n(hx)}" y2="${n(t / 2 + w)}" ${stroke}/>` +
-        `<path d="M${n(w / 2)} ${n(t / 2)} A${n(w)} ${n(w)} 0 0 1 ${n(hx)} ${n(t / 2 + w)}" ${stroke} stroke-dasharray="${n(mm(1))} ${n(mm(0.8))}"/>`
+      // dveře: otevřené křídlo (kolmo ke zdi) a oblouk jeho dráhy; strana závěsů a směr otevírání podle dveří
+      : (() => {
+        const s = doorSwing(o, t)
+        return `<line x1="${n(s.hinge.x)}" y1="${n(s.hinge.y)}" x2="${n(s.openEnd.x)}" y2="${n(s.openEnd.y)}" ${stroke}/>` +
+          `<path d="M${n(s.closedEnd.x)} ${n(s.closedEnd.y)} A${n(s.radius)} ${n(s.radius)} 0 0 ${s.sweep} ${n(s.openEnd.x)} ${n(s.openEnd.y)}" ${stroke} stroke-dasharray="${n(mm(1))} ${n(mm(0.8))}"/>`
+      })()
     return [
       `<g transform="translate(${n(p.x)} ${n(p.y)}) rotate(${n((p.rot * 180) / Math.PI)})">` +
       `<rect x="${n(hx)}" y="${n(-t / 2)}" width="${n(w)}" height="${n(t)}" fill="#fff"/>${symbol}</g>`,

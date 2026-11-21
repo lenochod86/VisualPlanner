@@ -71,7 +71,8 @@ export function findFurnitureIssues(
 
   // volný prostor dveří a otvorů (průchodů): čtverec šířka dveří × šířka dveří před nimi, uvnitř místnosti
   const doorClearances = obstacles
-    .filter(o => o.kind === 'door' || o.kind === 'opening')
+    // dveře otevírané ven nic uvnitř místnosti nezametají; otvor (průchod) musí zůstat volný vždy
+    .filter(o => (o.kind === 'door' && o.swing !== 'out') || o.kind === 'opening')
     .flatMap(door => {
       const room = rooms.find(r => r.id === door.roomId)
       if (!room || !door.attach) return []

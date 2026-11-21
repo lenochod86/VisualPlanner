@@ -28,7 +28,8 @@ export function DimensionText({ pts, edge, k, onEdit }: {
   pts: Pt[]
   edge: number
   k: number
-  onEdit: () => void
+  /** Klik = ruční zadání rozměru; bez něj je kóta jen na čtení (mimo záložku Půdorys). */
+  onEdit?: () => void
 }) {
   const e = edgeInfo(pts, edge)
   const mid = { x: (e.a.x + e.b.x) / 2, y: (e.a.y + e.b.y) / 2 }
@@ -38,8 +39,9 @@ export function DimensionText({ pts, edge, k, onEdit }: {
       x={mid.x + e.inward.x * offset} y={mid.y + e.inward.y * offset}
       textAnchor="middle" dominantBaseline="middle" fontSize={12 * k}
       fill="#2f6fed" stroke="#ffffffcc" strokeWidth={3 * k} paintOrder="stroke"
-      style={{ cursor: 'text' }}
-      onPointerDown={ev => { ev.stopPropagation(); onEdit() }}
+      style={{ cursor: onEdit ? 'text' : 'default' }}
+      pointerEvents={onEdit ? undefined : 'none'}
+      onPointerDown={onEdit ? (ev => { ev.stopPropagation(); onEdit() }) : undefined}
     >
       {Math.round(e.len)}
     </text>
