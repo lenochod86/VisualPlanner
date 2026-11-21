@@ -6,6 +6,7 @@ import type { FloorMaterial, Room } from './types'
 export const FLOOR_MATERIALS: Record<FloorMaterial, { label: string; color: string }> = {
   parquet:  { label: 'Dřevěná podlaha', color: '#b98a5a' },
   laminate: { label: 'Laminát',         color: '#cfa876' },
+  vinyl:    { label: 'Vinyl',           color: '#c2a27a' },
   tile:     { label: 'Dlažba',          color: '#b9bec4' },
   carpet:   { label: 'Koberec',         color: '#a9a39a' },
   concrete: { label: 'Beton / stěrka',  color: '#9fa2a6' },

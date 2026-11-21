@@ -9,7 +9,7 @@ export type WallMaterial = 'plaster' | 'brick' | 'concrete' | 'tile' | 'sdk'
 /** Zobrazení stěny: automaticky (skrytá, když leží uvnitř jiné místnosti), vždy plná, nebo skrytá (průhledná). */
 export type WallMode = 'auto' | 'solid' | 'hidden'
 /** Materiál podlahy (barva se dá přebít vlastní). */
-export type FloorMaterial = 'parquet' | 'laminate' | 'tile' | 'carpet' | 'concrete'
+export type FloorMaterial = 'parquet' | 'laminate' | 'vinyl' | 'tile' | 'carpet' | 'concrete'
 
 export interface Floor {
   material: FloorMaterial
