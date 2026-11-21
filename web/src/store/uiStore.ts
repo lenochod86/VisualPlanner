@@ -27,6 +27,8 @@ interface UiState {
   cableType: CableType
   /** Je 3D pohled rozbalený v pravém panelu? */
   show3d: boolean
+  /** Je půdorys rozbalený? (sbaluje se doleva; aspoň jeden z panelů zůstane otevřený) */
+  showPlan: boolean
   hoveredWall: WallHighlight
   /** Zvýšení čísla vyžádá "přizpůsob pohled" v 2D editoru (ten zná svou velikost). */
   fitRequest: number
@@ -41,6 +43,7 @@ interface UiState {
   setCableStart: (id: string | null) => void
   setCableType: (type: CableType) => void
   toggle3d: () => void
+  togglePlan: () => void
   setHoveredWall: (wall: WallHighlight) => void
   requestFit: () => void
 }
@@ -56,6 +59,7 @@ export const useUiStore = create<UiState>()(set => ({
   cableStart: null,
   cableType: 'cyky-3x1.5',
   show3d: true,
+  showPlan: true,
   hoveredWall: null,
   fitRequest: 0,
   select: selection => set({ selection }),
@@ -67,7 +71,8 @@ export const useUiStore = create<UiState>()(set => ({
   setElectroView: electroView => set({ electroView }),
   setCableStart: cableStart => set({ cableStart }),
   setCableType: cableType => set({ cableType }),
-  toggle3d: () => set(s => ({ show3d: !s.show3d })),
+  toggle3d: () => set(s => (s.show3d && !s.showPlan ? s : { show3d: !s.show3d })),
+  togglePlan: () => set(s => (s.showPlan && !s.show3d ? s : { showPlan: !s.showPlan })),
   setHoveredWall: hoveredWall => set({ hoveredWall }),
   requestFit: () => set(s => ({ fitRequest: s.fitRequest + 1 })),
 }))

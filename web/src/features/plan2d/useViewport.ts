@@ -26,8 +26,10 @@ export function useViewport(wrapRef: RefObject<HTMLElement | null>, svgRef: RefO
   const [view, setView] = useState({ cx: 225, cy: 175, scale: 1.2 })
 
   useEffect(() => {
-    const observer = new ResizeObserver(([entry]) =>
-      setSize({ w: entry.contentRect.width, h: entry.contentRect.height }))
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) setSize({ w: width, h: height })   // sbalený půdorys má nulovou velikost; zachováme poslední platnou
+    })
     observer.observe(wrapRef.current!)
     return () => observer.disconnect()
   }, [wrapRef])

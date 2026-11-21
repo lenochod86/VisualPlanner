@@ -106,3 +106,10 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .print-popover { position: absolute; right: 0; top: 100%; margin-top: 4px; width: 280px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; background: #fff; border: 1px solid #d5d9df; border-radius: 8px; box-shadow: 0 4px 16px #0002; font-size: 13px; }
 .print-popover label { display: flex; gap: 6px; align-items: center; }
 .print-popover small { color: #667; }
+
+/* ---- sbalení půdorysu doleva ---- */
+.pane.closed { flex: 0 0 30px; background: #fff; border-right: 1px solid #d5d9df; }
+.pane.closed .plan, .pane.closed .plan-tools, .pane.closed .pane-title { display: none; }
+.plan-panel .pane-title { left: 40px; }
+.view3d-panel.open.wide { width: auto; flex: 1; }   /* půdorys je sbalený: 3D dostane zbytek šířky */
+.panel-toggle:disabled { opacity: .35; cursor: default; }
