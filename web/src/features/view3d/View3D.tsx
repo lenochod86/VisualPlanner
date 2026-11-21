@@ -13,7 +13,7 @@ import { isDecor } from '../../domain/furnitureCatalog'
 import { FurnitureMesh } from './FurnitureMesh'
 import { ObstacleMesh } from './ObstacleMesh'
 import { RoomFloor } from './RoomFloor'
-import { useDrag3D } from './useDrag3D'
+import { useDrag3D, useSelectLine3D } from './useDrag3D'
 import { WallsMesh } from './WallsMesh'
 
 /** V záložce Elektro je nábytek průsvitný (nejvýš tolik), ať vynikne elektro. */
@@ -36,6 +36,7 @@ function Scene() {
   const ceilingView = useUiStore(s => s.ceilingView)
   const walls = useWallModel()
   const grab = useDrag3D()
+  const selectLine = useSelectLine3D()
   const issues = useFurnitureIssues()
 
   const points = rooms.flatMap(r => r.pts)
@@ -105,7 +106,8 @@ function Scene() {
             const polyline = cablePolyline(cable, electric, rooms)
             return polyline && (
               <CableMesh key={cable.id} cable={cable} polyline={polyline} xray={electroView === 'xray'}
-                highlighted={isSelected('cable', cable.id)} />
+                highlighted={isSelected('cable', cable.id)}
+                onSelect={e => selectLine(e, cable.id)} />
             )
           })}
         </>

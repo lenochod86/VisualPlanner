@@ -24,6 +24,17 @@ export function isOccluded(hits: HitLike[], distance: number): boolean {
   return hits.some(h => h.object.userData?.occluder === true && h.distance < distance - 0.5)
 }
 
+/** Objekt (nebo kterýkoli jeho rodič) je bod instalace: zásuvka, výtok, rozvaděč… (značí ho `userData.pickable`). */
+interface HitObject { userData?: { pickable?: string }; parent?: HitObject | null }
+
+/** Zasahuje paprsek i bod instalace? Pak má přednost bod před kabelem, který do něj vede a leží blíž ke kameře. */
+export function hitsPoint(hits: { object: HitObject }[]): boolean {
+  return hits.some(h => {
+    for (let o: HitObject | null | undefined = h.object; o; o = o.parent) if (o.userData?.pickable === 'point') return true
+    return false
+  })
+}
+
 /** Funkce, kterou volá 3D objekt při stisku myši: vybere ho a začne ho tahat po podlaze. */
 export type GrabHandler = (e: ThreeEvent<PointerEvent>, target: DragTarget, center: Pt) => void
 
@@ -88,4 +99,23 @@ export function useDrag3D(): GrabHandler {
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', onUp)
   }, [camera, gl, controls])
+}
+
+/**
+ * Výběr kabelu nebo potrubí kliknutím ve 3D. Vedení se v půdorysu často překrývá a nejde tam vybrat, ve 3D je dobře vidět.
+ * Platí stejná pravidla jako u ostatních věcí: vybrat jde jen vedení záložky, ve které jsme (kabely v Elektro, potrubí
+ * ve Vodoinstalaci), a to, co není zakryté zdí (v režimu "rentgen" jde vybrat i skrz zdi).
+ */
+export function useSelectLine3D() {
+  return useCallback((e: ThreeEvent<PointerEvent>, cableId: string) => {
+    if (e.nativeEvent.button !== 0) return
+    const { cables } = useProjectStore.getState()
+    const cable = cables.find(c => c.id === cableId)
+    const ui = useUiStore.getState()
+    if (!cable || !canEditInMode('cable', ui.mode, { line: cable.type })) return
+    if (ui.electroView !== 'xray' && isOccluded(e.intersections, e.distance)) return
+    if (hitsPoint(e.intersections)) return                 // kabel vede do bodu: klik na bod patří bodu
+    e.stopPropagation()
+    ui.select({ type: 'cable', id: cableId })
+  }, [])
 }

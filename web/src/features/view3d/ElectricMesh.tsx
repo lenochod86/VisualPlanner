@@ -6,6 +6,9 @@ import { boardSize, electricPosition, type Pos3 } from '../../geometry/electric'
 import { SelectionBox } from './SelectionBox'
 import type { ThreeEvent } from '@react-three/fiber'
 
+/** Poloměr neviditelného válce kolem vedení, za který ho jde chytit myší (cm). */
+const PICK_RADIUS = 2.5
+
 /** Plán (x, y, výška z) -> 3D (x, výška, z = y). */
 const toVector = (p: Pos3) => new THREE.Vector3(p.x, p.z, p.y)
 
@@ -31,7 +34,7 @@ export function ElectricPointMesh({ point, room, xray, selected, onGrab }: Point
   const order = xray ? 10 : 0
   const board = boardSize(point)   // u rozvaděče je počátek skupiny na jeho horní hraně (p.z), skříň visí pod ním
   return (
-    <group position={[p.x, p.z, p.y]} rotation={[0, -p.rot, 0]} onPointerDown={e => onGrab(e, { x: p.x, y: p.y })}>
+    <group position={[p.x, p.z, p.y]} rotation={[0, -p.rot, 0]} userData={{ pickable: 'point' }} onPointerDown={e => onGrab(e, { x: p.x, y: p.y })}>
       {selected && (point.kind === 'board'
         ? <SelectionBox size={[board.w, board.h, board.d]} center={[0, -board.h / 2, board.d / 2]} />
         : <SelectionBox size={[20, 20, 20]} center={[0, 0, 6]} />)}
@@ -82,7 +85,9 @@ export function ElectricPointMesh({ point, room, xray, selected, onGrab }: Point
 }
 
 /** Jeden rovný úsek kabelu jako válec mezi dvěma body. */
-function Segment({ a, b, color, radius, xray }: { a: Pos3; b: Pos3; color: string; radius: number; xray: boolean }) {
+function Segment({ a, b, color, radius, xray, onSelect }: {
+  a: Pos3; b: Pos3; color: string; radius: number; xray: boolean; onSelect?: (e: ThreeEvent<PointerEvent>) => void
+}) {
   const { position, quaternion, length } = useMemo(() => {
     const from = toVector(a), to = toVector(b)
     const direction = to.clone().sub(from)
@@ -94,21 +99,32 @@ function Segment({ a, b, color, radius, xray }: { a: Pos3; b: Pos3; color: strin
   }, [a, b])
   if (length < 0.01) return null
   return (
-    <mesh position={position} quaternion={quaternion} renderOrder={xray ? 10 : 0}>
-      <cylinderGeometry args={[radius, radius, length, 8]} />
-      <Material color={color} xray={xray} />
-    </mesh>
+    <>
+      <mesh position={position} quaternion={quaternion} renderOrder={xray ? 10 : 0}>
+        <cylinderGeometry args={[radius, radius, length, 8]} />
+        <Material color={color} xray={xray} />
+      </mesh>
+      {/* neviditelný silnější válec: tenké vedení by se myší těžko trefovalo */}
+      {onSelect && (
+        <mesh position={position} quaternion={quaternion} onPointerDown={onSelect}>
+          <cylinderGeometry args={[Math.max(radius * 3, PICK_RADIUS), Math.max(radius * 3, PICK_RADIUS), length, 8]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
+    </>
   )
 }
 
 /** Kabel jako řetěz válců s kuličkami v ohybech. Je to skutečná trasa, tedy i svislé úseky ve zdech. */
-export function CableMesh({ cable, polyline, xray, highlighted }: { cable: Cable; polyline: Pos3[]; xray: boolean; highlighted: boolean }) {
+export function CableMesh({ cable, polyline, xray, highlighted, onSelect }: {
+  cable: Cable; polyline: Pos3[]; xray: boolean; highlighted: boolean; onSelect?: (e: ThreeEvent<PointerEvent>) => void
+}) {
   const spec = CABLE_TYPES[cable.type]
   const radius = spec.radius * (highlighted ? 1.6 : 1)
   return (
     <>
       {polyline.slice(0, -1).map((a, i) => (
-        <Segment key={i} a={a} b={polyline[i + 1]} color={spec.color} radius={radius} xray={xray} />
+        <Segment key={i} a={a} b={polyline[i + 1]} color={spec.color} radius={radius} xray={xray} onSelect={onSelect} />
       ))}
       {polyline.slice(1, -1).map((p, i) => (
         <mesh key={`j${i}`} position={toVector(p)} renderOrder={xray ? 10 : 0}>
