@@ -81,6 +81,83 @@ export function Plan2D() {
 
   const editedRoom = editing && rooms.find(r => r.id === editing.roomId)
 
+  // Vrstvy věcí v půdorysu. Pořadí kreslení určuje záložka (viz níže).
+  const furnitureJsx = (
+        <g {...layerProps(furnitureLayer)}>
+        {furniture.map(item => {
+          const room = rooms.find(r => r.id === item.roomId)
+          if (!room) return null
+          return (
+            <FurnitureView
+              key={item.id} furniture={item} room={room} walls={walls} k={viewport.k}
+              selected={selection?.type === 'furniture' && selection.id === item.id}
+              issue={issues.some(i => i.furnitureId === item.id)}
+              onPointerDown={e => interaction.beginItemDrag(e, { collection: 'furniture', id: item.id })}
+            />
+          )
+        })}
+        </g>
+  )
+  const cablesJsx = (
+        <g {...layerProps(electroLayer)}>
+        {cables.map(cable => {
+          const polyline = cablePolyline(cable, electric, rooms)
+          if (!polyline) return null
+          return (
+            <CableView
+              key={cable.id} cable={cable} polyline={polyline} k={viewport.k}
+              selected={selection?.type === 'cable' && selection.id === cable.id}
+              onSelect={e => interaction.selectCable(e, cable.id)}
+              onWaypointPointerDown={(e, index) => interaction.beginWaypointDrag(e, cable.id, index)}
+              onInsertPointerDown={(e, index, at) => interaction.beginWaypointInsert(e, cable.id, index, at)}
+            />
+          )
+        })}
+        </g>
+  )
+  const labelsJsx = (
+    <>
+        {rooms.map(room => (
+          <RoomLabels
+            key={room.id} room={room} k={viewport.k} showDimensions={mode !== 'electro'}
+            onEditDimension={editableRooms ? (edge => setEditing({ roomId: room.id, edge })) : undefined}
+          />
+        ))}
+    </>
+  )
+  const obstaclesJsx = (
+    <>
+        {obstacles.map(obstacle => {
+          const room = rooms.find(r => r.id === obstacle.roomId)
+          if (!room) return null
+          return (
+            <ObstacleView
+              key={obstacle.id} obstacle={obstacle} room={room} walls={walls} k={viewport.k}
+              swingStyle={mode === 'plan' ? 'arc' : 'shadow'}
+              selected={selection?.type === 'obstacle' && selection.id === obstacle.id}
+              onPointerDown={e => interaction.beginItemDrag(e, { collection: 'obstacles', id: obstacle.id })}
+            />
+          )
+        })}
+    </>
+  )
+  const pointsJsx = (
+        <g {...layerProps(electroLayer)}>
+        {electric.map(point => {
+          const room = rooms.find(r => r.id === point.roomId)
+          if (!room) return null
+          return (
+            <ElectricView
+              key={point.id} point={point} room={room} k={viewport.k}
+              selected={selection?.type === 'electric' && selection.id === point.id}
+              pending={cableStart === point.id}
+              onPointerDown={e => interaction.beginPointDrag(e, point.id)}
+            />
+          )
+        })}
+        </g>
+  )
+
   return (
     <div ref={wrapRef} className={`plan ${tool !== 'select' ? 'drawing' : ''}`} onWheel={viewport.onWheel}>
       <svg
@@ -105,72 +182,14 @@ export function Plan2D() {
           />
         ))}
 
-        <g {...layerProps(furnitureLayer)}>
-        {furniture.map(item => {
-          const room = rooms.find(r => r.id === item.roomId)
-          if (!room) return null
-          return (
-            <FurnitureView
-              key={item.id} furniture={item} room={room} walls={walls} k={viewport.k}
-              selected={selection?.type === 'furniture' && selection.id === item.id}
-              issue={issues.some(i => i.furnitureId === item.id)}
-              onPointerDown={e => interaction.beginItemDrag(e, { collection: 'furniture', id: item.id })}
-            />
-          )
-        })}
-        </g>
+        {furnitureJsx}
 
-        <g {...layerProps(electroLayer)}>
-        {cables.map(cable => {
-          const polyline = cablePolyline(cable, electric, rooms)
-          if (!polyline) return null
-          return (
-            <CableView
-              key={cable.id} cable={cable} polyline={polyline} k={viewport.k}
-              selected={selection?.type === 'cable' && selection.id === cable.id}
-              onSelect={e => interaction.selectCable(e, cable.id)}
-              onWaypointPointerDown={(e, index) => interaction.beginWaypointDrag(e, cable.id, index)}
-              onInsertPointerDown={(e, index, at) => interaction.beginWaypointInsert(e, cable.id, index, at)}
-            />
-          )
-        })}
-        </g>
+        {/* V záložce Elektro je elektro (kabely, body) úplně nahoře, nad stoupačkami, dveřmi i popisky, ať se nic neschová.
+            Jinak jsou popisky nad nábytkem a okna, dveře a elektro body ještě výš, ať jdou vždy chytit. */}
+        {mode === 'electro'
+          ? <>{labelsJsx}{obstaclesJsx}{cablesJsx}{pointsJsx}</>
+          : <>{cablesJsx}{labelsJsx}{obstaclesJsx}{pointsJsx}</>}
 
-        {/* názvy a kóty místností nad nábytkem; okna, dveře a elektro body jsou ještě výš, ať jdou vždy chytit */}
-        {rooms.map(room => (
-          <RoomLabels
-            key={room.id} room={room} k={viewport.k} showDimensions={mode !== 'electro'}
-            onEditDimension={editableRooms ? (edge => setEditing({ roomId: room.id, edge })) : undefined}
-          />
-        ))}
-
-        {obstacles.map(obstacle => {
-          const room = rooms.find(r => r.id === obstacle.roomId)
-          if (!room) return null
-          return (
-            <ObstacleView
-              key={obstacle.id} obstacle={obstacle} room={room} walls={walls} k={viewport.k}
-              swingStyle={mode === 'plan' ? 'arc' : 'shadow'}
-              selected={selection?.type === 'obstacle' && selection.id === obstacle.id}
-              onPointerDown={e => interaction.beginItemDrag(e, { collection: 'obstacles', id: obstacle.id })}
-            />
-          )
-        })}
-
-        <g {...layerProps(electroLayer)}>
-        {electric.map(point => {
-          const room = rooms.find(r => r.id === point.roomId)
-          if (!room) return null
-          return (
-            <ElectricView
-              key={point.id} point={point} room={room} k={viewport.k}
-              selected={selection?.type === 'electric' && selection.id === point.id}
-              pending={cableStart === point.id}
-              onPointerDown={e => interaction.beginPointDrag(e, point.id)}
-            />
-          )
-        })}
-        </g>
 
         {/* vzdálenosti vybraného elektro bodu od zdí a okolí (jen v záložce Elektro) */}
         {distanceLines.length > 0 && <DistanceDims lines={distanceLines} k={viewport.k} />}
