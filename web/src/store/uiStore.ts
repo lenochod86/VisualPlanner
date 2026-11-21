@@ -1,5 +1,6 @@
 // Stav rozhraní, který se neukládá do projektu: výběr, aktivní nástroj, nastavení 3D.
 import { create } from 'zustand'
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import type { CableType } from '../domain/types'
 
 export type Selection = { type: 'room' | 'obstacle' | 'furniture' | 'electric' | 'cable'; id: string } | null
@@ -51,7 +52,28 @@ interface UiState {
   requestFit: () => void
 }
 
-export const useUiStore = create<UiState>()(set => ({
+/** Panely, jejichž sbalení si aplikace pamatuje mezi spuštěními. */
+interface SavedPanels { show3d: boolean; showPlan: boolean }
+
+/**
+ * Obnoví uložené sbalení panelů. Chybějící nebo poškozená hodnota znamená "rozbaleno"
+ * a nikdy nezůstanou sbalené oba panely najednou (nebylo by co zobrazit).
+ */
+export function restorePanels(saved: unknown): SavedPanels {
+  const s = (saved ?? {}) as Partial<SavedPanels>
+  const show3d = typeof s.show3d === 'boolean' ? s.show3d : true
+  const showPlan = typeof s.showPlan === 'boolean' ? s.showPlan : true
+  return show3d || showPlan ? { show3d, showPlan } : { show3d: true, showPlan: true }
+}
+
+/** Úložiště prohlížeče; tam, kde není (testy, zablokované úložiště), se nic neukládá a nic nepadá. */
+const noopStorage: StateStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }
+const stateStorage = (): StateStorage => {
+  try { return typeof localStorage === 'undefined' ? noopStorage : localStorage } catch { return noopStorage }
+}
+const browserStorage = createJSONStorage<SavedPanels>(stateStorage)
+
+export const useUiStore = create<UiState>()(persist(set => ({
   selection: null,
   tool: 'select',
   mode: 'plan',
@@ -80,6 +102,12 @@ export const useUiStore = create<UiState>()(set => ({
   togglePlan: () => set(s => (s.showPlan && !s.show3d ? s : { showPlan: !s.showPlan })),
   setHoveredWall: hoveredWall => set({ hoveredWall }),
   requestFit: () => set(s => ({ fitRequest: s.fitRequest + 1 })),
+}), {
+  name: 'visual-planner-ui',
+  storage: browserStorage,
+  // ukládá se jen sbalení půdorysu a 3D (výběr, nástroj apod. patří jen aktuální relaci)
+  partialize: (s): SavedPanels => ({ show3d: s.show3d, showPlan: s.showPlan }),
+  merge: (saved, current) => ({ ...current, ...restorePanels(saved) }),
 }))
 
 /**
