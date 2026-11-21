@@ -1,3 +1,4 @@
+import { DEFAULT_CEILING } from '../domain/materials'
 import { describe, expect, it } from 'vitest'
 import type { Room } from '../domain/types'
 import { edgeInfo } from './polygon'
@@ -5,7 +6,7 @@ import { shapePts } from './shapes'
 import { applyWallThickness, buildWallModel, outerPolygon } from './walls'
 
 const room = (id: string, x: number): Room => ({
-  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
+  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260, wallMaterial: 'plaster', ceiling: { ...DEFAULT_CEILING },
 })
 // A: x 0..400, B: x 415..815 -> mezera 15 = sdílená zeď tloušťky 15 (pravá stěna A = index 1, levá B = index 3)
 const A = room('A', 0), B = room('B', 415)

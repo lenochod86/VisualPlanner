@@ -5,6 +5,17 @@ export interface Rect { x: number; y: number; w: number; h: number }
 
 export type RoomType = 'living' | 'bedroom' | 'kitchen' | 'bathroom' | 'toilet' | 'hall' | 'other'
 export type RoomShape = 'rect' | 'L-left' | 'L-right'
+export type WallMaterial = 'plaster' | 'brick' | 'concrete' | 'tile' | 'sdk'
+export type CeilingType = 'none' | 'slab' | 'sdk'
+
+export interface Ceiling {
+  type: CeilingType
+  /** SDK podhled: o kolik cm visí pod stropem (stropem je výška místnosti). */
+  drop: number
+  /** SDK podhled: rozteč nosných profilů (podél osy x) a příčných (podél osy y), v cm. */
+  profileSpacing: number
+  crossSpacing: number
+}
 
 export interface Room {
   id: string
@@ -15,6 +26,8 @@ export interface Room {
   /** Tloušťka zdi u každé stěny (stejné pořadí jako `pts`). Sdílená zeď má tloušťku danou mezerou mezi místnostmi, viz geometry/walls.ts. */
   walls: number[]
   height: number
+  wallMaterial: WallMaterial
+  ceiling: Ceiling
 }
 
 /**

@@ -39,5 +39,5 @@ Závislosti míří jedním směrem: `features → store → geometry/domain`; `
 3. [x] Celý byt: kreslení místností, magnet / sdílená zeď, přehled ploch, ukládání na server, export/import
    - [x] Undo/redo, sdílené zdi (tloušťka podle mezery), tloušťka a délka každé stěny v panelu
 4. [x] Nábytek: katalog (WC volné i Geberit, sprcha, vana, umyvadlo, TV, stůl, židle, linka, gauč, postele, skříň), snap ke zdi, otáčení, přesun mezi místnostmi
-5. [ ] Otvory ve zdech (CSG), materiály, stropy, SDK strop s rastrem profilů
+5. [x] Otvory ve zdech pro okna a dveře, materiály zdí, stropy (omítnutý, SDK podhled s rastrem profilů, průhledný režim)
 6. [ ] Elektro: zásuvky, světla, kabely, auto-trasování

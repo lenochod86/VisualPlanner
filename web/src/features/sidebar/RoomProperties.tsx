@@ -1,10 +1,12 @@
 import { ROOM_TYPES } from '../../domain/catalog'
-import type { Room, RoomType } from '../../domain/types'
+import { WALL_MATERIALS } from '../../domain/materials'
+import type { Room, RoomType, WallMaterial } from '../../domain/types'
 import { formatAreaM2 } from '../../format'
 import { polygonArea } from '../../geometry/polygon'
 import { beginGesture, endGesture } from '../../store/history'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
+import { CeilingFields } from './CeilingFields'
 import { NumberField } from './NumberField'
 import { WallList } from './WallList'
 
@@ -33,6 +35,13 @@ export function RoomProperties({ room }: { room: Room }) {
         </select>
       </label>
       <NumberField label="Výška (cm)" value={room.height} onCommit={v => updateRoom(room.id, { height: Math.max(100, v) })} />
+
+      <label className="field">Materiál stěn
+        <select value={room.wallMaterial} onChange={e => updateRoom(room.id, { wallMaterial: e.target.value as WallMaterial })}>
+          {(Object.keys(WALL_MATERIALS) as WallMaterial[]).map(m => <option key={m} value={m}>{WALL_MATERIALS[m].label}</option>)}
+        </select>
+      </label>
+      <CeilingFields room={room} />
 
       <h2>Stěny</h2>
       <WallList room={room} />

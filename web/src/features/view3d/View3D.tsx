@@ -4,6 +4,7 @@ import { bbox } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWallModel } from '../../store/useWallModel'
+import { CeilingMesh } from './CeilingMesh'
 import { FurnitureMesh } from './FurnitureMesh'
 import { ObstacleMesh } from './ObstacleMesh'
 import { RoomFloor } from './RoomFloor'
@@ -15,6 +16,7 @@ export function View3D() {
   const furniture = useProjectStore(s => s.furniture)
   const wallOpacity = useUiStore(s => s.wallOpacity)
   const furnitureOpacity = useUiStore(s => s.furnitureOpacity)
+  const ceilingView = useUiStore(s => s.ceilingView)
   const walls = useWallModel()
 
   const points = rooms.flatMap(r => r.pts)
@@ -33,6 +35,7 @@ export function View3D() {
 
       {rooms.map(room => <RoomFloor key={room.id} room={room} />)}
       <WallsMesh opacity={wallOpacity} />
+      {ceilingView !== 'off' && rooms.map(room => <CeilingMesh key={room.id} room={room} view={ceilingView} />)}
       {furniture.map(item => {
         const room = rooms.find(r => r.id === item.roomId)
         return room && <FurnitureMesh key={item.id} furniture={item} room={room} walls={walls} opacity={furnitureOpacity} />

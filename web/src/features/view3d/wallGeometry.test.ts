@@ -1,3 +1,4 @@
+import { DEFAULT_CEILING } from '../../domain/materials'
 import type { MultiPolygon } from 'polygon-clipping'
 import { describe, expect, it } from 'vitest'
 import type { Obstacle, Pt, Room } from '../../domain/types'
@@ -8,7 +9,7 @@ import { buildWallModel } from '../../geometry/walls'
 import { roomWallFootprint, wallBands } from './wallGeometry'
 
 const room = (id: string, x: number): Room => ({
-  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
+  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260, wallMaterial: 'plaster', ceiling: { ...DEFAULT_CEILING },
 })
 
 const toPts = (ring: [number, number][]): Pt[] => ring.map(([x, y]) => ({ x, y }))

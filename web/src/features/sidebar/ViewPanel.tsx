@@ -1,4 +1,4 @@
-import { useUiStore } from '../../store/uiStore'
+import { useUiStore, type CeilingView } from '../../store/uiStore'
 
 /** Posuvník neprůhlednosti: vlevo průhledné, vpravo plné. */
 function OpacitySlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
@@ -16,6 +16,8 @@ export function ViewPanel() {
   const setWallOpacity = useUiStore(s => s.setWallOpacity)
   const furnitureOpacity = useUiStore(s => s.furnitureOpacity)
   const setFurnitureOpacity = useUiStore(s => s.setFurnitureOpacity)
+  const ceilingView = useUiStore(s => s.ceilingView)
+  const setCeilingView = useUiStore(s => s.setCeilingView)
   const requestFit = useUiStore(s => s.requestFit)
 
   return (
@@ -24,6 +26,13 @@ export function ViewPanel() {
       <button onClick={requestFit}>Přizpůsobit půdorys</button>
       <OpacitySlider label="Zdi ve 3D" value={wallOpacity} onChange={setWallOpacity} />
       <OpacitySlider label="Nábytek ve 3D" value={furnitureOpacity} onChange={setFurnitureOpacity} />
+      <label className="field">Strop ve 3D
+        <select value={ceilingView} onChange={e => setCeilingView(e.target.value as CeilingView)}>
+          <option value="off">skrytý</option>
+          <option value="solid">plný</option>
+          <option value="transparent">průhledný (rastr)</option>
+        </select>
+      </label>
       <small>Posuvníky: vlevo průhledné, vpravo plné.</small>
     </section>
   )

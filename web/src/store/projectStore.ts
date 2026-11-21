@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { DEFAULT_ROOM_HEIGHT, DEFAULT_WALL_THICKNESS, MAX_WALL, MIN_WALL } from '../config'
 import { OBSTACLE_KINDS, ROOM_TYPES } from '../domain/catalog'
 import { FURNITURE_KINDS } from '../domain/furnitureCatalog'
+import { DEFAULT_CEILING, DEFAULT_WALL_MATERIAL } from '../domain/materials'
 import { createInitialProject } from '../domain/project'
 import type {
   Furniture, FurnitureKind, Obstacle, ObstacleKind, Placed, Project, Rect, Room, RoomShape,
@@ -46,6 +47,7 @@ function newRoom(pts: Room['pts']): Room {
   return {
     id: newId(), name: ROOM_TYPES.other.label, type: 'other', pts,
     walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
+    wallMaterial: DEFAULT_WALL_MATERIAL, ceiling: { ...DEFAULT_CEILING },
   }
 }
 

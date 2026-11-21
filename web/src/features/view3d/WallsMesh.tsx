@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
+import { WALL_MATERIALS } from '../../domain/materials'
 import { buildOpenings } from '../../geometry/openings'
 import { useProjectStore } from '../../store/projectStore'
 import { useWallModel } from '../../store/useWallModel'
@@ -21,7 +22,7 @@ export function WallsMesh({ opacity }: { opacity: number }) {
     <>
       {solids.map((solid, i) => (
         <mesh key={i} geometry={solid.geometry}>
-          <meshStandardMaterial color="#f4f1ea" side={THREE.DoubleSide}
+          <meshStandardMaterial color={WALL_MATERIALS[rooms.find(r => r.id === solid.roomId)?.wallMaterial ?? 'plaster'].color} side={THREE.DoubleSide}
             transparent={transparent} opacity={opacity} depthWrite={!transparent} />
         </mesh>
       ))}

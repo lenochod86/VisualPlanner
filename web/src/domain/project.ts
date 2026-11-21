@@ -1,5 +1,6 @@
 import { DEFAULT_ROOM_HEIGHT, DEFAULT_WALL_THICKNESS } from '../config'
 import { shapePts } from '../geometry/shapes'
+import { DEFAULT_CEILING, DEFAULT_WALL_MATERIAL } from './materials'
 import type { Project, Room } from './types'
 
 /** Projekt, se kterým aplikace startuje, když ještě nic není uložené. */
@@ -9,6 +10,7 @@ export function createInitialProject(): Project {
     rooms: [{
       id: 'initial-room', name: 'Obývák', type: 'living', pts,
       walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
+      wallMaterial: DEFAULT_WALL_MATERIAL, ceiling: { ...DEFAULT_CEILING },
     }],
     obstacles: [],
     furniture: [],
@@ -20,7 +22,8 @@ function normalizeRoom(raw: Room & { wallT?: number }): Room {
   const { wallT, ...room } = raw
   const fallback = wallT ?? DEFAULT_WALL_THICKNESS
   const walls = room.pts.map((_, i) => (Array.isArray(room.walls) && room.walls[i] > 0 ? room.walls[i] : fallback))
-  return { ...room, walls }
+  // materiál a strop starší projekty nemají
+  return { ...room, walls, wallMaterial: room.wallMaterial ?? DEFAULT_WALL_MATERIAL, ceiling: { ...DEFAULT_CEILING, ...room.ceiling } }
 }
 
 /** Ověří, že data z importu / serveru vypadají jako projekt. Při chybě vyhodí Error. */
