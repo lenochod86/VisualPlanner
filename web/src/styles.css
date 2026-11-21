@@ -66,8 +66,8 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .waypoint-row button { padding: 1px 0; }
 
 /* ---- horní lišta ---- */
-.topbar { display: flex; align-items: center; gap: 16px; height: 48px; padding: 0 12px; background: #fff; border-bottom: 1px solid #d5d9df; flex-shrink: 0; }
-.topbar .brand { display: flex; flex-direction: column; min-width: 200px; line-height: 1.2; }
+.topbar { display: flex; align-items: center; height: 48px; padding: 0 12px 0 0; background: #fff; border-bottom: 1px solid #d5d9df; flex-shrink: 0; }
+.topbar .brand { display: flex; flex-direction: column; justify-content: center; width: 280px; flex-shrink: 0; align-self: stretch; padding-left: 12px; border-right: 1px solid #d5d9df; line-height: 1.2; } /* stejná šířka jako levý panel, aby záložky začínaly na jeho konci */
 .topbar .brand small { font-size: 11px; }
 .tabs { display: flex; gap: 4px; align-self: stretch; }
 .tab { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 0 18px; font-size: 14px; }
