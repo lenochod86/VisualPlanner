@@ -67,6 +67,7 @@ export interface Obstacle extends Placed {
 export type FurnitureKind =
   | 'bed-single' | 'bed-double' | 'sofa' | 'table' | 'chair' | 'tv' | 'wardrobe' | 'kitchen-unit'
   | 'wc-free' | 'wc-wall' | 'shower' | 'bathtub' | 'sink'
+  | 'washer' | 'dryer' | 'fridge'
 export interface Furniture extends Placed {
   kind: FurnitureKind
   /** Přichytává se tažení ke zdi? Výchozí ano. */

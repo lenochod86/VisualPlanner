@@ -36,7 +36,13 @@ export function FurnitureMesh({ furniture: f, room, walls, opacity, selected, is
           ((part.x[0] + part.x[1]) / 2 - 0.5) * f.w, ((part.y[0] + part.y[1]) / 2) * f.h, ((part.z[0] + part.z[1]) / 2 - 0.5) * f.d,
         ]
         return (
-          <mesh key={i} position={position} scale={size}>
+          // 'cylz': válec leží podélně (osa od zdi do místnosti): otočí se o 90° kolem x, a protože se měřítko
+          // použije před otočením, jeho osa y je hloubka a osa z výška
+          <mesh
+            key={i} position={position}
+            rotation={part.shape === 'cylz' ? [Math.PI / 2, 0, 0] : [0, 0, 0]}
+            scale={part.shape === 'cylz' ? [size[0], size[2], size[1]] : size}
+          >
             {part.shape === 'box' ? <boxGeometry args={[1, 1, 1]} /> : <cylinderGeometry args={[0.5, 0.5, 1, 24]} />}
             {/* key: three.js přepnutí `transparent` za běhu bez překompilování shaderu nepromítne (alfa zůstane 1), proto nový materiál */}
             <meshStandardMaterial

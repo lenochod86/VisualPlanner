@@ -1,12 +1,13 @@
 // Katalog nábytku: popisky, kategorie a výchozí rozměry v cm (š × h × v). 3D vzhled je ve features/view3d/furnitureModels.ts.
 import type { FurnitureKind } from './types'
 
-export type FurnitureCategory = 'bathroom' | 'living' | 'kitchen'
+export type FurnitureCategory = 'bathroom' | 'living' | 'kitchen' | 'appliances'
 
 export const FURNITURE_CATEGORIES: Record<FurnitureCategory, string> = {
   bathroom: 'Koupelna a WC',
   living: 'Obývák a ložnice',
   kitchen: 'Kuchyň',
+  appliances: 'Spotřebiče',
 }
 
 interface FurnitureSpec {
@@ -33,4 +34,7 @@ export const FURNITURE_KINDS: Record<FurnitureKind, FurnitureSpec> = {
   tv:             { label: 'Televize',          category: 'living',   w: 110, d: 6,   h: 65,  elev: 100, color: '#444444' },
   wardrobe:       { label: 'Skříň',             category: 'living',   w: 100, d: 60,  h: 220, elev: 0,  color: '#d7c7ad' },
   'kitchen-unit': { label: 'Kuchyňská linka',   category: 'kitchen',  w: 240, d: 60,  h: 90,  elev: 0,  color: '#e8e4dc' },
+  washer:         { label: 'Pračka',            category: 'appliances', w: 60, d: 60, h: 85,  elev: 0, color: '#f4f6f8' },
+  dryer:          { label: 'Sušička',           category: 'appliances', w: 60, d: 60, h: 85,  elev: 0, color: '#eef1f4' },
+  fridge:         { label: 'Lednice',           category: 'appliances', w: 60, d: 65, h: 185, elev: 0, color: '#e8ecef' },
 }

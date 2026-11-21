@@ -6,7 +6,8 @@ import type { FurnitureKind } from '../../domain/types'
 type Range = [number, number]
 
 export interface ModelPart {
-  shape: 'box' | 'cyl'    // válec stojí svisle, jeho průměr určuje x a z
+  /** Válec: 'cyl' stojí svisle (průměr určuje x a z), 'cylz' leží podélně od zdi do místnosti (průměr určuje x a y; kulaté okénko pračky). */
+  shape: 'box' | 'cyl' | 'cylz'
   x: Range
   y: Range
   z: Range
@@ -16,6 +17,7 @@ export interface ModelPart {
 
 const box = (x: Range, y: Range, z: Range, color: string, opacity?: number): ModelPart => ({ shape: 'box', x, y, z, color, opacity })
 const cyl = (x: Range, y: Range, z: Range, color: string): ModelPart => ({ shape: 'cyl', x, y, z, color })
+const cylZ = (x: Range, y: Range, z: Range, color: string): ModelPart => ({ shape: 'cylz', x, y, z, color })
 
 /** Čtyři nohy v rozích: `x`/`z` jsou rozsahy levé zadní nohy, ostatní jsou zrcadlově. */
 const legs = (x: Range, z: Range, y: Range, color: string): ModelPart[] =>
@@ -96,5 +98,30 @@ export const FURNITURE_MODELS: Record<FurnitureKind, ModelPart[]> = {
     box([0, 1], [0, 0.7], [0, 1], '#fafafa'),
     box([0.1, 0.9], [0.65, 0.705], [0.12, 0.88], '#d7e6ee'),    // mísa
     cyl([0.46, 0.54], [0.7, 1], [0.04, 0.12], '#b8bec6'),       // baterie
+  ],
+
+  // pračka a sušička: bílá skříň, kulaté okénko na čelní straně (průměr 38 / 28 cm při výchozích rozměrech)
+  washer: [
+    box([0, 1], [0, 1], [0, 1], '#f4f6f8'),
+    box([0.05, 0.95], [0.88, 0.97], [0.99, 1.003], '#d7dde3'),            // ovládací panel
+    box([0.08, 0.4], [0.9, 0.95], [0.995, 1.004], '#c9d0d6'),             // zásuvka na prášek
+    cylZ([0.183, 0.817], [0.2265, 0.6735], [0.985, 1.004], '#c9d0d6'),    // rám okénka
+    cylZ([0.267, 0.733], [0.2855, 0.6145], [0.99, 1.006], '#3b4a5a'),     // sklo
+  ],
+  dryer: [
+    box([0, 1], [0, 1], [0, 1], '#eef1f4'),
+    box([0.05, 0.95], [0.88, 0.97], [0.99, 1.003], '#d7dde3'),            // ovládací panel
+    cylZ([0.8, 0.9], [0.86, 0.93], [0.995, 1.006], '#8a939b'),            // volič programů
+    cylZ([0.183, 0.817], [0.2265, 0.6735], [0.985, 1.004], '#c9d0d6'),    // rám okénka
+    cylZ([0.267, 0.733], [0.2855, 0.6145], [0.99, 1.006], '#4a5868'),     // sklo
+  ],
+
+  // lednice s mrazákem dole: dvoje dveře, madla vlevo
+  fridge: [
+    box([0.03, 0.97], [0, 0.02], [0.05, 0.95], '#444444'),                // sokl
+    box([0, 1], [0.02, 1], [0, 1], '#e8ecef'),
+    box([0, 1], [0.355, 0.36], [0.99, 1.003], '#9aa3ab'),                 // spára mezi mrazákem a chladničkou
+    box([0.07, 0.11], [0.43, 0.62], [1, 1.025], '#b8bec6'),               // madlo chladničky
+    box([0.07, 0.11], [0.2, 0.31], [1, 1.025], '#b8bec6'),                // madlo mrazáku
   ],
 }

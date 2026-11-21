@@ -53,3 +53,14 @@ describe('nábytek ve store', () => {
     expect(state().furniture[0].rot).toBeCloseTo((-60 * Math.PI) / 180)
   })
 })
+
+describe('spotřebiče', () => {
+  it('přidá pračku, sušičku a lednici s výchozími rozměry a připne je ke zdi', () => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    const room = state().addRoom('rect')
+    for (const [kind, w, d, h] of [['washer', 60, 60, 85], ['dryer', 60, 60, 85], ['fridge', 60, 65, 185]] as const) {
+      const id = state().addFurniture(kind, room)!
+      expect(state().furniture.find(f => f.id === id)).toMatchObject({ kind, w, d, h, attach: { edge: 0 } })
+    }
+  })
+})
