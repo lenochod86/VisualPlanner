@@ -2,6 +2,7 @@ import { OBSTACLE_KINDS } from '../../domain/catalog'
 import type { Obstacle } from '../../domain/types'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
+import { NumberField } from './NumberField'
 import { PlacedFields } from './PlacedFields'
 
 export function ObstacleProperties({ obstacle }: { obstacle: Obstacle }) {
@@ -11,11 +12,21 @@ export function ObstacleProperties({ obstacle }: { obstacle: Obstacle }) {
 
   const hinge = obstacle.hinge ?? 'left'
   const swing = obstacle.swing ?? 'in'
+  const round = OBSTACLE_KINDS[obstacle.kind].round
 
   return (
     <section>
       <h2>{OBSTACLE_KINDS[obstacle.kind].label}</h2>
-      <PlacedFields item={obstacle} onChange={patch => updateObstacle(obstacle.id, patch)} />
+      {round
+        ? (
+          // kruhový pevný bod: jediný průměr (šířka = hloubka), výška a výška od podlahy
+          <>
+            <NumberField label="Průměr (cm)" value={obstacle.w} onCommit={v => updateObstacle(obstacle.id, { w: Math.max(5, v), d: Math.max(5, v) })} />
+            <NumberField label="Výška (cm)" value={obstacle.h} onCommit={v => updateObstacle(obstacle.id, { h: Math.max(5, v) })} />
+            <NumberField label="Od podlahy (cm)" value={obstacle.elev} onCommit={v => updateObstacle(obstacle.id, { elev: Math.max(0, v) })} />
+          </>
+        )
+        : <PlacedFields item={obstacle} onChange={patch => updateObstacle(obstacle.id, patch)} />}
 
       {obstacle.kind === 'door' && (
         <>

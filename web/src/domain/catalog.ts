@@ -17,6 +17,8 @@ interface ObstacleSpec {
   color: string
   /** Okna a dveře leží přímo ve zdi a nemohou stát volně v místnosti. */
   inWall: boolean
+  /** Půdorysný tvar je kruh (elipsa o rozměrech šířka × hloubka), jinak obdélník. */
+  round?: boolean
 }
 
 export const OBSTACLE_KINDS: Record<ObstacleKind, ObstacleSpec> = {
@@ -26,4 +28,7 @@ export const OBSTACLE_KINDS: Record<ObstacleKind, ObstacleSpec> = {
   door:     { label: 'Dveře',     w: 90,  d: 12, h: 205, elev: 0,  color: '#9b6b43', inWall: true },
   // otvor ve zdi bez výplně (průchod); výšku a výšku od podlahy lze upravit, takže jde i o průchozí okno
   opening:  { label: 'Otvor',     w: 100, d: 12, h: 205, elev: 0,  color: '#ffffff', inWall: true },
+  // pevné body v místnosti (sloup, komín, pilíř): překážky, kolem kterých se plánuje; kruh nebo obdélník
+  'fixed-round': { label: 'Pevný bod - kruh',      w: 30, d: 30, h: 260, elev: 0, color: '#6b6f75', inWall: false, round: true },
+  'fixed-rect':  { label: 'Pevný bod - obdélník',  w: 40, d: 30, h: 260, elev: 0, color: '#6b6f75', inWall: false },
 }

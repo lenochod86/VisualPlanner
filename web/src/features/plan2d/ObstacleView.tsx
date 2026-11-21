@@ -20,6 +20,11 @@ interface Props {
 
 export function ObstacleView({ obstacle, room, walls, selected, swingStyle, k, onPointerDown }: Props) {
   const p = resolvePlacement(obstacle, room, walls, OBSTACLE_KINDS[obstacle.kind].inWall)
+  const look = {
+    fill: OBSTACLE_KINDS[obstacle.kind].color,
+    stroke: selected ? '#2f6fed' : '#222', strokeWidth: (selected ? 2 : 1) * k,
+    style: { cursor: 'grab' } as const,
+  }
   const swing = obstacle.kind === 'door' ? doorSwing(obstacle, wallThicknessFor(obstacle, room, walls)) : null
 
   return (
@@ -36,13 +41,10 @@ export function ObstacleView({ obstacle, room, walls, selected, swingStyle, k, o
       {swing && swingStyle === 'shadow' && (
         <path d={swingSectorPath(swing)} fill="#00000020" stroke="none" pointerEvents="none" />
       )}
-      <rect
-        x={-obstacle.w / 2} y={-obstacle.d / 2} width={obstacle.w} height={obstacle.d}
-        fill={OBSTACLE_KINDS[obstacle.kind].color}
-        stroke={selected ? '#2f6fed' : '#222'} strokeWidth={(selected ? 2 : 1) * k}
-        style={{ cursor: 'grab' }}
-        onPointerDown={onPointerDown}
-      />
+      {/* pevný bod "kruh" je elipsa o rozměrech šířka × hloubka, ostatní prvky obdélník */}
+      {OBSTACLE_KINDS[obstacle.kind].round
+        ? <ellipse cx={0} cy={0} rx={obstacle.w / 2} ry={obstacle.d / 2} {...look} onPointerDown={onPointerDown} />
+        : <rect x={-obstacle.w / 2} y={-obstacle.d / 2} width={obstacle.w} height={obstacle.d} {...look} onPointerDown={onPointerDown} />}
     </g>
   )
 }

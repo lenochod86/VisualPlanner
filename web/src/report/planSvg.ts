@@ -114,6 +114,7 @@ export function buildPlanSvg(project: Project, options: PlanSvgOptions): PlanSvg
     floorsSvg(rooms),
     wallsSvg(rooms, walls),
     openingsSvg(rooms, obstacles, walls, mm),
+    fixturesSvg(rooms, obstacles, walls, mm),
     layers.furniture !== 'none' ? furnitureSvg(rooms, furniture, walls, mm, layers.furniture === 'full') : '',
     layers.electro ? electroSvg(project, mm) : '',
     layers.roomNames ? labelsSvg(rooms, mm) : '',
@@ -192,6 +193,21 @@ function openingsSvg(rooms: Room[], obstacles: Project['obstacles'], walls: Wall
       `<g transform="translate(${n(p.x)} ${n(p.y)}) rotate(${n((p.rot * 180) / Math.PI)})">` +
       `<rect x="${n(hx)}" y="${n(-t / 2)}" width="${n(w)}" height="${n(t)}" fill="#fff"/>${symbol}</g>`,
     ]
+  }).join('\n')
+}
+
+/** Stoupačky, topení a pevné body (kruh / obdélník): obrys v barvě prvku. */
+function fixturesSvg(rooms: Room[], obstacles: Project['obstacles'], walls: WallModel, mm: (v: number) => number): string {
+  return obstacles.flatMap(o => {
+    const spec = OBSTACLE_KINDS[o.kind]
+    const room = rooms.find(r => r.id === o.roomId)
+    if (!room || spec.inWall) return []                                  // okna a dveře kreslí openingsSvg
+    const p = resolvePlacement(o, room, walls)
+    const look = `fill="${spec.color}" stroke="#222" stroke-width="${n(mm(0.25))}"`
+    const shape = spec.round
+      ? `<ellipse cx="0" cy="0" rx="${n(o.w / 2)}" ry="${n(o.d / 2)}" ${look}/>`
+      : `<rect x="${n(-o.w / 2)}" y="${n(-o.d / 2)}" width="${n(o.w)}" height="${n(o.d)}" ${look}/>`
+    return [`<g transform="translate(${n(p.x)} ${n(p.y)}) rotate(${n((p.rot * 180) / Math.PI)})">${shape}</g>`]
   }).join('\n')
 }
 

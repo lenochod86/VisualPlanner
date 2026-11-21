@@ -98,9 +98,11 @@ export function ObstacleMesh({ obstacle, room, walls, selected, onGrab }: Props)
       {obstacle.kind === 'door' && <DoorSwingShadow door={obstacle} wallThickness={wallThicknessFor(obstacle, room, walls)} />}
       {obstacle.kind === 'opening' && <OpeningModel w={obstacle.w} h={obstacle.h} depth={depth} />}
       {!spec.inWall && (
-        // stoupačka, topení: obyčejný kvádr
-        <mesh position={[0, obstacle.h / 2, 0]}>
-          <boxGeometry args={[obstacle.w, obstacle.h, obstacle.d]} />
+        // stoupačka, topení, pevný bod (hranol, nebo válec u kruhového): obyčejné těleso
+        <mesh position={[0, obstacle.h / 2, 0]} scale={spec.round ? [obstacle.w, obstacle.h, obstacle.d] : [1, 1, 1]}>
+          {spec.round
+            ? <cylinderGeometry args={[0.5, 0.5, 1, 32]} />                            // jednotkový válec natažený na šířku × hloubku (elipsa)
+            : <boxGeometry args={[obstacle.w, obstacle.h, obstacle.d]} />}
           <meshStandardMaterial color={spec.color} />
         </mesh>
       )}

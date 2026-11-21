@@ -54,7 +54,7 @@ export interface Placed {
   attach?: { edge: number; along: number; /** Čtvrtotáčky oproti poloze "zády ke zdi" (0-3); jen nábytek. */ turn?: number }
 }
 
-export type ObstacleKind = 'riser' | 'radiator' | 'window' | 'door' | 'opening'
+export type ObstacleKind = 'riser' | 'radiator' | 'window' | 'door' | 'opening' | 'fixed-round' | 'fixed-rect'
 /** Stavební prvky: stoupačky, topení, okna, dveře. */
 export interface Obstacle extends Placed {
   kind: ObstacleKind
@@ -67,7 +67,7 @@ export interface Obstacle extends Placed {
 export type FurnitureKind =
   | 'bed-single' | 'bed-double' | 'sofa' | 'table' | 'chair' | 'tv' | 'wardrobe' | 'kitchen-unit'
   | 'wc-free' | 'wc-wall' | 'shower' | 'bathtub' | 'sink'
-  | 'washer' | 'dryer' | 'fridge'
+  | 'washer' | 'dryer' | 'fridge' | 'hood'
 export interface Furniture extends Placed {
   kind: FurnitureKind
   /** Přichytává se tažení ke zdi? Výchozí ano. */

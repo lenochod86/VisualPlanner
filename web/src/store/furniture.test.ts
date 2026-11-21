@@ -64,3 +64,21 @@ describe('spotřebiče', () => {
     }
   })
 })
+
+describe('digestoř a pevné body', () => {
+  it('digestoř visí nad linkou: výška spodní hrany 150 cm', () => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    const room = state().addRoom('rect')
+    const id = state().addFurniture('hood', room)!
+    expect(state().furniture.find(f => f.id === id)).toMatchObject({ kind: 'hood', w: 60, d: 50, h: 75, elev: 150 })
+  })
+
+  it('přidá kruhový a obdélníkový pevný bod s výchozími rozměry', () => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    const room = state().addRoom('rect')
+    const round = state().addObstacle('fixed-round', room)!
+    const rect = state().addObstacle('fixed-rect', room)!
+    expect(state().obstacles.find(o => o.id === round)).toMatchObject({ kind: 'fixed-round', w: 30, d: 30, h: 260 })
+    expect(state().obstacles.find(o => o.id === rect)).toMatchObject({ kind: 'fixed-rect', w: 40, d: 30, h: 260 })
+  })
+})

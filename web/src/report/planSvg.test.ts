@@ -126,3 +126,17 @@ describe('využití stránky', () => {
     expect(svg).toContain(`Měřítko 1:${scale}`)
   })
 })
+
+describe('pevné body v tisku', () => {
+  const withObstacle = (kind: 'fixed-round' | 'fixed-rect') => {
+    const p = project()
+    p.obstacles = [{ id: 'f', roomId: 'a', kind, w: 30, d: 30, h: 260, elev: 0, x: 200, y: 150, rot: 0 }]
+    return buildPlanSvg(p, options()).svg
+  }
+
+  it('kruhový pevný bod se tiskne jako elipsa, obdélníkový jako obdélník', () => {
+    expect(withObstacle('fixed-round')).toContain('<ellipse')
+    expect(withObstacle('fixed-rect')).not.toContain('<ellipse')
+    expect(withObstacle('fixed-rect')).toContain('fill="#6b6f75"')
+  })
+})

@@ -124,4 +124,11 @@ export const FURNITURE_MODELS: Record<FurnitureKind, ModelPart[]> = {
     box([0.07, 0.11], [0.43, 0.62], [1, 1.025], '#b8bec6'),               // madlo chladničky
     box([0.07, 0.11], [0.2, 0.31], [1, 1.025], '#b8bec6'),                // madlo mrazáku
   ],
+
+  // digestoř s komínem: nízká nasávací část dole (se světly na spodní straně), komín nahoru ke stropu
+  hood: [
+    box([0, 1], [0.012, 0.2], [0, 1], '#c3c8cd'),                  // nasávací část
+    box([0.06, 0.94], [0, 0.012], [0.08, 0.92], '#2b2f33'),        // spodní strana s filtrem
+    box([0.3, 0.7], [0.2, 1], [0, 0.55], '#b4bac0'),               // komín
+  ],
 }
