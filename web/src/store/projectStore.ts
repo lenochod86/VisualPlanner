@@ -10,7 +10,7 @@ import type {
   Cable, CableType, ElectricKind, ElectricPoint, Furniture, FurnitureKind, Obstacle, ObstacleKind, Placed, Project, Rect,
   Room, RoomShape, WallMode, Waypoint,
 } from '../domain/types'
-import { autoRoute, cablePolyline, runHeight } from '../geometry/electric'
+import { autoRoute, cablePolyline, planAutoConnections, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
 import { clamp } from '../geometry/math'
 import { resolvePlacement, rotatedPatch } from '../geometry/placement'
@@ -59,7 +59,11 @@ interface ProjectState extends Project {
   deleteCable: (id: string) => void
   /** Zahodí ruční úpravy a vytvoří trasu znovu automaticky. */
   rerouteCable: (id: string) => void
-  rerouteAllCables: () => void
+  /**
+   * "Přetrasovat vše": napojí zásuvky na zásuvky a světla na světla (jen body bez kabelu) a pak znovu
+   * automaticky přetrasuje všechny kabely. Vrací počet nově vytvořených kabelů a počet přetrasovaných.
+   */
+  autoConnectAndRerouteAll: () => { added: number; rerouted: number }
   insertWaypoint: (cableId: string, index: number, waypoint: Waypoint) => void
   updateWaypoint: (cableId: string, index: number, patch: Partial<Waypoint>) => void
   deleteWaypoint: (cableId: string, index: number) => void
@@ -267,7 +271,16 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     get().updateCable(id, { via })
   },
 
-  rerouteAllCables: () => get().cables.forEach(c => get().rerouteCable(c.id)),
+  autoConnectAndRerouteAll: () => {
+    const planned = planAutoConnections(get())
+    for (const wire of planned) {
+      const id = get().addCable(wire.fromId, wire.toId, wire.type)
+      if (id) get().updateCable(id, { circuit: wire.circuit })
+    }
+    const all = get().cables
+    all.forEach(c => get().rerouteCable(c.id))
+    return { added: planned.length, rerouted: all.length }
+  },
 
   insertWaypoint: (cableId, index, waypoint) =>
     set(s => ({

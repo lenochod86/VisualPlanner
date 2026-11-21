@@ -1,6 +1,6 @@
 // Elektro: poloha bodů, trasy kabelů, jejich automatické trasování a délka.
 import { BOARD_DEFAULT_SIZE, ELECTRIC_KINDS } from '../domain/electricCatalog'
-import type { Cable, ElectricPoint, Pt, Room, Waypoint } from '../domain/types'
+import type { Cable, CableType, ElectricKind, ElectricPoint, Pt, Room, Waypoint } from '../domain/types'
 import { ceilingLevel } from './ceiling'
 import { clamp, snap } from './math'
 import { frontRotation, nearestEdge, roomAt } from './placement'
@@ -102,4 +102,74 @@ export function autoRoute(from: Pos3, to: Pos3, runZ: number, rooms: Room[]): Wa
   // vynecháme body, které splývají s předchozím nebo s koncem trasy (např. světlo přímo ve výšce vedení)
   const sameAs = (a: Pos3, b: Pos3) => a.x === b.x && a.y === b.y && a.z === b.z
   return route.filter((p, i) => !sameAs(p, i === 0 ? from : route[i - 1]) && !(i === route.length - 1 && sameAs(p, to)))
+}
+
+// ---- automatické napojení ----
+
+/** Spojení navržené automatickým napojením. */
+export interface PlannedCable {
+  fromId: string
+  toId: string
+  type: CableType
+  circuit: string
+}
+
+/** Skupiny, které se napojují mezi sebou: zásuvky na zásuvky, světla na světla. */
+const WIRING_GROUPS: { kinds: ElectricKind[]; type: CableType; label: string }[] = [
+  { kinds: ['socket', 'socket-double'], type: 'cyky-3x2.5', label: 'Zásuvky' },
+  { kinds: ['light'], type: 'cyky-3x1.5', label: 'Světla' },
+]
+
+/**
+ * Navrhne kabely pro body, které zatím žádný kabel nemají: každý se napojí na nejbližší už napojený bod
+ * stejné skupiny (zásuvky mezi sebou, světla mezi sebou). Když ve skupině není napojený žádný bod,
+ * začne se od prvního a ostatní se k němu řetězí podle nejbližšího souseda. Okruh se přebírá od souseda,
+ * jinak vznikne nový ("Zásuvky", "Zásuvky 2" …). Hotové kabely se nemění.
+ */
+export function planAutoConnections(project: { rooms: Room[]; electric: ElectricPoint[]; cables: Cable[] }): PlannedCable[] {
+  const { rooms, electric, cables } = project
+  const planned: PlannedCable[] = []
+  const usedCircuits = new Set(cables.map(c => c.circuit))
+  const circuitOf = new Map<string, string>()
+  for (const c of cables) { circuitOf.set(c.fromId, c.circuit); circuitOf.set(c.toId, c.circuit) }
+
+  const position = (p: ElectricPoint) => {
+    const room = rooms.find(r => r.id === p.roomId)
+    return room ? electricPosition(p, room) : { x: p.x, y: p.y, z: 0, rot: 0 }
+  }
+  // vzdálenost po pravoúhlé trase (kabely vedou v pravých úhlech)
+  const distance = (a: ElectricPoint, b: ElectricPoint) => {
+    const pa = position(a), pb = position(b)
+    return Math.abs(pa.x - pb.x) + Math.abs(pa.y - pb.y)
+  }
+  const uniqueCircuit = (label: string) => {
+    let name = label
+    for (let n = 2; usedCircuits.has(name); n++) name = `${label} ${n}`
+    usedCircuits.add(name)
+    return name
+  }
+
+  for (const group of WIRING_GROUPS) {
+    const points = electric.filter(p => group.kinds.includes(p.kind))
+    const connected = (p: ElectricPoint) => cables.some(c => c.fromId === p.id || c.toId === p.id)
+    const network = points.filter(connected)
+    const pending = points.filter(p => !connected(p))
+    if (points.length < 2 || pending.length === 0) continue
+    if (network.length === 0) network.push(pending.shift()!)     // nikdo není napojený: začneme prvním bodem
+
+    while (pending.length > 0) {
+      let best: { p: ElectricPoint; q: ElectricPoint; d: number } | null = null
+      for (const p of pending) for (const q of network) {
+        const d = distance(p, q)
+        if (!best || d < best.d) best = { p, q, d }
+      }
+      const { p, q } = best!
+      const circuit = circuitOf.get(q.id) ?? uniqueCircuit(group.label)
+      planned.push({ fromId: q.id, toId: p.id, type: group.type, circuit })
+      circuitOf.set(p.id, circuit); circuitOf.set(q.id, circuit)
+      network.push(p)
+      pending.splice(pending.indexOf(p), 1)
+    }
+  }
+  return planned
 }

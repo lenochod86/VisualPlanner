@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CEILING } from '../domain/materials'
 import type { Cable, ElectricPoint, Room } from '../domain/types'
-import { autoRoute, boardSize, cablePolyline, dragElectricPatch, electricPosition, polylineLength, runHeight } from './electric'
+import { autoRoute, boardSize, cablePolyline, dragElectricPatch, electricPosition, planAutoConnections, polylineLength, runHeight } from './electric'
 import { shapePts } from './shapes'
 
 const room = (id: string, x: number, ceiling = {}): Room => ({
@@ -87,5 +87,47 @@ describe('rozvaděč', () => {
 
   it('zásuvce zůstává zadaná výška (střed) beze změny', () => {
     expect(electricPosition(socket, A).z).toBe(30)
+  })
+})
+
+describe('planAutoConnections', () => {
+  const at = (id: string, kind: ElectricPoint['kind'], x: number, y: number, extra: Partial<ElectricPoint> = {}): ElectricPoint =>
+    ({ id, roomId: 'A', kind, name: '', x, y, height: 30, ...extra })
+  const cable = (fromId: string, toId: string, circuit = 'C1'): Cable =>
+    ({ id: fromId + toId, type: 'cyky-3x2.5', circuit, fromId, toId, via: [] })
+
+  it('nenapojené zásuvky se spojí mezi sebou, světla mezi sebou', () => {
+    const electric = [at('s1', 'socket', 50, 0), at('s2', 'socket', 150, 0), at('l1', 'light', 100, 100), at('l2', 'light', 300, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    expect(plan).toHaveLength(2)
+    expect(plan.find(c => c.type === 'cyky-3x2.5')).toMatchObject({ fromId: 's1', toId: 's2' })
+    expect(plan.find(c => c.type === 'cyky-3x1.5')).toMatchObject({ fromId: 'l1', toId: 'l2' })
+  })
+
+  it('řetězí se podle nejbližšího souseda (ne všechny na jeden bod)', () => {
+    const electric = [at('a', 'light', 0, 100), at('b', 'light', 100, 100), at('c', 'light', 200, 100), at('d', 'light', 300, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    expect(plan.map(c => [c.fromId, c.toId])).toEqual([['a', 'b'], ['b', 'c'], ['c', 'd']])
+  })
+
+  it('už napojené body se nemění; nový se napojí na nejbližší napojený a převezme okruh', () => {
+    const electric = [at('s1', 'socket', 50, 0), at('s2', 'socket', 150, 0), at('s3', 'socket', 190, 0)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [cable('s1', 's2', 'Obývák')] })
+    expect(plan).toEqual([{ fromId: 's2', toId: 's3', type: 'cyky-3x2.5', circuit: 'Obývák' }])
+  })
+
+  it('bod napojený kabelem na něco jiného (třeba vypínač) se už nenapojuje', () => {
+    const electric = [at('s1', 'socket', 50, 0), at('s2', 'socket', 150, 0), at('sw', 'switch', 0, 0)]
+    expect(planAutoConnections({ rooms: [A], electric, cables: [cable('s1', 'sw'), cable('s2', 'sw')] })).toEqual([])
+  })
+
+  it('jediný bod ve skupině nemá s čím spojit a bez nenapojených nic neplánuje', () => {
+    expect(planAutoConnections({ rooms: [A], electric: [at('l1', 'light', 100, 100)], cables: [] })).toEqual([])
+  })
+
+  it('nový okruh dostane jedinečný název', () => {
+    const electric = [at('s1', 'socket', 50, 0), at('s2', 'socket', 150, 0)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [{ ...cable('x', 'y', 'Zásuvky'), id: 'q' }] })
+    expect(plan[0].circuit).toBe('Zásuvky 2')
   })
 })

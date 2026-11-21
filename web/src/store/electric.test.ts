@@ -65,3 +65,36 @@ describe('elektro ve store', () => {
     expect(state().cables[0].via).toHaveLength(before)
   })
 })
+
+describe('Přetrasovat vše: napojení a přetrasování', () => {
+  beforeEach(() => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    clearHistory()
+  })
+
+  it('napojí nenapojené zásuvky a světla a všechno přetrasuje, hotové kabely nechá', async () => {
+    const { beginGesture, endGesture } = await import('./history')
+    const room = state().addRoom('rect')
+    const s1 = state().addElectric('socket', room)!
+    const s2 = state().addElectric('socket', room)!
+    const l1 = state().addElectric('light', room)!
+    const l2 = state().addElectric('light', room)!
+    state().updateElectric(s2, { attach: { edge: 0, along: 300 } })   // zásuvky odděleně (jinak by měly stejnou polohu)
+    state().updateElectric(l2, { x: 300, y: 200 })
+    const existing = state().addCable(l1, l2, 'cyky-3x1.5')!      // světla už propojená
+    state().updateCable(existing, { via: [] })                      // ruční úprava, kterou přetrasování zahodí
+
+    beginGesture()
+    const result = state().autoConnectAndRerouteAll()
+    endGesture()
+
+    expect(result.added).toBe(1)                                    // jen zásuvky s1 - s2
+    expect(state().cables).toHaveLength(2)
+    const added = state().cables.find(c => c.id !== existing)!
+    expect([added.fromId, added.toId].sort()).toEqual([s1, s2].sort())
+    expect(added.type).toBe('cyky-3x2.5')
+    expect(state().cables.every(c => c.via.length >= 2)).toBe(true)  // všechny kabely mají novou trasu
+    undo()                                                           // celé je to jeden krok
+    expect(state().cables).toHaveLength(1)
+  })
+})
