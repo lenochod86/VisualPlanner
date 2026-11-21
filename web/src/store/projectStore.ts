@@ -36,6 +36,8 @@ interface ProjectState extends Project {
 
   addObstacle: (kind: ObstacleKind, roomId: string) => string | null
   updateObstacle: (id: string, patch: Partial<Obstacle>) => void
+  /** Zapne / vypne přichytávání prvku ke zdi při tažení. Při vypnutí se prvek uvolní ze zdi a zůstane na místě. */
+  setObstacleSnapToWalls: (id: string, snapToWalls: boolean) => void
   deleteObstacle: (id: string) => void
 
   /** Přidá nábytek do místnosti (připnutý uprostřed první stěny). Vrací id. */
@@ -198,6 +200,17 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     set(s => ({ obstacles: s.obstacles.map(o => (o.id === id ? { ...o, ...patch } : o)) })),
 
   deleteObstacle: id => set(s => ({ obstacles: s.obstacles.filter(o => o.id !== id) })),
+
+  setObstacleSnapToWalls: (id, snapToWalls) => {
+    const { obstacles, rooms } = get()
+    const item = obstacles.find(o => o.id === id)
+    if (!item) return
+    const room = rooms.find(r => r.id === item.roomId)
+    if (snapToWalls || !item.attach || !room) { get().updateObstacle(id, { snapToWalls }); return }
+    // vypnutí u prvku, který stojí u zdi: uvolní se a zůstane přesně tam, kde je
+    const here = resolvePlacement(item, room, buildWallModel(rooms))
+    get().updateObstacle(id, { snapToWalls: false, attach: undefined, x: here.x, y: here.y, rot: here.rot })
+  },
 
   addFurniture: (kind, roomId) => {
     const room = get().rooms.find(r => r.id === roomId)

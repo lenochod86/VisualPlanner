@@ -45,6 +45,9 @@ export function dragTargetTo(target: DragTarget, p: Pt) {
   const obstacle = state.obstacles.find(o => o.id === target.id)
   const spec = obstacle && OBSTACLE_KINDS[obstacle.kind]
   // pevný bod (sloup) se přichytí, až když je jeho okraj těsně u zdi; jinde stojí volně
-  const reach = obstacle && spec?.freestanding ? obstacle.d / 2 + FIXED_POINT_WALL_SNAP : undefined
+  // uživatel může přichytávání vypnout: pak prvek stojí vždy volně (dosah 0)
+  const reach = obstacle?.snapToWalls === false && !spec?.inWall ? 0
+    : obstacle && spec?.freestanding ? obstacle.d / 2 + FIXED_POINT_WALL_SNAP
+    : undefined
   if (room) patchItem(target, dragObstaclePatch(room, p, !!spec?.inWall, reach))
 }

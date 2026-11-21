@@ -58,6 +58,8 @@ export type ObstacleKind = 'riser' | 'radiator' | 'window' | 'door' | 'opening' 
 /** Stavební prvky: stoupačky, topení, okna, dveře. */
 export interface Obstacle extends Placed {
   kind: ObstacleKind
+  /** Přichytává se tažení ke zdi? Výchozí ano; u oken a dveří se nepoužívá (jsou vždy ve zdi). */
+  snapToWalls?: boolean
   /** Dveře: strana závěsů při pohledu z místnosti na dveře (výchozí levá). */
   hinge?: 'left' | 'right'
   /** Dveře: otevírají se do místnosti (výchozí), nebo ven z ní. */

@@ -83,3 +83,21 @@ describe('digestoř a pevné body', () => {
     expect(state().obstacles.find(o => o.id === rect)).toMatchObject({ kind: 'fixed-rect', w: 40, d: 30, h: 260 })
   })
 })
+
+describe('pevný bod: zrušení přichycení ke zdi', () => {
+  it('vypnutí uvolní prvek stojící u zdi a nechá ho na místě', () => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    const room = state().addRoom('rect')
+    const id = state().addObstacle('riser', room)!                    // stoupačka se přidá ke zdi
+    expect(state().obstacles[0].attach).toBeDefined()
+    const before = { x: 0, y: 0 }
+    state().setObstacleSnapToWalls(id, false)
+    const after = state().obstacles.find(o => o.id === id)!
+    expect(after.snapToWalls).toBe(false)
+    expect(after.attach).toBeUndefined()
+    expect(Number.isFinite(after.x) && Number.isFinite(after.y)).toBe(true)
+    expect(after.y).toBeGreaterThan(before.y)                         // stojí tam, kde byl: u horní zdi (uvnitř místnosti)
+    state().setObstacleSnapToWalls(id, true)
+    expect(state().obstacles.find(o => o.id === id)!.snapToWalls).toBe(true)
+  })
+})

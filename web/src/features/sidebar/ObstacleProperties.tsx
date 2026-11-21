@@ -8,6 +8,7 @@ import { PlacedFields } from './PlacedFields'
 export function ObstacleProperties({ obstacle }: { obstacle: Obstacle }) {
   const updateObstacle = useProjectStore(s => s.updateObstacle)
   const deleteObstacle = useProjectStore(s => s.deleteObstacle)
+  const setObstacleSnapToWalls = useProjectStore(s => s.setObstacleSnapToWalls)
   const select = useUiStore(s => s.select)
 
   const hinge = obstacle.hinge ?? 'left'
@@ -27,6 +28,22 @@ export function ObstacleProperties({ obstacle }: { obstacle: Obstacle }) {
           </>
         )
         : <PlacedFields item={obstacle} onChange={patch => updateObstacle(obstacle.id, patch)} />}
+
+      {/* pevné body, stoupačky a topení se tažením ke zdi přichytávají; to jde vypnout (okna a dveře jsou vždy ve zdi) */}
+      {!OBSTACLE_KINDS[obstacle.kind].inWall && (
+        <>
+          <label className="check">
+            <input type="checkbox" checked={obstacle.snapToWalls !== false}
+              onChange={e => setObstacleSnapToWalls(obstacle.id, e.target.checked)} />
+            Přichytávat ke zdi při tažení
+          </label>
+          <small>
+            {obstacle.attach
+              ? 'Stojí u zdi a drží se jí při změně rozměrů místnosti.'
+              : obstacle.snapToWalls === false ? 'Stojí volně a ke zdi se nepřichytává.' : 'Stojí volně; při tažení těsně ke zdi se přichytí.'}
+          </small>
+        </>
+      )}
 
       {obstacle.kind === 'door' && (
         <>

@@ -131,3 +131,9 @@ describe('dragObstaclePatch: pevný bod stojí volně', () => {
     expect(dragObstaclePatch(room, { x: 200, y: 150 }, true, 1).attach).toBeDefined()
   })
 })
+
+describe('dragObstaclePatch: vypnuté přichytávání', () => {
+  it('s dosahem 0 se prvek ke zdi nepřichytí ani těsně u ní', () => {
+    expect(dragObstaclePatch(A, { x: 200, y: 1 }, false, 0).attach).toBeUndefined()
+  })
+})
