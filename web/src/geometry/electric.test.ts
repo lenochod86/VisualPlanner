@@ -214,3 +214,35 @@ describe('planAutoConnections: vypínače a světla', () => {
     expect(plan.find(c => c.toId === 'l')!.fromId).toBe('vA')          // vB je blíž, ale v jiné místnosti
   })
 })
+
+describe('planAutoConnections: zásuvky po místnostech', () => {
+  const B: Room = { ...A, id: 'B' }
+  const board: ElectricPoint = { id: 'rozv', roomId: 'A', kind: 'board', name: '', x: 0, y: 0, height: 150, attach: { edge: 3, along: 150 } }
+  const sock = (id: string, x: number, y: number, roomId: string): ElectricPoint =>
+    ({ id, roomId, kind: 'socket', name: '', x, y, height: 30 })
+
+  it('každá místnost má svůj odvod z rozvaděče a zásuvky různých místností se nespojují mezi sebou', () => {
+    const electric = [board, sock('a1', 50, 50, 'A'), sock('a2', 120, 50, 'A'), sock('b1', 500, 50, 'B'), sock('b2', 560, 50, 'B')]
+    const plan = planAutoConnections({ rooms: [A, B], electric, cables: [] })
+    const roomOf = (id: string) => electric.find(p => p.id === id)!.roomId
+    for (const c of plan.filter(c => c.fromId !== 'rozv')) expect(roomOf(c.fromId)).toBe(roomOf(c.toId))
+    expect(plan.filter(c => c.fromId === 'rozv').map(c => c.toId).sort()).toEqual(['a1', 'b1'])   // nejbližší v každé místnosti
+    expect(plan.find(c => c.toId === 'a2')!.fromId).toBe('a1')
+    expect(plan.find(c => c.toId === 'b2')!.fromId).toBe('b1')
+  })
+
+  it('k rozvaděči se v místnosti napojí přímo jen nejbližší zásuvka, i když je jiná blíž k rozvaděči než k řetězu', () => {
+    // rozvaděč je ve (0, 150): r1 je nejblíž; r2 je k němu blíž než r3, ale přímo se k němu už nenapojuje
+    const electric = [board, sock('r1', 20, 140, 'A'), sock('r2', 40, 60, 'A'), sock('r3', 300, 200, 'A')]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    expect(plan.filter(c => c.fromId === 'rozv')).toHaveLength(1)
+    expect(plan.find(c => c.fromId === 'rozv')!.toId).toBe('r1')
+    expect(plan.find(c => c.toId === 'r2')!.fromId).toBe('r1')       // ostatní se řetězí na body téže místnosti
+  })
+
+  it('bez rozvaděče se v každé místnosti začne od vlastní zásuvky a místnosti se nespojí', () => {
+    const electric = [sock('a1', 50, 50, 'A'), sock('a2', 120, 50, 'A'), sock('b1', 500, 50, 'B'), sock('b2', 560, 50, 'B')]
+    const plan = planAutoConnections({ rooms: [A, B], electric, cables: [] })
+    expect(plan.map(c => [c.fromId, c.toId].sort().join('-')).sort()).toEqual(['a1-a2', 'b1-b2'])
+  })
+})

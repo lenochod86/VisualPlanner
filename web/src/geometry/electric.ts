@@ -130,9 +130,10 @@ const OTHER_ROOM_PENALTY = 1000
  * Navrhne kabely pro body, které zatím žádný kabel nemají (hotové kabely se nemění):
  *  - **vypínače** na rozvaděč (každý přímo; bez rozvaděče se řetězí mezi sebou),
  *  - **světla** na nejbližší vypínač (každé přímo a okruh přebírá od vypínače; bez vypínačů viz zásuvky),
- *  - **zásuvky** vždy primárně k rozvaděči: ten je kořenem sítě, nejbližší zásuvka se připojí k němu a další se
- *    řetězí na nejbližší nově napojenou zásuvku (ne na zásuvky, které už mají kabel, např. okruh sporáku).
- *    Bez rozvaděče se napojuje na hotové zásuvky, případně se začne od první.
+ *  - **zásuvky** vždy primárně k rozvaděči, ale po místnostech: v každé místnosti se nejbližší zásuvka napojí
+ *    přímo k rozvaděči a ostatní se řetězí na nejbližší nově napojenou zásuvku TÉŽE místnosti (zásuvky různých
+ *    místností se nikdy nespojují mezi sebou). Hotové kabely (např. okruh sporáku) se nepoužijí jako cíl.
+ *    Bez rozvaděče se napojuje v rámci místnosti na hotové zásuvky, případně se začne od první.
  * Každý kabel vedoucí přímo z rozvaděče začíná nový okruh; ostatní převezmou okruh bodu, na který se napojují.
  * Napojuje se přednostně v rámci téže místnosti.
  */
@@ -178,23 +179,32 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
     // Rozvaděč má přednost: když existuje, síť začíná jen jím a nové body se k němu řetězí. Už hotové kabely
     // (třeba okruh sporáku) se nepoužijí jako místo, kam se napojuje. Bez rozvaděče se napojuje na hotové body skupiny.
     const network = [...targets, ...(chain && targets.length === 0 ? points.filter(hasCable) : [])]
-    if (network.length === 0) {                           // není na co napojit: začneme prvním bodem skupiny
-      if (!chain || pending.length < 2) continue
-      network.push(pending.shift()!)
-    }
+
+    // Při řetězení platí: body se spojují jen v rámci jedné místnosti a k rozvaděči se v každé místnosti napojí
+    // přímo jen její nejbližší bod (ostatní se řetězí na body téže místnosti).
+    const roomsLinkedToBoard = new Set<string>()
+    const allowed = (p: ElectricPoint, q: ElectricPoint) =>
+      !chain || (q.kind === 'board' ? !roomsLinkedToBoard.has(p.roomId) : q.roomId === p.roomId)
 
     while (pending.length > 0) {
       let best: { p: ElectricPoint; q: ElectricPoint; d: number } | null = null
       for (const p of pending) for (const q of network) {
+        if (!allowed(p, q)) continue
         const d = distance(p, q)
         if (!best || d < best.d) best = { p, q, d }
       }
-      const { p, q } = best!
+      if (!best) {                        // není na co napojit (bez rozvaděče nikdo v místnosti napojený není): začneme tímto bodem
+        if (!chain) break
+        network.push(pending.shift()!)
+        continue
+      }
+      const { p, q } = best
       // z rozvaděče začíná vždy nový okruh; od vypínače nebo bodu se okruh přebírá
       const circuit = q.kind === 'board' ? uniqueCircuit(group.label) : (circuitOf.get(q.id) ?? uniqueCircuit(group.label))
       planned.push({ fromId: q.id, toId: p.id, type: group.type, circuit })
       circuitOf.set(p.id, circuit)
       if (q.kind !== 'board') circuitOf.set(q.id, circuit)
+      else if (chain) roomsLinkedToBoard.add(p.roomId)
       if (chain) network.push(p)
       pending.splice(pending.indexOf(p), 1)
     }
