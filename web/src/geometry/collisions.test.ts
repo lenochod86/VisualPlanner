@@ -70,3 +70,11 @@ describe('kontrola nábytku', () => {
     expect(issuesFor([away], [door])).toEqual([])
   })
 })
+
+describe('otvor ve zdi', () => {
+  it('nábytek v průchodu otvorem je označen', () => {
+    const opening: Obstacle = { id: 'o', roomId: 'A', kind: 'opening', w: 100, d: 12, h: 205, elev: 0, x: 0, y: 0, rot: 0, attach: { edge: 0, along: 200 } }
+    const blocking = piece('sofa', { w: 200, d: 90, attach: { edge: 0, along: 200 } })
+    expect(issuesFor([blocking], [opening]).map(i => i.message)).toContain('Blokuje průchod otvorem')
+  })
+})

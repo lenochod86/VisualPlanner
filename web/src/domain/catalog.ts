@@ -24,4 +24,6 @@ export const OBSTACLE_KINDS: Record<ObstacleKind, ObstacleSpec> = {
   radiator: { label: 'Topení',    w: 100, d: 10, h: 60,  elev: 10, color: '#f2f2f2', inWall: false },
   window:   { label: 'Okno',      w: 120, d: 12, h: 140, elev: 90, color: '#7ec8f0', inWall: true },
   door:     { label: 'Dveře',     w: 90,  d: 12, h: 205, elev: 0,  color: '#9b6b43', inWall: true },
+  // otvor ve zdi bez výplně (průchod); výšku a výšku od podlahy lze upravit, takže jde i o průchozí okno
+  opening:  { label: 'Otvor',     w: 100, d: 12, h: 205, elev: 0,  color: '#ffffff', inWall: true },
 }

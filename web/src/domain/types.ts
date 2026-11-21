@@ -50,7 +50,7 @@ export interface Placed {
   attach?: { edge: number; along: number }
 }
 
-export type ObstacleKind = 'riser' | 'radiator' | 'window' | 'door'
+export type ObstacleKind = 'riser' | 'radiator' | 'window' | 'door' | 'opening'
 /** Stavební prvky: stoupačky, topení, okna, dveře. */
 export interface Obstacle extends Placed { kind: ObstacleKind }
 

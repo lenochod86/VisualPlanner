@@ -69,9 +69,9 @@ export function findFurnitureIssues(
 
   const items = furniture.flatMap(f => footprintOf(f, rooms, walls) ?? [])
 
-  // volný prostor dveří: čtverec šířka dveří × šířka dveří před nimi, uvnitř místnosti
+  // volný prostor dveří a otvorů (průchodů): čtverec šířka dveří × šířka dveří před nimi, uvnitř místnosti
   const doorClearances = obstacles
-    .filter(o => OBSTACLE_KINDS[o.kind].inWall && o.kind === 'door')
+    .filter(o => o.kind === 'door' || o.kind === 'opening')
     .flatMap(door => {
       const room = rooms.find(r => r.id === door.roomId)
       if (!room || !door.attach) return []
@@ -101,7 +101,7 @@ export function findFurnitureIssues(
 
     for (const { door, rect: clearance } of doorClearances) {
       if (door.roomId === f.roomId && f.elev < door.elev + door.h && polygonsOverlap(rect, clearance)) {
-        add(f.id, 'blocks-door', 'Blokuje otevírání dveří')
+        add(f.id, 'blocks-door', door.kind === 'door' ? 'Blokuje otevírání dveří' : 'Blokuje průchod otvorem')
       }
     }
   })

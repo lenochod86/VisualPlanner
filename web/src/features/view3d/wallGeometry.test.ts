@@ -73,6 +73,13 @@ describe('otvory ve zdech', () => {
     expect(solidAt(bands[1].footprint, { x: 200, y: -5 })).toBe(true)
   })
 
+  it('otvor se vyřízne jako dveře (od podlahy), ale bez výplně', () => {
+    const opening: Obstacle = { ...base, id: 'o', kind: 'opening', w: 100, h: 205, elev: 0 }
+    const bands = wallBands(topWall, 260, buildOpenings(rooms, [opening], walls))
+    expect(bands.map(b => [b.z0, b.z1])).toEqual([[0, 205], [205, 260]])
+    expect(solidAt(bands[0].footprint, { x: 200, y: -5 })).toBe(false)
+  })
+
   it('bez otvorů je zeď jeden pás přes celou výšku', () => {
     expect(wallBands(topWall, 260, []).map(b => [b.z0, b.z1])).toEqual([[0, 260]])
   })

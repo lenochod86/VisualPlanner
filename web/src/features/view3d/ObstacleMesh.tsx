@@ -29,6 +29,17 @@ function WindowModel({ w, h, depth }: { w: number; h: number; depth: number }) {
   )
 }
 
+/** Otvor ve zdi: jen obložení (boky a překlad), žádná výplň. */
+function OpeningModel({ w, h, depth }: { w: number; h: number; depth: number }) {
+  return (
+    <>
+      <Box pos={[-w / 2 + FRAME / 2, h / 2, 0]} size={[FRAME, h, depth]} color="#e6e1d8" />
+      <Box pos={[w / 2 - FRAME / 2, h / 2, 0]} size={[FRAME, h, depth]} color="#e6e1d8" />
+      <Box pos={[0, h - FRAME / 2, 0]} size={[w, FRAME, depth]} color="#e6e1d8" />
+    </>
+  )
+}
+
 /** Dveře: zárubeň (boky a překlad) a hnědé křídlo s klikou. */
 function DoorModel({ w, h, depth }: { w: number; h: number; depth: number }) {
   return (
@@ -65,6 +76,7 @@ export function ObstacleMesh({ obstacle, room, walls, selected, onGrab }: Props)
       {selected && <SelectionBox size={[obstacle.w, obstacle.h, depth]} center={[0, obstacle.h / 2, 0]} />}
       {obstacle.kind === 'window' && <WindowModel w={obstacle.w} h={obstacle.h} depth={depth} />}
       {obstacle.kind === 'door' && <DoorModel w={obstacle.w} h={obstacle.h} depth={depth} />}
+      {obstacle.kind === 'opening' && <OpeningModel w={obstacle.w} h={obstacle.h} depth={depth} />}
       {!spec.inWall && (
         // stoupačka, topení: obyčejný kvádr
         <mesh position={[0, obstacle.h / 2, 0]}>

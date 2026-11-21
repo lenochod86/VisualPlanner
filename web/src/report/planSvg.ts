@@ -121,6 +121,9 @@ function openingsSvg(rooms: Room[], obstacles: Project['obstacles'], walls: Wall
     const stroke = `stroke="#222" stroke-width="${n(mm(0.25))}" fill="none"`
     const symbol = o.kind === 'window'
       ? [-t / 2, 0, t / 2].map(y => `<line x1="${n(hx)}" y1="${n(y)}" x2="${n(w / 2)}" y2="${n(y)}" ${stroke}/>`).join('')
+      : o.kind === 'opening'
+      // otvor: jen boky (špalety) přes tloušťku zdi, bez výplně
+      ? [hx, w / 2].map(x => `<line x1="${n(x)}" y1="${n(-t / 2)}" x2="${n(x)}" y2="${n(t / 2)}" ${stroke}/>`).join('')
       // dveře: zavěšené na levém konci, křídlo kolmo do místnosti (+y), oblouk = dráha otevírání
       : `<line x1="${n(hx)}" y1="${n(t / 2)}" x2="${n(hx)}" y2="${n(t / 2 + w)}" ${stroke}/>` +
         `<path d="M${n(w / 2)} ${n(t / 2)} A${n(w)} ${n(w)} 0 0 1 ${n(hx)} ${n(t / 2 + w)}" ${stroke} stroke-dasharray="${n(mm(1))} ${n(mm(0.8))}"/>`

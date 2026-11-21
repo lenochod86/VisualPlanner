@@ -69,3 +69,12 @@ describe('buildPlanSvg', () => {
     expect(buildPlanSvg(tall, options)).toMatchObject({ pageWidth: 210, pageHeight: 297 })
   })
 })
+
+describe('otvor v tisku', () => {
+  it('otvor má špalety a žádný oblouk dveří', () => {
+    const p = project()
+    p.obstacles = [{ id: 'o', roomId: 'a', kind: 'opening', w: 100, d: 12, h: 205, elev: 0, x: 0, y: 0, rot: 0, attach: { edge: 0, along: 200 } }]
+    const { svg } = buildPlanSvg(p, options)
+    expect(svg).not.toMatch(/ A\d+ \d+ 0 0 1 /)
+  })
+})
