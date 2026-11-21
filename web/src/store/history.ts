@@ -5,7 +5,7 @@
 // Mezi beginGesture() a endGesture() se zapíše do historie jen stav před první změnou.
 import { create } from 'zustand'
 import type { Project } from '../domain/types'
-import { selectProject, useProjectStore } from './projectStore'
+import { projectChanged, selectProject, useProjectStore } from './projectStore'
 
 const LIMIT = 100
 
@@ -22,7 +22,7 @@ const publish = () => useHistoryStatus.setState({ canUndo: undoStack.length > 0,
 
 useProjectStore.subscribe((state, prev) => {
   if (restoring) return
-  if (state.rooms === prev.rooms && state.obstacles === prev.obstacles) return
+  if (!projectChanged(state, prev)) return
   if (inGesture && gestureRecorded) return
 
   undoStack.push(selectProject(prev))

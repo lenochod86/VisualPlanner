@@ -19,12 +19,15 @@ export function useKeyboardShortcuts() {
       } else if ((e.ctrlKey || e.metaKey) && key === 'y') {
         e.preventDefault()
         redo()
+      } else if (key === 'r' && ui.selection?.type === 'furniture') {
+        useProjectStore.getState().rotateFurniture(ui.selection.id)
       } else if (e.key === 'Escape') {
         ui.select(null)
         ui.setTool('select')
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selection) {
         const project = useProjectStore.getState()
         if (ui.selection.type === 'room') project.deleteRoom(ui.selection.id)
+        else if (ui.selection.type === 'furniture') project.deleteFurniture(ui.selection.id)
         else project.deleteObstacle(ui.selection.id)
         ui.select(null)
       }

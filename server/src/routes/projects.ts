@@ -10,6 +10,7 @@ const projectBodySchema = {
   properties: {
     rooms: { type: 'array' },
     obstacles: { type: 'array' },
+    furniture: { type: 'array' },
   },
 } as const
 

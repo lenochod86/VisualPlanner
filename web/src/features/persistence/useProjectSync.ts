@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchProject, putProject } from '../../api/projectsApi'
 import { PROJECT_ID } from '../../config'
 import { clearHistory } from '../../store/history'
-import { selectProject, useProjectStore } from '../../store/projectStore'
+import { projectChanged, selectProject, useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 
 export type SyncStatus = 'loading' | 'saving' | 'saved' | 'offline'
@@ -30,7 +30,7 @@ export function useProjectSync(): SyncStatus {
     }
 
     const unsubscribe = useProjectStore.subscribe((state, prev) => {
-      if (!ready || (state.rooms === prev.rooms && state.obstacles === prev.obstacles)) return
+      if (!ready || !projectChanged(state, prev)) return
       setStatus('saving')
       clearTimeout(timer)
       timer = setTimeout(save, SAVE_DELAY_MS)

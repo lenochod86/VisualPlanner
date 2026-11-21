@@ -32,3 +32,14 @@ describe('API projektů', () => {
     expect((await server.inject({ method: 'GET', url: '/api/projects/byt' })).statusCode).toBe(404)
   })
 })
+
+describe('nábytek v projektu', () => {
+  it('uloží a vrátí nábytek; bez něj vrátí prázdné pole', async () => {
+    const server = app()
+    await server.inject({ method: 'PUT', url: '/api/projects/a', payload: { ...project, furniture: [{ id: 'f' }] } })
+    expect((await server.inject({ method: 'GET', url: '/api/projects/a' })).json().furniture).toEqual([{ id: 'f' }])
+
+    await server.inject({ method: 'PUT', url: '/api/projects/b', payload: project })
+    expect((await server.inject({ method: 'GET', url: '/api/projects/b' })).json().furniture).toEqual([])
+  })
+})

@@ -21,6 +21,7 @@ export class ProjectService {
     const document: ProjectDocument = {
       rooms: input.rooms,
       obstacles: input.obstacles,
+      furniture: input.furniture ?? [],
       updatedAt: new Date().toISOString(),
     }
     await this.repository.save(id, document)

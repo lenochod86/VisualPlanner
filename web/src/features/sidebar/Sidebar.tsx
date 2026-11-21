@@ -4,6 +4,7 @@ import { useUiStore } from '../../store/uiStore'
 import { AddPanel } from './AddPanel'
 import { FlatSummary } from './FlatSummary'
 import { HistoryButtons } from './HistoryButtons'
+import { FurnitureProperties } from './FurnitureProperties'
 import { ObstacleProperties } from './ObstacleProperties'
 import { ProjectFilePanel } from './ProjectFilePanel'
 import { RoomProperties } from './RoomProperties'
@@ -20,6 +21,7 @@ export function Sidebar({ syncStatus }: { syncStatus: SyncStatus }) {
   const selection = useUiStore(s => s.selection)
   const room = useProjectStore(s => (selection?.type === 'room' ? s.rooms.find(r => r.id === selection.id) : undefined))
   const obstacle = useProjectStore(s => (selection?.type === 'obstacle' ? s.obstacles.find(o => o.id === selection.id) : undefined))
+  const furniture = useProjectStore(s => (selection?.type === 'furniture' ? s.furniture.find(f => f.id === selection.id) : undefined))
 
   return (
     <aside className="sidebar">
@@ -30,13 +32,14 @@ export function Sidebar({ syncStatus }: { syncStatus: SyncStatus }) {
       <AddPanel />
       {room && <RoomProperties room={room} />}
       {obstacle && <ObstacleProperties obstacle={obstacle} />}
+      {furniture && <FurnitureProperties furniture={furniture} />}
       <FlatSummary />
       <ViewPanel />
       <ProjectFilePanel />
 
       <small className="hint">
         Táhni stěnu = změna rozměru. Klik na číslo = zadání rozměru. Kolečko = zoom, tažení pozadí = posun.
-        Delete = smazat vybrané, Esc = zrušit výběr, Ctrl+Z / Ctrl+Y = zpět / znovu.
+        Delete = smazat vybrané, R = otočit nábytek, Esc = zrušit výběr, Ctrl+Z / Ctrl+Y = zpět / znovu.
       </small>
     </aside>
   )

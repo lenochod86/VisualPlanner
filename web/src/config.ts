@@ -10,6 +10,7 @@ export const DEFAULT_WALL_THICKNESS = 10
 export const MIN_WALL = 2                // nejtenčí / nejtlustší zeď, kterou lze zadat
 export const MAX_WALL = 100
 export const MIN_OBSTACLE_WIDTH = 10       // nejmenší šířka okna/dveří/topení při tažení za konce
+export const FURNITURE_WALL_SNAP = 20     // do jaké vzdálenosti zadní hrany nábytku od zdi se k ní přichytí
 export const MAX_SHARED_WALL = 50        // mezera mezi místnostmi, která se ještě považuje za jednu sdílenou zeď
 export const MIN_SHARED_OVERLAP = 10    // jak dlouho se stěny musí překrývat, aby tvořily sdílenou zeď
 export const DEFAULT_ROOM_HEIGHT = 260

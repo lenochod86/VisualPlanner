@@ -11,6 +11,7 @@ export function createInitialProject(): Project {
       walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
     }],
     obstacles: [],
+    furniture: [],
   }
 }
 
@@ -30,5 +31,6 @@ export function parseProject(data: unknown): Project {
   }
   const roomsOk = d.rooms.every(r => r && typeof r.id === 'string' && Array.isArray(r.pts) && r.pts.length >= 3)
   if (!roomsOk) throw new Error('Projekt obsahuje neplatnou místnost.')
-  return { rooms: d.rooms.map(normalizeRoom), obstacles: d.obstacles }
+  // `furniture` starší projekty nemají
+  return { rooms: d.rooms.map(normalizeRoom), obstacles: d.obstacles, furniture: Array.isArray(d.furniture) ? d.furniture : [] }
 }

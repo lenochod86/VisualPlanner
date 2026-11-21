@@ -1,10 +1,10 @@
 import { OBSTACLE_KINDS } from '../../domain/catalog'
 import type { Obstacle, Room } from '../../domain/types'
-import { resolveObstacle, wallThicknessFor } from '../../geometry/obstacles'
+import { resolvePlacement, wallThicknessFor } from '../../geometry/placement'
 import type { WallModel } from '../../geometry/walls'
 
 export function ObstacleMesh({ obstacle, room, walls }: { obstacle: Obstacle; room: Room; walls: WallModel }) {
-  const p = resolveObstacle(obstacle, room, walls)
+  const p = resolvePlacement(obstacle, room, walls, OBSTACLE_KINDS[obstacle.kind].inWall)
   const spec = OBSTACLE_KINDS[obstacle.kind]
   const isGlass = obstacle.kind === 'window'
   // okna a dveře jsou o trochu tlustší než zeď, aby byly vidět (zatím se zeď nevyřezává)

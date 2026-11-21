@@ -79,3 +79,13 @@ export function setEdgeLength(pts: Pt[], i: number, length: number): Pt[] {
     n === j || n === k ? { x: p.x + e.dir.x * delta, y: p.y + e.dir.y * delta } : p)
   return hasValidEdges(next) ? next : pts
 }
+
+/** Leží bod uvnitř polygonu? (paprsek doprava, sudý/lichý počet průsečíků) */
+export function containsPoint(pts: Pt[], p: Pt): boolean {
+  let inside = false
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const a = pts[i], b = pts[j]
+    if ((a.y > p.y) !== (b.y > p.y) && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside
+  }
+  return inside
+}

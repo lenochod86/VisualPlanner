@@ -13,12 +13,12 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
 
     web/                      frontend (Vite + React + TypeScript)
       src/config.ts           ladicí konstanty (mřížka, magnet, minima)
-      src/domain/             datový model (types), katalog místností/překážek, výchozí projekt + validace
+      src/domain/             datový model (types), katalogy (místnosti, překážky, nábytek), výchozí projekt + validace
       src/geometry/           čistá geometrie bez Reactu a bez stavu (+ testy)
         polygon.ts            plocha, těžiště, stěny, změna délky/pozice stěny
         magnet.ts             přichytávání místností k sousedům (sdílená zeď)
         walls.ts              model zdí: sdílené zdi, tloušťky, vnější obrys
-        obstacles.ts          poloha překážek připnutých ke stěně
+        placement.ts          poloha překážek a nábytku: připnutí ke zdi, tažení, otáčení
       src/store/              Zustand: projectStore (data), uiStore (výběr, nástroj), history (undo/redo)
       src/api/                klient REST API
       src/features/
@@ -38,6 +38,6 @@ Závislosti míří jedním směrem: `features → store → geometry/domain`; `
 2. [x] 3D, překážky (stoupačka, topení, okno, dveře)
 3. [x] Celý byt: kreslení místností, magnet / sdílená zeď, přehled ploch, ukládání na server, export/import
    - [x] Undo/redo, sdílené zdi (tloušťka podle mezery), tloušťka a délka každé stěny v panelu
-4. [ ] Nábytek + katalog (WC, geberit, sprcha, vana, umyvadlo, TV, stůl, linka, gauč, postel), snap ke zdi
+4. [x] Nábytek: katalog (WC volné i Geberit, sprcha, vana, umyvadlo, TV, stůl, židle, linka, gauč, postele, skříň), snap ke zdi, otáčení, přesun mezi místnostmi
 5. [ ] Otvory ve zdech (CSG), materiály, stropy, SDK strop s rastrem profilů
 6. [ ] Elektro: zásuvky, světla, kabely, auto-trasování
