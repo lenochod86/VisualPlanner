@@ -7,6 +7,7 @@ import { PrintMenu } from './PrintMenu'
 const TABS: { mode: Mode; label: string }[] = [
   { mode: 'plan', label: 'Půdorys' },
   { mode: 'equipment', label: 'Vybavení' },
+  { mode: 'decor', label: 'Dekorace' },
   { mode: 'electro', label: 'Elektro' },
 ]
 

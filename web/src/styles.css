@@ -117,3 +117,11 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .view3d-panel.open.wide { width: auto; flex: 1; }   /* půdorys je sbalený: 3D dostane zbytek šířky */
 .panel-toggle:disabled { opacity: .35; cursor: default; }
 .check { display: flex; gap: 6px; align-items: center; margin: 6px 0 2px; font-size: 13px; }
+
+/* záložka Dekorace: výběr barev */
+.color-picker { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.swatches { display: grid; grid-template-columns: repeat(6, 18px); gap: 4px; }
+.swatch-button { width: 18px; height: 18px; border-radius: 4px; border: 1px solid #0004; padding: 0; cursor: pointer; }
+.swatch-button.active { outline: 2px solid #2f6fed; outline-offset: 1px; }
+.finish-wall { display: grid; grid-template-columns: 56px 1fr 34px 28px; gap: 4px; align-items: center; margin: 4px 0; }
+.finish-wall input[type=color] { width: 34px; height: 26px; padding: 0; }

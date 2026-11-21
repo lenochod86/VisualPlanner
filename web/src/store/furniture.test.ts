@@ -101,3 +101,22 @@ describe('pevný bod: zrušení přichycení ke zdi', () => {
     expect(state().obstacles.find(o => o.id === id)!.snapToWalls).toBe(true)
   })
 })
+
+describe('záložka Dekorace', () => {
+  it('dekorace se upravují jen v záložce Dekorace, ostatní nábytek jen ve Vybavení', async () => {
+    const { canEditInMode } = await import('./uiStore')
+    expect(canEditInMode('furniture', 'decor', 'shelf')).toBe(true)
+    expect(canEditInMode('furniture', 'equipment', 'shelf')).toBe(false)
+    expect(canEditInMode('furniture', 'equipment', 'sofa')).toBe(true)
+    expect(canEditInMode('furniture', 'decor', 'sofa')).toBe(false)
+  })
+
+  it('police a květiny jsou v katalogu s rozměry', () => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    const room = state().addRoom('rect')
+    const shelf = state().addFurniture('shelf', room)!
+    const plant = state().addFurniture('plant-small', room)!
+    expect(state().furniture.find(f => f.id === shelf)).toMatchObject({ kind: 'shelf', elev: 140 })
+    expect(state().furniture.find(f => f.id === plant)).toMatchObject({ kind: 'plant-small', w: 25, d: 25 })
+  })
+})

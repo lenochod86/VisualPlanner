@@ -8,6 +8,15 @@ export type RoomShape = 'rect' | 'L-left' | 'L-right'
 export type WallMaterial = 'plaster' | 'brick' | 'concrete' | 'tile' | 'sdk'
 /** Zobrazení stěny: automaticky (skrytá, když leží uvnitř jiné místnosti), vždy plná, nebo skrytá (průhledná). */
 export type WallMode = 'auto' | 'solid' | 'hidden'
+/** Materiál podlahy (barva se dá přebít vlastní). */
+export type FloorMaterial = 'parquet' | 'laminate' | 'tile' | 'carpet' | 'concrete'
+
+export interface Floor {
+  material: FloorMaterial
+  /** Vlastní barva podlahy; bez ní platí barva materiálu. */
+  color?: string
+}
+
 export type CeilingType = 'none' | 'slab' | 'sdk'
 
 export interface Ceiling {
@@ -32,6 +41,12 @@ export interface Room {
   wallMaterials: WallMaterial[]
   /** Režim zobrazení u každé stěny (stejné pořadí jako `pts`). */
   wallModes: WallMode[]
+  /** Povrch podlahy; bez něj se podlaha kreslí barvou podle typu místnosti. */
+  floor?: Floor
+  /** Vlastní barva každé stěny (stejné pořadí jako `pts`); null / chybí = barva materiálu stěny. */
+  wallColors?: (string | null)[]
+  /** Do jaké výšky sahá obklad u stěn s materiálem "obklad" (cm); chybí = výchozí. Nad ním je omítka. */
+  tileHeight?: number
   ceiling: Ceiling
 }
 
@@ -70,6 +85,7 @@ export type FurnitureKind =
   | 'bed-single' | 'bed-double' | 'sofa' | 'table' | 'chair' | 'tv' | 'wardrobe' | 'kitchen-unit'
   | 'wc-free' | 'wc-wall' | 'shower' | 'bathtub' | 'sink'
   | 'washer' | 'dryer' | 'fridge' | 'hood'
+  | 'shelf' | 'bookcase' | 'plant-small' | 'plant-large'
 export interface Furniture extends Placed {
   kind: FurnitureKind
   /** Přichytává se tažení ke zdi? Výchozí ano. */

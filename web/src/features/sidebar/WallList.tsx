@@ -14,7 +14,7 @@ const WALL_MODES: Record<WallMode, string> = {
 }
 
 /** Světová strana, na kterou stěna "kouká" (ven z místnosti). */
-function sideName(room: Room, edge: number): string {
+export function sideName(room: Room, edge: number): string {
   const { outward } = edgeInfo(room.pts, edge)
   if (Math.abs(outward.x) > Math.abs(outward.y)) return outward.x > 0 ? 'pravá' : 'levá'
   return outward.y > 0 ? 'dolní' : 'horní'

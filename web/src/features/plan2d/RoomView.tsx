@@ -1,5 +1,5 @@
 import type { PointerEvent } from 'react'
-import { ROOM_TYPES } from '../../domain/catalog'
+import { floorColor } from '../../domain/finishes'
 import type { Pt, Room } from '../../domain/types'
 import { edgeInfo } from '../../geometry/polygon'
 import { wallQuad } from '../../geometry/walls'
@@ -31,7 +31,7 @@ export function RoomView({ room, thicknesses, visibleEdges, selected, highlighte
   return (
     <g className="room">
       <path d={walls} fill="#33383f" style={{ cursor: 'move' }} onPointerDown={onBodyPointerDown} />
-      <polygon points={points} fill={ROOM_TYPES[room.type].color} style={{ cursor: 'move' }} onPointerDown={onBodyPointerDown} />
+      <polygon points={points} fill={floorColor(room)} style={{ cursor: 'move' }} onPointerDown={onBodyPointerDown} />
       {/* skrytá (průhledná) stěna: jen čárkovaná čára na jejím líci */}
       {room.pts.map((_, i) => {
         if (visibleEdges[i]) return null

@@ -5,6 +5,7 @@ import type { Pt } from '../../domain/types'
 import { dragTargetTo, type DragTarget } from '../interaction/dragTargets'
 import { beginGesture, endGesture } from '../../store/history'
 import { canEditInMode, useUiStore, type Selection } from '../../store/uiStore'
+import { useProjectStore } from '../../store/projectStore'
 
 const SELECTION_TYPE: Record<DragTarget['collection'], NonNullable<Selection>['type']> = {
   obstacles: 'obstacle',
@@ -40,7 +41,8 @@ export function useDrag3D(): GrabHandler {
     if (e.nativeEvent.button !== 0) return        // pravé / prostřední tlačítko patří kameře
     // Každá záložka edituje jen svou vrstvu (okna a dveře Půdorys, nábytek Vybavení, elektro Elektro);
     // jinde se objekt nechytí a pohyb myši patří kameře.
-    if (!canEditInMode(SELECTION_TYPE[target.collection], useUiStore.getState().mode)) return
+    const kind = target.collection === 'furniture' ? useProjectStore.getState().furniture.find(f => f.id === target.id)?.kind : undefined
+    if (!canEditInMode(SELECTION_TYPE[target.collection], useUiStore.getState().mode, kind)) return
     // Objekt za zdí není vidět, takže ho nechytíme a pohyb myši patří kameře. Výjimkou je elektro v režimu
     // "rentgen": ten se kreslí přes zdi, tedy je vidět a jde chytit.
     const seenThroughWalls = target.collection === 'electric' && useUiStore.getState().electroView === 'xray'

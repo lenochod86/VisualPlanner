@@ -12,6 +12,7 @@
 // které pásem procházejí. Každý pás se vytáhne jako samostatné těleso.
 import polygonClipping, { type Geom, type MultiPolygon, type Ring } from 'polygon-clipping'
 import * as THREE from 'three'
+import { tileHeight } from '../../domain/finishes'
 import type { Pt, Room } from '../../domain/types'
 import type { Opening } from '../../geometry/openings'
 import { edgeInfo } from '../../geometry/polygon'
@@ -104,6 +105,8 @@ export interface WallSolid {
   /** Jednotková normála vnější strany stěny (půdorysné souřadnice) a střed stěny: podle nich se pozná, že stěna hledí na kameru. */
   outward: Pt
   center: Pt
+  /** Obklad (do výšky `tileHeight`) nebo část nad ním; u ostatních materiálů "wall". */
+  zone: 'wall' | 'tile' | 'above-tile'
 }
 
 /** Od jakého cosinu úhlu (normála stěny × směr ke kameře) se stěna pokládá za přední (hledí na kameru). */
@@ -155,10 +158,19 @@ export function buildWallSolids(rooms: Room[], walls: WallModel, openings: Openi
     const outward = e ? e.outward : { x: 0, y: 0 }
     const center = e ? { x: (e.a.x + e.b.x) / 2, y: (e.a.y + e.b.y) / 2 } : { x: 0, y: 0 }
     // otvor řeže zeď bez ohledu na to, které místnosti patří
-    return wallBands(piece.footprint, height, openings).map(band => ({
-      roomId: piece.roomId, edge: piece.edge, outward, center,
-      geometry: extrudeFootprint(band.footprint, band.z0, band.z1),
-    }))
+    const tiled = room?.wallMaterials[piece.edge] === 'tile'
+    const tileTop = room ? tileHeight(room) : 0
+    return wallBands(piece.footprint, height, openings).flatMap(band => {
+      const make = (z0: number, z1: number, zone: WallSolid['zone']): WallSolid => ({
+        roomId: piece.roomId, edge: piece.edge, outward, center, zone,
+        geometry: extrudeFootprint(band.footprint, z0, z1),
+      })
+      if (!tiled) return [make(band.z0, band.z1, 'wall')]
+      // obklad sahá do tileTop, nad ním je omítka; pás přes hranici se rozdělí
+      if (band.z1 <= tileTop) return [make(band.z0, band.z1, 'tile')]
+      if (band.z0 >= tileTop) return [make(band.z0, band.z1, 'above-tile')]
+      return [make(band.z0, tileTop, 'tile'), make(tileTop, band.z1, 'above-tile')]
+    })
   })
 }
 

@@ -2,7 +2,8 @@
 // Čistá funkce bez prohlížeče, takže jde testovat; samotné otevření tisku je v printPlan.ts.
 import { CABLE_TYPES, ELECTRIC_KINDS } from '../domain/electricCatalog'
 import { FURNITURE_KINDS } from '../domain/furnitureCatalog'
-import { OBSTACLE_KINDS, ROOM_TYPES } from '../domain/catalog'
+import { OBSTACLE_KINDS } from '../domain/catalog'
+import { floorColor } from '../domain/finishes'
 import type { CableType, Project, Pt, Room } from '../domain/types'
 import { formatAreaM2 } from '../format'
 import { doorSwing } from '../geometry/doors'
@@ -151,7 +152,7 @@ function doorSwingPoints(rooms: Room[], obstacles: Project['obstacles'], walls: 
 
 function floorsSvg(rooms: Room[]): string {
   return rooms.map(r =>
-    `<path d="${ring(r.pts)}" fill="${ROOM_TYPES[r.type].color}" fill-opacity="0.45"/>`).join('\n')
+    `<path d="${ring(r.pts)}" fill="${floorColor(r)}" fill-opacity="0.45"/>`).join('\n')
 }
 
 /** Zdi: čtyřúhelník každé viditelné stěny mezi vnitřním a vnějším lícem (sdílené zdi se překryjí beze změny vzhledu). */

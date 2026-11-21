@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
+import { isDecor } from '../../domain/furnitureCatalog'
 import type { Placed } from '../../domain/types'
 import { electricDistances } from '../../geometry/distances'
 import { cablePolyline } from '../../geometry/electric'
@@ -48,7 +49,9 @@ export function Plan2D() {
 
   // Každá záložka upravuje svou vrstvu: ostatní jsou průsvitné a nereagují na myš, aby nepřekážely.
   // Půdorys = místnosti (nábytek i elektro jen slabě prosvítá), Vybavení = nábytek, Elektro = elektro (nábytek prosvítá).
-  const furnitureLayer = mode === 'equipment' ? LAYER_ACTIVE : mode === 'electro' ? LAYER_DIMMED : LAYER_FAINT
+  const furnitureLayer = mode === 'equipment' ? LAYER_ACTIVE : mode === 'electro' || mode === 'decor' ? LAYER_DIMMED : LAYER_FAINT
+  // dekorace (police, květiny) mají vlastní vrstvu: aktivní jen v záložce Dekorace
+  const decorLayer = mode === 'decor' ? LAYER_ACTIVE : mode === 'plan' ? LAYER_FAINT : LAYER_DIMMED
   const electroLayer = mode === 'electro' ? LAYER_ACTIVE : mode === 'equipment' ? LAYER_DIMMED : LAYER_FAINT
   const editableRooms = mode === 'plan'
 
@@ -66,7 +69,8 @@ export function Plan2D() {
 
   // Vybraná věc na zdi dostane úchyty pro změnu šířky.
   const selectedObstacle = selection?.type === 'obstacle' && canEditInMode('obstacle', mode) ? obstacles.find(o => o.id === selection.id) : undefined
-  const selectedFurniture = selection?.type === 'furniture' && canEditInMode('furniture', mode) ? furniture.find(f => f.id === selection.id) : undefined
+  const selectedFurnitureAny = selection?.type === 'furniture' ? furniture.find(f => f.id === selection.id) : undefined
+  const selectedFurniture = selectedFurnitureAny && canEditInMode('furniture', mode, selectedFurnitureAny.kind) ? selectedFurnitureAny : undefined
   const handleItem: (Placed & { inWall: boolean; collection: 'obstacles' | 'furniture' }) | undefined =
     selectedObstacle ? { ...selectedObstacle, inWall: OBSTACLE_KINDS[selectedObstacle.kind].inWall, collection: 'obstacles' }
     : selectedFurniture ? { ...selectedFurniture, inWall: false, collection: 'furniture' }
@@ -82,9 +86,7 @@ export function Plan2D() {
   const editedRoom = editing && rooms.find(r => r.id === editing.roomId)
 
   // Vrstvy věcí v půdorysu. Pořadí kreslení určuje záložka (viz níže).
-  const furnitureJsx = (
-        <g {...layerProps(furnitureLayer)}>
-        {furniture.map(item => {
+  const renderFurniture = (items: typeof furniture) => items.map(item => {
           const room = rooms.find(r => r.id === item.roomId)
           if (!room) return null
           return (
@@ -95,8 +97,12 @@ export function Plan2D() {
               onPointerDown={e => interaction.beginItemDrag(e, { collection: 'furniture', id: item.id })}
             />
           )
-        })}
-        </g>
+  })
+  const furnitureJsx = (
+    <>
+      <g {...layerProps(furnitureLayer)}>{renderFurniture(furniture.filter(f => !isDecor(f.kind)))}</g>
+      <g {...layerProps(decorLayer)}>{renderFurniture(furniture.filter(f => isDecor(f.kind)))}</g>
+    </>
   )
   const cablesJsxFor = (part: 'all' | 'hit' | 'top') => (
         <g {...layerProps(electroLayer)}>

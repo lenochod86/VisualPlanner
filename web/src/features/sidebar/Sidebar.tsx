@@ -2,11 +2,12 @@ import { useProjectStore } from '../../store/projectStore'
 import { canEditInMode, useUiStore } from '../../store/uiStore'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
 import { ELECTRIC_KINDS } from '../../domain/electricCatalog'
-import { FURNITURE_KINDS } from '../../domain/furnitureCatalog'
+import { FURNITURE_KINDS, isDecor } from '../../domain/furnitureCatalog'
 import { CableProperties } from './CableProperties'
 import { ElectricProperties } from './ElectricProperties'
 import { ElectroReport } from './ElectroReport'
 import { ElectroPanel } from './ElectroPanel'
+import { DecorPanel } from './DecorPanel'
 import { FlatSummary } from './FlatSummary'
 import { FurnitureProperties } from './FurnitureProperties'
 import { FurnitureIssues } from './FurnitureIssues'
@@ -43,6 +44,7 @@ export function Sidebar() {
       {mode === 'plan' && <RoomsPanel />}
       {mode === 'equipment' && <FurniturePanel />}
       {mode === 'equipment' && <FurnitureIssues />}
+      {mode === 'decor' && <DecorPanel />}
       {mode === 'electro' && <ElectroPanel />}
 
       {/* Každá záložka upravuje jen svou vrstvu; vybranou věc z jiné záložky panel jen pojmenuje a řekne, kde se upravuje. */}
@@ -52,9 +54,9 @@ export function Sidebar() {
       {obstacle && (canEditInMode('obstacle', mode)
         ? <ObstacleProperties obstacle={obstacle} />
         : <LockedNote title={OBSTACLE_KINDS[obstacle.kind].label} where='Půdorys' />)}
-      {furniture && (canEditInMode('furniture', mode)
+      {furniture && (canEditInMode('furniture', mode, furniture.kind)
         ? <FurnitureProperties furniture={furniture} />
-        : <LockedNote title={FURNITURE_KINDS[furniture.kind].label} where='Vybavení' />)}
+        : <LockedNote title={FURNITURE_KINDS[furniture.kind].label} where={isDecor(furniture.kind) ? 'Dekorace' : 'Vybavení'} />)}
       {electric && (canEditInMode('electric', mode)
         ? <ElectricProperties point={electric} />
         : <LockedNote title={ELECTRIC_KINDS[electric.kind].label} where='Elektro' />)}

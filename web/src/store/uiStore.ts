@@ -1,11 +1,12 @@
 // Stav rozhraní, který se neukládá do projektu: výběr, aktivní nástroj, nastavení 3D.
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
-import type { CableType } from '../domain/types'
+import { isDecor } from '../domain/furnitureCatalog'
+import type { CableType, FurnitureKind } from '../domain/types'
 
 export type Selection = { type: 'room' | 'obstacle' | 'furniture' | 'electric' | 'cable'; id: string } | null
 /** Záložka v horní liště; určuje, jaké nástroje jsou v levém panelu. */
-export type Mode = 'plan' | 'equipment' | 'electro'
+export type Mode = 'plan' | 'equipment' | 'decor' | 'electro'
 export type Tool = 'select' | 'draw' | 'cable'
 /** Elektro ve 3D: skryté, zobrazené (zakryté zdmi a stropem), nebo "rentgen" (vidět skrz zdi, strop i nábytek). */
 export type ElectroView = 'off' | 'on' | 'xray'
@@ -122,4 +123,10 @@ export const SELECTION_MODE: Record<NonNullable<Selection>['type'], Mode> = {
   cable: 'electro',
 }
 
-export const canEditInMode = (type: NonNullable<Selection>['type'], mode: Mode) => SELECTION_MODE[type] === mode
+/** Záložka, která upravuje daný druh věci; u nábytku záleží na druhu (dekorace patří do záložky Dekorace). */
+export function modeOf(type: NonNullable<Selection>['type'], furnitureKind?: FurnitureKind): Mode {
+  return type === 'furniture' && furnitureKind && isDecor(furnitureKind) ? 'decor' : SELECTION_MODE[type]
+}
+
+export const canEditInMode = (type: NonNullable<Selection>['type'], mode: Mode, furnitureKind?: FurnitureKind) =>
+  modeOf(type, furnitureKind) === mode

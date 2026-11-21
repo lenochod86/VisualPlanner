@@ -6,7 +6,7 @@ import { buildOpenings } from '../../geometry/openings'
 import { containsPoint } from '../../geometry/polygon'
 import { shapePts } from '../../geometry/shapes'
 import { buildWallModel } from '../../geometry/walls'
-import { buildWallPieces, wallBands, wallFacesCamera } from './wallGeometry'
+import { buildWallPieces, buildWallSolids, wallBands, wallFacesCamera } from './wallGeometry'
 
 const room = (id: string, x: number): Room => ({
   id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
@@ -117,5 +117,15 @@ describe('wallFacesCamera: přední stěny', () => {
 
   it('stěna kolmá na pohled (kamera naboku) není přední', () => {
     expect(wallFacesCamera(wall.outward, wall.center, { x: 900, y: 0 })).toBe(false)
+  })
+})
+
+describe('obklad na stěně', () => {
+  it('stěna s obkladem se rozdělí na obklad a omítku nad ním; ostatní stěny zůstávají celé', () => {
+    const r: Room = { ...room('a', 0), wallMaterials: ['tile', 'plaster', 'plaster', 'plaster'], tileHeight: 150 }
+    const solids = buildWallSolids([r], buildWallModel([r]), [])
+    const zones = (edge: number) => solids.filter(s => s.edge === edge).map(s => s.zone).sort()
+    expect(zones(0)).toEqual(['above-tile', 'tile'])
+    expect(zones(1)).toEqual(['wall'])
   })
 })

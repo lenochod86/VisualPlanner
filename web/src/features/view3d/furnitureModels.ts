@@ -24,6 +24,29 @@ const legs = (x: Range, z: Range, y: Range, color: string): ModelPart[] =>
   [x, [1 - x[1], 1 - x[0]] as Range].flatMap(xs =>
     [z, [1 - z[1], 1 - z[0]] as Range].map(zs => box(xs, y, zs, color)))
 
+/** Regál: zadní stěna, dva boky, police a řada knih na každé polici. */
+function bookcase(): ModelPart[] {
+  const parts: ModelPart[] = [
+    box([0, 1], [0, 1], [0, 0.05], '#a98763'),                       // záda
+    box([0, 0.04], [0, 1], [0, 1], '#c9a883'),                        // levý bok
+    box([0.96, 1], [0, 1], [0, 1], '#c9a883'),                        // pravý bok
+  ]
+  const bookColors = ['#b5513f', '#3f6fb5', '#d9b64a', '#4a8f5a', '#7a4fa0', '#d97a3a']
+  for (let i = 0; i < 5; i++) {                                         // 5 polic, na čtyřech knihy
+    const y0 = i * 0.2
+    parts.push(box([0.04, 0.96], [y0, y0 + 0.02], [0, 1], '#c9a883'))
+    if (i === 4) continue
+    let x = 0.07
+    bookColors.forEach((color, n) => {
+      const w = 0.07 + ((n + i) % 3) * 0.015
+      parts.push(box([x, x + w], [y0 + 0.02, y0 + 0.17 - ((n + i) % 2) * 0.03], [0.1, 0.85], color))
+      x += w + 0.005
+    })
+  }
+  parts.push(box([0.04, 0.96], [0.98, 1], [0, 1], '#c9a883'))             // vrchní deska
+  return parts
+}
+
 const bed = (pillows: Range[]): ModelPart[] => [
   box([0, 1], [0, 0.3], [0, 1], '#8b6b4a'),               // rám
   box([0.02, 0.98], [0.3, 0.56], [0.03, 1], '#f2f0ea'),   // matrace
@@ -130,5 +153,30 @@ export const FURNITURE_MODELS: Record<FurnitureKind, ModelPart[]> = {
     box([0, 1], [0.012, 0.2], [0, 1], '#c3c8cd'),                  // nasávací část
     box([0.06, 0.94], [0, 0.012], [0.08, 0.92], '#2b2f33'),        // spodní strana s filtrem
     box([0.3, 0.7], [0.2, 1], [0, 0.55], '#b4bac0'),               // komín
+  ],
+
+  // nástěnná police s dřevěným čelem
+  shelf: [
+    box([0, 1], [0, 1], [0, 1], '#c9a883'),
+    box([0, 1], [0, 1], [0.94, 1.003], '#a98763'),                  // čelo police
+  ],
+
+  // regál: zadní stěna, boky, police a barevné knihy
+  bookcase: bookcase(),
+
+  // květina v květináči: terakotový květináč a dvě vrstvy listů
+  'plant-small': [
+    cyl([0.2, 0.8], [0, 0.32], [0.2, 0.8], '#b5654a'),
+    cyl([0.05, 0.95], [0.32, 0.6], [0.05, 0.95], '#3f8f4a'),
+    cyl([0.2, 0.8], [0.6, 1], [0.2, 0.8], '#4fa85a'),
+  ],
+
+  // velká rostlina: nízký květináč, kmen a tři vrstvy koruny
+  'plant-large': [
+    cyl([0.25, 0.75], [0, 0.14], [0.25, 0.75], '#8a8f94'),
+    cyl([0.44, 0.56], [0.14, 0.55], [0.44, 0.56], '#7a5a3a'),
+    cyl([0.05, 0.95], [0.45, 0.72], [0.05, 0.95], '#3a7f44'),
+    cyl([0.15, 0.85], [0.72, 0.9], [0.15, 0.85], '#46944f'),
+    cyl([0.3, 0.7], [0.9, 1], [0.3, 0.7], '#55a95f'),
   ],
 }

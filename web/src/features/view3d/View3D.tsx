@@ -8,6 +8,7 @@ import { useFurnitureIssues } from '../../store/useFurnitureIssues'
 import { useWallModel } from '../../store/useWallModel'
 import { CeilingMesh } from './CeilingMesh'
 import { CableMesh, ElectricPointMesh } from './ElectricMesh'
+import { isDecor } from '../../domain/furnitureCatalog'
 import { FurnitureMesh } from './FurnitureMesh'
 import { ObstacleMesh } from './ObstacleMesh'
 import { RoomFloor } from './RoomFloor'
@@ -61,7 +62,7 @@ function Scene() {
         const room = rooms.find(r => r.id === item.roomId)
         return room && (
           <FurnitureMesh
-            key={item.id} furniture={item} room={room} walls={walls} opacity={inElectroTab ? Math.min(furnitureOpacity, ELECTRO_TAB_FURNITURE_OPACITY) : furnitureOpacity}
+            key={item.id} furniture={item} room={room} walls={walls} opacity={(inElectroTab || (mode === 'decor' && !isDecor(item.kind)) || (mode === 'equipment' && isDecor(item.kind))) ? Math.min(furnitureOpacity, ELECTRO_TAB_FURNITURE_OPACITY) : furnitureOpacity}
             selected={isSelected('furniture', item.id)}
             issue={issues.some(i => i.furnitureId === item.id)}
             onGrab={(e, center) => grab(e, { collection: 'furniture', id: item.id }, center)}

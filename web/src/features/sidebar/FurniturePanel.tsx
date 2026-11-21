@@ -16,7 +16,7 @@ export function FurniturePanel() {
   return (
     <section>
       <h2>Nábytek</h2>
-      {(Object.keys(FURNITURE_CATEGORIES) as FurnitureCategory[]).map(category => (
+      {(Object.keys(FURNITURE_CATEGORIES) as FurnitureCategory[]).filter(c => c !== 'decor').map(category => (
         <div key={category}>
           <small className="category">{FURNITURE_CATEGORIES[category]}</small>
           <div className="row">

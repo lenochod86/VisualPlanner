@@ -2,7 +2,9 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { OCCLUDE_MIN_OPACITY } from '../../config'
+import { wallColor } from '../../domain/finishes'
 import { WALL_MATERIALS } from '../../domain/materials'
+import type { Room } from '../../domain/types'
 import { buildOpenings } from '../../geometry/openings'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
@@ -10,6 +12,12 @@ import { useWallModel } from '../../store/useWallModel'
 import { buildWallSolids, wallFacesCamera } from './wallGeometry'
 
 const noop = () => {}
+
+/** Barva tělesa zdi: vlastní barva / materiál stěny; nad obkladem omítka. */
+function solidColor(room: Room | undefined, solid: { edge: number; zone: string }): string {
+  if (!room) return WALL_MATERIALS.plaster.color
+  return solid.zone === 'above-tile' ? WALL_MATERIALS.plaster.color : wallColor(room, solid.edge)
+}
 
 /** Neprůhlednost "přední" stěny, když je zapnuté průhledné zobrazení přední stěn. */
 const GHOST_FRONT_OPACITY = 0.1
@@ -59,7 +67,7 @@ export function WallsMesh({ opacity }: { opacity: number }) {
         >
           <meshStandardMaterial
             key={transparent ? 'transparent' : 'opaque'}
-            color={WALL_MATERIALS[rooms.find(r => r.id === solid.roomId)?.wallMaterials[solid.edge] ?? 'plaster'].color}
+            color={solidColor(rooms.find(r => r.id === solid.roomId), solid)}
             side={THREE.DoubleSide} transparent={transparent} opacity={opacity} depthWrite={opacity >= 1}
           />
         </mesh>

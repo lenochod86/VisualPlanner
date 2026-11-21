@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
-import { ROOM_TYPES } from '../../domain/catalog'
+import { floorColor } from '../../domain/finishes'
 import type { Room } from '../../domain/types'
 import { buildFloorGeometry } from './wallGeometry'
 
@@ -9,7 +9,7 @@ export function RoomFloor({ room }: { room: Room }) {
   useEffect(() => () => geometry.dispose(), [geometry])
   return (
     <mesh geometry={geometry}>
-      <meshStandardMaterial color={ROOM_TYPES[room.type].color} side={THREE.DoubleSide} />
+      <meshStandardMaterial color={floorColor(room)} side={THREE.DoubleSide} />
     </mesh>
   )
 }

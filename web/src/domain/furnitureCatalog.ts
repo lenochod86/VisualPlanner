@@ -1,13 +1,14 @@
 // Katalog nábytku: popisky, kategorie a výchozí rozměry v cm (š × h × v). 3D vzhled je ve features/view3d/furnitureModels.ts.
 import type { FurnitureKind } from './types'
 
-export type FurnitureCategory = 'bathroom' | 'living' | 'kitchen' | 'appliances'
+export type FurnitureCategory = 'bathroom' | 'living' | 'kitchen' | 'appliances' | 'decor'
 
 export const FURNITURE_CATEGORIES: Record<FurnitureCategory, string> = {
   bathroom: 'Koupelna a WC',
   living: 'Obývák a ložnice',
   kitchen: 'Kuchyň',
   appliances: 'Spotřebiče',
+  decor: 'Dekorace',
 }
 
 interface FurnitureSpec {
@@ -18,6 +19,8 @@ interface FurnitureSpec {
   h: number
   elev: number   // výška spodní hrany nad podlahou (nástěnné věci)
   color: string  // barva symbolu v půdorysu
+  /** Symbol v půdorysu je kruh (elipsa šířka × hloubka), jinak obdélník (např. květiny). */
+  round?: boolean
 }
 
 export const FURNITURE_KINDS: Record<FurnitureKind, FurnitureSpec> = {
@@ -38,4 +41,11 @@ export const FURNITURE_KINDS: Record<FurnitureKind, FurnitureSpec> = {
   washer:         { label: 'Pračka',            category: 'appliances', w: 60, d: 60, h: 85,  elev: 0, color: '#f4f6f8' },
   dryer:          { label: 'Sušička',           category: 'appliances', w: 60, d: 60, h: 85,  elev: 0, color: '#eef1f4' },
   fridge:         { label: 'Lednice',           category: 'appliances', w: 60, d: 65, h: 185, elev: 0, color: '#e8ecef' },
+  shelf:          { label: 'Police',            category: 'decor',      w: 80,  d: 20,  h: 4,   elev: 140, color: '#c9a883' },
+  bookcase:       { label: 'Regál',             category: 'decor',      w: 80,  d: 30,  h: 180, elev: 0,   color: '#c9a883' },
+  'plant-small':  { label: 'Květina',           category: 'decor',      w: 25,  d: 25,  h: 60,  elev: 0,   color: '#8fc28a', round: true },
+  'plant-large':  { label: 'Velká rostlina',    category: 'decor',      w: 45,  d: 45,  h: 160, elev: 0,   color: '#7db579', round: true },
 }
+
+/** Dekorace (police, květiny…) se upravují v záložce Dekorace, ostatní nábytek ve Vybavení. */
+export const isDecor = (kind: FurnitureKind) => FURNITURE_KINDS[kind].category === 'decor'
