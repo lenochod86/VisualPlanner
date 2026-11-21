@@ -6,7 +6,7 @@ import { shapePts } from './shapes'
 
 const room = (pts = shapePts('rect', 0, 0, 400, 300), ceiling = {}): Room => ({
   id: 'r', name: 'r', type: 'other', pts, walls: pts.map(() => 10), height: 260,
-  wallMaterial: 'plaster', ceiling: { ...DEFAULT_CEILING, type: 'sdk', ...ceiling },
+  wallMaterials: pts.map(() => 'plaster' as const), ceiling: { ...DEFAULT_CEILING, type: 'sdk', ...ceiling },
 })
 
 describe('stropy', () => {

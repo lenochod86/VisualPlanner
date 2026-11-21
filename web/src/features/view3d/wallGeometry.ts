@@ -1,25 +1,72 @@
 // Tvar zdí a podlah pro 3D.
 //
-// Zdi se počítají po místnostech: půdorys zdí místnosti = její vnější obrys − vnitřky VŠECH místností
-// − vnější obrysy dřívějších místností. Poslední odečet zařídí, že sdílená zeď patří jen jedné místnosti
-// a nikde se nepřekrývají dvě shodné plochy (to dělalo blikající artefakty).
+// Zeď je rozdělená na KUSY po stěnách místností, aby každá stěna mohla mít vlastní materiál:
+//  - kus stěny = čtyřúhelník mezi vnitřní a vnější hranou stěny (rohy v pokosu);
+//  - SDÍLENÁ zeď se v místě překryvu rozdělí uprostřed: každá místnost vlastní polovinu na své straně
+//    (takže koupelna může mít obklad a chodba omítku);
+//  - kusy se navzájem neprotínají: z každého se odečtou kusy vytvořené dříve a vnitřky všech místností
+//    (jinak by se na rozích překrývaly shodné plochy a blikaly).
 //
-// Otvory (okna, dveře) se dělají po výškových pásech: v každém pásu je půdorys zdi bez těch otvorů,
+// Otvory (okna, dveře) se dělají po výškových pásech: v každém pásu je půdorys kusu bez těch otvorů,
 // které pásem procházejí. Každý pás se vytáhne jako samostatné těleso.
-import polygonClipping, { type MultiPolygon, type Ring } from 'polygon-clipping'
+import polygonClipping, { type Geom, type MultiPolygon, type Ring } from 'polygon-clipping'
 import * as THREE from 'three'
 import type { Pt, Room } from '../../domain/types'
 import type { Opening } from '../../geometry/openings'
+import { edgeInfo } from '../../geometry/polygon'
 import { outerPolygon, type WallModel } from '../../geometry/walls'
 
 const toRing = (pts: Pt[]): Ring => pts.map(p => [p.x, p.y])
-const outerOf = (room: Room, walls: WallModel) => [toRing(outerPolygon(room.pts, walls.thicknesses(room)))]
 
-/** Půdorys zdí místnosti `rooms[index]` (bez otvorů). */
-export function roomWallFootprint(rooms: Room[], index: number, walls: WallModel): MultiPolygon {
-  const inners = rooms.map(r => [toRing(r.pts)])
-  const earlierOuters = rooms.slice(0, index).map(r => outerOf(r, walls))
-  return polygonClipping.difference(outerOf(rooms[index], walls), ...inners, ...earlierOuters)
+export interface WallPiece {
+  roomId: string
+  /** Index stěny v místnosti (podle něj se bere materiál). */
+  edge: number
+  footprint: MultiPolygon
+}
+
+/** Obdélníky, které z kusu stěny odřežou "druhou polovinu" sdílené zdi (ta patří sousední místnosti). */
+function partnerHalfCuts(room: Room, edge: number, rooms: Room[], walls: WallModel): Geom[] {
+  const { thickness, partners } = walls.info(room.id, edge)
+  const e = edgeInfo(room.pts, edge)
+  const at = (s: number, d: number): Pt => ({
+    x: e.a.x + e.dir.x * s + e.outward.x * d,
+    y: e.a.y + e.dir.y * s + e.outward.y * d,
+  })
+
+  const cuts: Geom[] = []
+  for (const partner of partners) {
+    const other = rooms.find(r => r.id === partner.roomId)
+    if (!other) continue
+    const f = edgeInfo(other.pts, partner.edge)
+    const along = (p: Pt) => (p.x - e.a.x) * e.dir.x + (p.y - e.a.y) * e.dir.y
+    const s0 = Math.max(0, Math.min(along(f.a), along(f.b)))
+    const s1 = Math.min(e.len, Math.max(along(f.a), along(f.b)))
+    if (s1 <= s0) continue
+    // vzdálenější polovina tloušťky (od t/2 ven); o kousek přesahuje, ať zůstane čistý řez
+    cuts.push([toRing([at(s0, thickness / 2), at(s1, thickness / 2), at(s1, thickness + 1), at(s0, thickness + 1)])])
+  }
+  return cuts
+}
+
+/** Kusy zdí všech místností (bez otvorů), v pořadí místností a jejich stěn. */
+export function buildWallPieces(rooms: Room[], walls: WallModel): WallPiece[] {
+  const inners: Geom[] = rooms.map(r => [toRing(r.pts)])
+  const pieces: WallPiece[] = []
+
+  for (const room of rooms) {
+    const n = room.pts.length
+    const outer = outerPolygon(room.pts, walls.thicknesses(room))
+    for (let edge = 0; edge < n; edge++) {
+      const next = (edge + 1) % n
+      const quad: Geom = [toRing([room.pts[edge], room.pts[next], outer[next], outer[edge]])]
+      const footprint = polygonClipping.difference(
+        quad, ...partnerHalfCuts(room, edge, rooms, walls), ...inners, ...pieces.map(p => p.footprint),
+      )
+      if (footprint.length) pieces.push({ roomId: room.id, edge, footprint })
+    }
+  }
+  return pieces
 }
 
 export interface WallBand { z0: number; z1: number; footprint: MultiPolygon }
@@ -45,7 +92,7 @@ export function wallBands(footprint: MultiPolygon, height: number, openings: Ope
   return bands
 }
 
-export interface WallSolid { roomId: string; geometry: THREE.BufferGeometry }
+export interface WallSolid { roomId: string; edge: number; geometry: THREE.BufferGeometry }
 
 const toVectors = (ring: Ring) => {
   const points = ring.map(([x, y]) => new THREE.Vector2(x, y))
@@ -74,11 +121,15 @@ export function extrudeFootprint(footprint: MultiPolygon, z0: number, z1: number
   return geometry
 }
 
-/** Tělesa zdí všech místností (každá místnost má vlastní, aby mohla mít vlastní materiál). */
+/** Tělesa zdí; každé patří jedné stěně jedné místnosti. */
 export function buildWallSolids(rooms: Room[], walls: WallModel, openings: Opening[]): WallSolid[] {
-  return rooms.flatMap((room, index) =>
-    wallBands(roomWallFootprint(rooms, index, walls), room.height, openings) // otvor řeže zeď bez ohledu na to, které místnosti patří
-      .map(band => ({ roomId: room.id, geometry: extrudeFootprint(band.footprint, band.z0, band.z1) })))
+  return buildWallPieces(rooms, walls).flatMap(piece => {
+    const height = rooms.find(r => r.id === piece.roomId)?.height ?? 0
+    // otvor řeže zeď bez ohledu na to, které místnosti patří
+    return wallBands(piece.footprint, height, openings).map(band => ({
+      roomId: piece.roomId, edge: piece.edge, geometry: extrudeFootprint(band.footprint, band.z0, band.z1),
+    }))
+  })
 }
 
 export function buildFloorGeometry(room: Room): THREE.BufferGeometry {

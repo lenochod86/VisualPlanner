@@ -1,7 +1,7 @@
 import { DEFAULT_ROOM_HEIGHT, DEFAULT_WALL_THICKNESS } from '../config'
 import { shapePts } from '../geometry/shapes'
 import { DEFAULT_CEILING, DEFAULT_WALL_MATERIAL } from './materials'
-import type { Project, Room } from './types'
+import type { Project, Room, WallMaterial } from './types'
 
 /** Projekt, se kterým aplikace startuje, když ještě nic není uložené. */
 export function createInitialProject(): Project {
@@ -10,7 +10,7 @@ export function createInitialProject(): Project {
     rooms: [{
       id: 'initial-room', name: 'Obývák', type: 'living', pts,
       walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
-      wallMaterial: DEFAULT_WALL_MATERIAL, ceiling: { ...DEFAULT_CEILING },
+      wallMaterials: pts.map(() => DEFAULT_WALL_MATERIAL), ceiling: { ...DEFAULT_CEILING },
     }],
     obstacles: [],
     furniture: [],
@@ -20,12 +20,13 @@ export function createInitialProject(): Project {
 }
 
 /** Starší uložení mělo jednu tloušťku `wallT` na místnost; nově je tloušťka u každé stěny. */
-function normalizeRoom(raw: Room & { wallT?: number }): Room {
-  const { wallT, ...room } = raw
+function normalizeRoom(raw: Room & { wallT?: number; wallMaterial?: WallMaterial }): Room {
+  const { wallT, wallMaterial, ...room } = raw
   const fallback = wallT ?? DEFAULT_WALL_THICKNESS
   const walls = room.pts.map((_, i) => (Array.isArray(room.walls) && room.walls[i] > 0 ? room.walls[i] : fallback))
-  // materiál a strop starší projekty nemají
-  return { ...room, walls, wallMaterial: room.wallMaterial ?? DEFAULT_WALL_MATERIAL, ceiling: { ...DEFAULT_CEILING, ...room.ceiling } }
+  // materiál (dřív jeden na místnost) a strop starší projekty nemají
+  const wallMaterials = room.pts.map((_, i) => room.wallMaterials?.[i] ?? wallMaterial ?? DEFAULT_WALL_MATERIAL)
+  return { ...room, walls, wallMaterials, ceiling: { ...DEFAULT_CEILING, ...room.ceiling } }
 }
 
 /** Ověří, že data z importu / serveru vypadají jako projekt. Při chybě vyhodí Error. */

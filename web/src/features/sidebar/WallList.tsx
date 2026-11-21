@@ -1,5 +1,6 @@
 import { MAX_WALL, MIN_WALL } from '../../config'
-import type { Room } from '../../domain/types'
+import { WALL_MATERIALS } from '../../domain/materials'
+import type { Room, WallMaterial } from '../../domain/types'
 import { edgeInfo } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
@@ -18,6 +19,7 @@ export function WallList({ room }: { room: Room }) {
   const rooms = useProjectStore(s => s.rooms)
   const setWallLength = useProjectStore(s => s.setWallLength)
   const setWallThickness = useProjectStore(s => s.setWallThickness)
+  const updateRoom = useProjectStore(s => s.updateRoom)
   const setHoveredWall = useUiStore(s => s.setHoveredWall)
   const walls = useWallModel()
 
@@ -25,7 +27,7 @@ export function WallList({ room }: { room: Room }) {
 
   return (
     <div className="wall-list" onMouseLeave={() => setHoveredWall(null)}>
-      <div className="wall-head"><span>Stěna</span><span>Délka</span><span>Tloušťka</span></div>
+      <div className="wall-head"><span>Stěna / materiál</span><span>Délka</span><span>Tloušťka</span></div>
       {room.pts.map((_, i) => {
         const { thickness, partners } = walls.info(room.id, i)
         const sharedWith = [...new Set(partners.map(p => roomName(p.roomId)))]
@@ -34,11 +36,15 @@ export function WallList({ room }: { room: Room }) {
             <span>{i + 1}. {sideName(room, i)}</span>
             <NumberInput value={edgeInfo(room.pts, i).len} onCommit={v => setWallLength(room.id, i, v)} />
             <NumberInput value={thickness} onCommit={v => setWallThickness(room.id, i, v)} />
+            <select className="wall-material" value={room.wallMaterials[i]} title="Materiál zdi na straně této místnosti"
+              onChange={e => updateRoom(room.id, { wallMaterials: room.wallMaterials.map((m, k) => (k === i ? e.target.value as WallMaterial : m)) })}>
+              {(Object.keys(WALL_MATERIALS) as WallMaterial[]).map(m => <option key={m} value={m}>{WALL_MATERIALS[m].label}</option>)}
+            </select>
             {sharedWith.length > 0 && <small className="shared">sdílená zeď s: {sharedWith.join(', ')}</small>}
           </div>
         )
       })}
-      <small>Rozměry v cm. Tloušťka {MIN_WALL}–{MAX_WALL}. U sdílené zdi zůstane její osa na místě.</small>
+      <small>Rozměry v cm. Tloušťka {MIN_WALL}–{MAX_WALL}. U sdílené zdi zůstane její osa na místě; materiál platí pro polovinu zdi na straně této místnosti.</small>
     </div>
   )
 }

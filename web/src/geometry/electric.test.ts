@@ -6,7 +6,7 @@ import { shapePts } from './shapes'
 
 const room = (id: string, x: number, ceiling = {}): Room => ({
   id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
-  wallMaterial: 'plaster', ceiling: { ...DEFAULT_CEILING, ...ceiling },
+  wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], ceiling: { ...DEFAULT_CEILING, ...ceiling },
 })
 const A = room('A', 0), B = room('B', 410)
 

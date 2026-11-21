@@ -67,7 +67,7 @@ function newRoom(pts: Room['pts']): Room {
   return {
     id: newId(), name: ROOM_TYPES.other.label, type: 'other', pts,
     walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
-    wallMaterial: DEFAULT_WALL_MATERIAL, ceiling: { ...DEFAULT_CEILING },
+    wallMaterials: pts.map(() => DEFAULT_WALL_MATERIAL), ceiling: { ...DEFAULT_CEILING },
   }
 }
 

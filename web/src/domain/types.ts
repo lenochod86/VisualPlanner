@@ -26,7 +26,8 @@ export interface Room {
   /** Tloušťka zdi u každé stěny (stejné pořadí jako `pts`). Sdílená zeď má tloušťku danou mezerou mezi místnostmi, viz geometry/walls.ts. */
   walls: number[]
   height: number
-  wallMaterial: WallMaterial
+  /** Materiál zdi u každé stěny (stejné pořadí jako `pts`); u sdílené zdi platí pro polovinu na straně této místnosti. */
+  wallMaterials: WallMaterial[]
   ceiling: Ceiling
 }
 

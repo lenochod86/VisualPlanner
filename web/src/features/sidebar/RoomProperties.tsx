@@ -15,6 +15,9 @@ export function RoomProperties({ room }: { room: Room }) {
   const deleteRoom = useProjectStore(s => s.deleteRoom)
   const select = useUiStore(s => s.select)
 
+  // všechny stěny stejné = ukážeme materiál, jinak "různé"
+  const commonMaterial = new Set(room.wallMaterials).size === 1 ? room.wallMaterials[0] : null
+
   const changeType = (type: RoomType) => {
     // pokud měla místnost výchozí název podle typu, přejmenuje se spolu s ním
     const hadDefaultName = room.name === ROOM_TYPES[room.type].label
@@ -37,7 +40,8 @@ export function RoomProperties({ room }: { room: Room }) {
       <NumberField label="Výška (cm)" value={room.height} onCommit={v => updateRoom(room.id, { height: Math.max(100, v) })} />
 
       <label className="field">Materiál stěn
-        <select value={room.wallMaterial} onChange={e => updateRoom(room.id, { wallMaterial: e.target.value as WallMaterial })}>
+        <select value={commonMaterial ?? 'mixed'} onChange={e => updateRoom(room.id, { wallMaterials: room.pts.map(() => e.target.value as WallMaterial) })}>
+          {commonMaterial === null && <option value='mixed' disabled>různé (viz stěny)</option>}
           {(Object.keys(WALL_MATERIALS) as WallMaterial[]).map(m => <option key={m} value={m}>{WALL_MATERIALS[m].label}</option>)}
         </select>
       </label>

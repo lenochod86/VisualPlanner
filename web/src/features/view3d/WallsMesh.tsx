@@ -22,7 +22,7 @@ export function WallsMesh({ opacity }: { opacity: number }) {
     <>
       {solids.map((solid, i) => (
         <mesh key={i} geometry={solid.geometry}>
-          <meshStandardMaterial color={WALL_MATERIALS[rooms.find(r => r.id === solid.roomId)?.wallMaterial ?? 'plaster'].color} side={THREE.DoubleSide}
+          <meshStandardMaterial color={WALL_MATERIALS[rooms.find(r => r.id === solid.roomId)?.wallMaterials[solid.edge] ?? 'plaster'].color} side={THREE.DoubleSide}
             transparent={transparent} opacity={opacity} depthWrite={!transparent} />
         </mesh>
       ))}
