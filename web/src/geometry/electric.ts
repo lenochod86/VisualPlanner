@@ -88,8 +88,11 @@ export function runHeight(...rooms: (Room | undefined)[]): number {
 /**
  * Automatická trasa: z bodu svisle (ve zdi / ze stropu) do výšky vedení, pak vodorovně v pravých úhlech
  * (kolénko volíme tak, aby leželo uvnitř bytu) a svisle dolů ke koncovému bodu.
+ * Výška vedení není nižší než koncové body: světlo na stropě je výš než běžné vedení 30 cm pod stropem a kabel
+ * od něj nemá zbytečně klesat, vede se po stropě.
  */
-export function autoRoute(from: Pos3, to: Pos3, runZ: number, rooms: Room[]): Waypoint[] {
+export function autoRoute(from: Pos3, to: Pos3, requestedRunZ: number, rooms: Room[]): Waypoint[] {
+  const runZ = Math.max(requestedRunZ, from.z, to.z)
   const route: Waypoint[] = [{ x: from.x, y: from.y, z: runZ }]
   if (from.x !== to.x && from.y !== to.y) {
     const inside = (p: Pt) => rooms.some(r => containsPoint(r.pts, p))

@@ -28,7 +28,7 @@ describe('elektro ve store', () => {
     const id = state().addCable(socketId, lightId, 'cyky-3x1.5')!
     const cable = state().cables.find(c => c.id === id)!
     expect(cable.via.length).toBeGreaterThanOrEqual(2)
-    expect(cable.via[0].z).toBe(230)          // výška vedení: 30 cm pod stropem 260
+    expect(cable.via[0].z).toBe(260)          // světlo je na stropě (260), vedení se zvedne až k němu, ne 30 cm pod strop
   })
 
   it('kabel do sebe samého se nevytvoří', () => {
@@ -93,7 +93,7 @@ describe('Přetrasovat vše: napojení a přetrasování', () => {
     const added = state().cables.find(c => c.id !== existing)!
     expect([added.fromId, added.toId].sort()).toEqual([s1, s2].sort())
     expect(added.type).toBe('cyky-3x2.5')
-    expect(state().cables.every(c => c.via.length >= 2)).toBe(true)  // všechny kabely mají novou trasu
+    expect(state().cables.every(c => c.via.length >= 1)).toBe(true)  // všechny kabely mají novou trasu
     undo()                                                           // celé je to jeden krok
     expect(state().cables).toHaveLength(1)
   })

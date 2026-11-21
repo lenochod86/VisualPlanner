@@ -41,11 +41,20 @@ describe('trasování', () => {
 
   it('trasa jde nahoru, vodorovně s jedním kolénkem uvnitř bytu a dolů', () => {
     const from = electricPosition(socket, A)                 // (100, 0, 30)
-    const to = electricPosition(light, B)                    // (600, 150, 260)
+    const to = electricPosition(light, B)                    // (600, 150, 260): světlo na stropě
     const via = autoRoute(from, to, 230, [A, B])
-    expect(via[0]).toEqual({ x: 100, y: 0, z: 230 })
-    expect(via).toHaveLength(3)                              // nahoru, kolénko, nad světlem
-    expect(via[1].z).toBe(230)
+    expect(via[0]).toEqual({ x: 100, y: 0, z: 260 })         // vedení se zvedne až ke stropu, kde je světlo
+    expect(via).toHaveLength(2)                              // nahoru a kolénko; nad světlem už je trasa přímo ve výšce světla
+    expect(via.every(p => p.z === 260)).toBe(true)
+  })
+
+  it('kabel od světla na stropě nejdřív neklesá: vede se po stropě, ne 30 cm pod ním', () => {
+    const via = autoRoute({ x: 0, y: 0, z: 260 }, { x: 300, y: 200, z: 105 }, 230, [A])
+    expect(via.every(p => p.z === 260)).toBe(true)
+  })
+
+  it('vedení pod stropem platí, když jsou oba konce níž (zásuvky)', () => {
+    const via = autoRoute({ x: 0, y: 0, z: 30 }, { x: 300, y: 0, z: 30 }, 230, [A])
     expect(via.every(p => p.z === 230)).toBe(true)
   })
 
