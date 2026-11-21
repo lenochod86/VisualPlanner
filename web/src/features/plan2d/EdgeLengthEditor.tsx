@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import type { Room } from '../../domain/types'
-import { edgeInfo, setEdgeLength } from '../../geometry/polygon'
+import { edgeInfo } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
 import type { Viewport } from './useViewport'
 
@@ -13,7 +13,7 @@ interface Props {
 
 /** Políčko pro ruční zadání délky stěny, umístěné přesně na číslo u stěny. */
 export function EdgeLengthEditor({ room, edge, viewport, onClose }: Props) {
-  const updateRoom = useProjectStore(s => s.updateRoom)
+  const setWallLength = useProjectStore(s => s.setWallLength)
   const finished = useRef(false)  // Enter i následný blur nesmí potvrdit dvakrát; Esc nesmí uložit nic
 
   const e = edgeInfo(room.pts, edge)
@@ -26,8 +26,7 @@ export function EdgeLengthEditor({ room, edge, viewport, onClose }: Props) {
   const finish = (value: string | null) => {
     if (finished.current) return
     finished.current = true
-    const length = value === null ? NaN : parseFloat(value)
-    if (length > 0) updateRoom(room.id, { pts: setEdgeLength(room.pts, edge, length) })
+    if (value !== null) setWallLength(room.id, edge, parseFloat(value.replace(',', '.')))
     onClose()
   }
 

@@ -40,3 +40,12 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .plan.drawing svg { cursor: crosshair; }
 .plan.drawing .room { pointer-events: none; }  /* při kreslení se táhne "skrz" existující místnosti */
 .dim-input { position: absolute; width: 64px; transform: translate(-50%, -50%); padding: 2px 4px; text-align: center; }
+
+/* ---- seznam stěn ---- */
+.wall-list { font-size: 13px; }
+.wall-head, .wall-row { display: grid; grid-template-columns: 1fr 64px 64px; gap: 6px; align-items: center; }
+.wall-head { color: #667; font-size: 11px; text-transform: uppercase; margin-bottom: 2px; }
+.wall-row { padding: 2px 0; }
+.wall-row:hover { background: #fff4e0; }
+.wall-row input { width: 100%; padding: 3px 5px; text-align: right; }
+.wall-row .shared { grid-column: 1 / -1; margin: 0; color: #b26a00; }

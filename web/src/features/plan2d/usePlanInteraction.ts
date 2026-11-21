@@ -8,6 +8,7 @@ import { snap } from '../../geometry/math'
 import { nearestEdge } from '../../geometry/obstacles'
 import { edgeInfo, moveEdge, translatePts } from '../../geometry/polygon'
 import { rectFromCorners } from '../../geometry/shapes'
+import { beginGesture, endGesture } from '../../store/history'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import type { Viewport } from './useViewport'
@@ -27,6 +28,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
   function begin(e: PointerEvent, next: Drag) {
     e.stopPropagation()
     svgRef.current?.setPointerCapture(e.pointerId)
+    beginGesture() // celé tažení = jeden krok v undo
     setDrag(next)
   }
 
@@ -66,7 +68,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     if (!room) return
     const others = rooms.filter(r => r.id !== room.id).map(r => r.pts)
     const raw = snap(edgeInfo(room.pts, d.edge).horizontal ? p.y : p.x)
-    const coord = magnetEdgeCoord(room.pts, d.edge, raw, others, room.wallT)
+    const coord = magnetEdgeCoord(room.pts, d.edge, raw, others, room.walls[d.edge])
     updateRoom(room.id, { pts: moveEdge(room.pts, d.edge, coord) })
   }
 
@@ -78,7 +80,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     if (!dx && !dy) return
     // magnet: po přesunu se místnost ještě dotáhne k sousedům (sdílená zeď)
     const others = rooms.filter(r => r.id !== room.id).map(r => r.pts)
-    const pull = magnetRoomShift(translatePts(room.pts, dx, dy), others, room.wallT)
+    const pull = magnetRoomShift(translatePts(room.pts, dx, dy), others, room.walls)
     moveRoom(room.id, dx + pull.x, dy + pull.y)
     setDrag({ ...d, last: { x: d.last.x + dx, y: d.last.y + dy } })
   }
@@ -112,6 +114,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
 
   const onPointerUp = () => {
     if (drag?.kind === 'draw') finishDrawing(rectFromCorners(drag.from, drag.to))
+    endGesture()
     setDrag(null)
   }
 

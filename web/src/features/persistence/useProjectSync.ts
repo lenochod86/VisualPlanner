@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchProject, putProject } from '../../api/projectsApi'
 import { PROJECT_ID } from '../../config'
+import { clearHistory } from '../../store/history'
 import { selectProject, useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 
@@ -39,6 +40,7 @@ export function useProjectSync(): SyncStatus {
       .then(async project => {
         if (project) {
           useProjectStore.getState().loadProject(project)
+          clearHistory() // načtení ze serveru nemá být možné vrátit zpět
           useUiStore.getState().requestFit()
           setStatus('saved')
         } else {

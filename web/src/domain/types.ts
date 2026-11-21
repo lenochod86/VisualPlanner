@@ -12,7 +12,8 @@ export interface Room {
   type: RoomType
   /** Rektilineární polygon = vnitřní líc stěn. Stěny se kreslí směrem ven. */
   pts: Pt[]
-  wallT: number
+  /** Tloušťka zdi u každé stěny (stejné pořadí jako `pts`). Sdílená zeď má tloušťku danou mezerou mezi místnostmi, viz geometry/walls.ts. */
+  walls: number[]
   height: number
 }
 

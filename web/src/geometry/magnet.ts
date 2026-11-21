@@ -40,12 +40,12 @@ export function magnetEdgeCoord(pts: Pt[], i: number, coord: number, others: Pt[
   return coord + nearestShift(shiftCandidates(edgeInfo(moved, i), others, gap))
 }
 
-/** Dodatečný posun celé místnosti (už přesunuté na místo kurzoru), aby se přilepila k sousedům. */
-export function magnetRoomShift(pts: Pt[], others: Pt[][], gap: number): Pt {
+/** Dodatečný posun celé místnosti (už přesunuté na místo kurzoru), aby se přilepila k sousedům. `gaps[i]` = tloušťka zdi stěny i. */
+export function magnetRoomShift(pts: Pt[], others: Pt[][], gaps: number[]): Pt {
   const xs: number[] = [], ys: number[] = []
   for (let i = 0; i < pts.length; i++) {
     const e = edgeInfo(pts, i)
-    ;(e.horizontal ? ys : xs).push(...shiftCandidates(e, others, gap))
+    ;(e.horizontal ? ys : xs).push(...shiftCandidates(e, others, gaps[i]))
   }
   return { x: nearestShift(xs), y: nearestShift(ys) }
 }

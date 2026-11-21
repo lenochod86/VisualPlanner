@@ -13,10 +13,10 @@ export function ObstacleProperties({ obstacle }: { obstacle: Obstacle }) {
   return (
     <section>
       <h2>{OBSTACLE_KINDS[obstacle.kind].label}</h2>
-      <NumberField label="Šířka (cm)" value={obstacle.w} onChange={v => set({ w: Math.max(5, v) })} />
-      <NumberField label="Hloubka (cm)" value={obstacle.d} onChange={v => set({ d: Math.max(2, v) })} />
-      <NumberField label="Výška (cm)" value={obstacle.h} onChange={v => set({ h: Math.max(5, v) })} />
-      <NumberField label="Od podlahy (cm)" value={obstacle.elev} onChange={v => set({ elev: Math.max(0, v) })} />
+      <NumberField label="Šířka (cm)" value={obstacle.w} onCommit={v => set({ w: Math.max(5, v) })} />
+      <NumberField label="Hloubka (cm)" value={obstacle.d} onCommit={v => set({ d: Math.max(2, v) })} />
+      <NumberField label="Výška (cm)" value={obstacle.h} onCommit={v => set({ h: Math.max(5, v) })} />
+      <NumberField label="Od podlahy (cm)" value={obstacle.elev} onCommit={v => set({ elev: Math.max(0, v) })} />
       <button className="danger" onClick={() => { deleteObstacle(obstacle.id); select(null) }}>Smazat</button>
     </section>
   )

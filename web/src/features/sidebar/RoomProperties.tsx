@@ -1,8 +1,12 @@
 import { ROOM_TYPES } from '../../domain/catalog'
 import type { Room, RoomType } from '../../domain/types'
+import { formatAreaM2 } from '../../format'
+import { polygonArea } from '../../geometry/polygon'
+import { beginGesture, endGesture } from '../../store/history'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import { NumberField } from './NumberField'
+import { WallList } from './WallList'
 
 export function RoomProperties({ room }: { room: Room }) {
   const updateRoom = useProjectStore(s => s.updateRoom)
@@ -17,17 +21,22 @@ export function RoomProperties({ room }: { room: Room }) {
 
   return (
     <section>
-      <h2>Vybraná místnost</h2>
+      <h2>Vybraná místnost · {formatAreaM2(polygonArea(room.pts))}</h2>
       <label className="field">Název
-        <input value={room.name} onChange={e => updateRoom(room.id, { name: e.target.value })} />
+        {/* psaní názvu = jeden krok v undo, ne jeden za písmeno */}
+        <input value={room.name} onFocus={beginGesture} onBlur={endGesture}
+          onChange={e => updateRoom(room.id, { name: e.target.value })} />
       </label>
       <label className="field">Typ
         <select value={room.type} onChange={e => changeType(e.target.value as RoomType)}>
           {(Object.keys(ROOM_TYPES) as RoomType[]).map(t => <option key={t} value={t}>{ROOM_TYPES[t].label}</option>)}
         </select>
       </label>
-      <NumberField label="Tloušťka stěn (cm)" value={room.wallT} onChange={v => updateRoom(room.id, { wallT: Math.max(2, v) })} />
-      <NumberField label="Výška (cm)" value={room.height} onChange={v => updateRoom(room.id, { height: Math.max(100, v) })} />
+      <NumberField label="Výška (cm)" value={room.height} onCommit={v => updateRoom(room.id, { height: Math.max(100, v) })} />
+
+      <h2>Stěny</h2>
+      <WallList room={room} />
+
       <button className="danger" onClick={() => { deleteRoom(room.id); select(null) }}>Smazat místnost</button>
     </section>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { bbox } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
+import { useWallModel } from '../../store/useWallModel'
 import { useUiStore } from '../../store/uiStore'
 import { EdgeLengthEditor } from './EdgeLengthEditor'
 import { GridBackground } from './GridBackground'
@@ -16,6 +17,8 @@ export function Plan2D() {
   const selection = useUiStore(s => s.selection)
   const tool = useUiStore(s => s.tool)
   const fitRequest = useUiStore(s => s.fitRequest)
+  const hoveredWall = useUiStore(s => s.hoveredWall)
+  const walls = useWallModel()
 
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -40,12 +43,14 @@ export function Plan2D() {
         onPointerDown={e => { setEditing(null); interaction.onBackgroundPointerDown(e) }}
         onPointerMove={interaction.onPointerMove}
         onPointerUp={interaction.onPointerUp}
+        onPointerCancel={interaction.onPointerUp}
       >
         <GridBackground viewport={viewport} />
 
         {rooms.map(room => (
           <RoomView
-            key={room.id} room={room} k={viewport.k}
+            key={room.id} room={room} thicknesses={walls.thicknesses(room)} k={viewport.k}
+            highlightedEdge={hoveredWall?.roomId === room.id ? hoveredWall.edge : null}
             selected={selection?.type === 'room' && selection.id === room.id}
             onBodyPointerDown={e => interaction.beginRoomDrag(e, room.id)}
             onEdgePointerDown={(e, edge) => interaction.beginEdgeDrag(e, room.id, edge)}
@@ -58,7 +63,7 @@ export function Plan2D() {
           if (!room) return null
           return (
             <ObstacleView
-              key={obstacle.id} obstacle={obstacle} room={room} k={viewport.k}
+              key={obstacle.id} obstacle={obstacle} room={room} walls={walls} k={viewport.k}
               selected={selection?.type === 'obstacle' && selection.id === obstacle.id}
               onPointerDown={e => interaction.beginObstacleDrag(e, obstacle.id)}
             />

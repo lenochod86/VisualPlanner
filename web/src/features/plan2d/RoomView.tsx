@@ -1,32 +1,41 @@
 import type { PointerEvent } from 'react'
 import { ROOM_TYPES } from '../../domain/catalog'
-import type { Room } from '../../domain/types'
+import type { Pt, Room } from '../../domain/types'
 import { formatAreaM2 } from '../../format'
-import { centroid, polygonArea } from '../../geometry/polygon'
+import { centroid, edgeInfo, polygonArea } from '../../geometry/polygon'
+import { outerPolygon } from '../../geometry/walls'
 import { DimensionLabel } from './DimensionLabel'
 
 interface Props {
   room: Room
+  /** Skutečné tloušťky zdí u jednotlivých stěn (sdílené zdi mají tloušťku podle mezery). */
+  thicknesses: number[]
   selected: boolean
+  highlightedEdge: number | null
   k: number
   onBodyPointerDown: (e: PointerEvent) => void
   onEdgePointerDown: (e: PointerEvent, edge: number) => void
   onEditDimension: (edge: number) => void
 }
 
-export function RoomView({ room, selected, k, onBodyPointerDown, onEdgePointerDown, onEditDimension }: Props) {
+const ring = (pts: Pt[]) => `M${pts.map(p => `${p.x} ${p.y}`).join('L')}Z`
+
+export function RoomView({ room, thicknesses, selected, highlightedEdge, k, onBodyPointerDown, onEdgePointerDown, onEditDimension }: Props) {
   const points = room.pts.map(p => `${p.x},${p.y}`).join(' ')
   const label = centroid(room.pts)
+  // zdi = mezikruží mezi vnitřním a vnějším obrysem (evenodd udělá z vnitřního obrysu díru)
+  const walls = ring(outerPolygon(room.pts, thicknesses)) + ring(room.pts)
+  const highlighted = highlightedEdge === null ? null : edgeInfo(room.pts, highlightedEdge)
+
   return (
     <g className="room">
-      {/* Zeď = obrys silný 2× wallT; polovina uvnitř se překryje podlahou, venku zbyde zeď tloušťky wallT. */}
-      <polygon
-        points={points} fill={ROOM_TYPES[room.type].color}
-        stroke="#33383f" strokeWidth={room.wallT * 2} strokeLinejoin="miter" paintOrder="stroke"
-        style={{ cursor: 'move' }}
-        onPointerDown={onBodyPointerDown}
-      />
+      <path d={walls} fill="#33383f" fillRule="evenodd" style={{ cursor: 'move' }} onPointerDown={onBodyPointerDown} />
+      <polygon points={points} fill={ROOM_TYPES[room.type].color} style={{ cursor: 'move' }} onPointerDown={onBodyPointerDown} />
       {selected && <polygon points={points} fill="none" stroke="#2f6fed" strokeWidth={2 * k} pointerEvents="none" />}
+      {highlighted && (
+        <line x1={highlighted.a.x} y1={highlighted.a.y} x2={highlighted.b.x} y2={highlighted.b.y}
+          stroke="#ff9800" strokeWidth={5 * k} pointerEvents="none" />
+      )}
 
       <text x={label.x} y={label.y} textAnchor="middle" pointerEvents="none" fill="#333">
         <tspan fontSize={15 * k} fontWeight={600}>{room.name}</tspan>

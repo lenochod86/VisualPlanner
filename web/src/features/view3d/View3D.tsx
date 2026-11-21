@@ -3,6 +3,7 @@ import { Grid, OrbitControls } from '@react-three/drei'
 import { bbox } from '../../geometry/polygon'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
+import { useWallModel } from '../../store/useWallModel'
 import { ObstacleMesh } from './ObstacleMesh'
 import { RoomMesh } from './RoomMesh'
 
@@ -10,6 +11,7 @@ export function View3D() {
   const rooms = useProjectStore(s => s.rooms)
   const obstacles = useProjectStore(s => s.obstacles)
   const wallOpacity = useUiStore(s => s.wallOpacity)
+  const walls = useWallModel()
 
   const points = rooms.flatMap(r => r.pts)
   const b = points.length ? bbox(points) : { minX: 0, maxX: 400, minY: 0, maxY: 300 }
@@ -24,10 +26,10 @@ export function View3D() {
       <Grid position={[cx, -0.5, cz]} args={[4000, 4000]} cellSize={10} sectionSize={100}
         cellColor="#d5d9df" sectionColor="#b3b9c2" fadeDistance={3000} infiniteGrid />
 
-      {rooms.map(room => <RoomMesh key={room.id} room={room} wallOpacity={wallOpacity} />)}
+      {rooms.map(room => <RoomMesh key={room.id} room={room} thicknesses={walls.thicknesses(room)} wallOpacity={wallOpacity} />)}
       {obstacles.map(obstacle => {
         const room = rooms.find(r => r.id === obstacle.roomId)
-        return room && <ObstacleMesh key={obstacle.id} obstacle={obstacle} room={room} />
+        return room && <ObstacleMesh key={obstacle.id} obstacle={obstacle} room={room} walls={walls} />
       })}
 
       <OrbitControls makeDefault target={[cx, 80, cz]} maxPolarAngle={Math.PI / 2 - 0.02} />

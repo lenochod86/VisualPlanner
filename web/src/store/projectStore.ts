@@ -1,12 +1,14 @@
 // Stav projektu (místnosti a překážky) a akce, které ho mění. Žádné UI věci (výběr, nástroj) - ty jsou v uiStore.
 import { create } from 'zustand'
-import { DEFAULT_ROOM_HEIGHT, DEFAULT_WALL_THICKNESS } from '../config'
+import { DEFAULT_ROOM_HEIGHT, DEFAULT_WALL_THICKNESS, MAX_WALL, MIN_WALL } from '../config'
 import { OBSTACLE_KINDS, ROOM_TYPES } from '../domain/catalog'
 import { createInitialProject } from '../domain/project'
 import type { Obstacle, ObstacleKind, Project, Rect, Room, RoomShape } from '../domain/types'
 import { magnetizeRoom } from '../geometry/magnet'
-import { bbox, edgeInfo, translatePts } from '../geometry/polygon'
+import { clamp } from '../geometry/math'
+import { bbox, edgeInfo, setEdgeLength, translatePts } from '../geometry/polygon'
 import { rectPts, shapePts } from '../geometry/shapes'
+import { applyWallThickness } from '../geometry/walls'
 
 interface ProjectState extends Project {
   loadProject: (project: Project) => void
@@ -17,6 +19,10 @@ interface ProjectState extends Project {
   updateRoom: (id: string, patch: Partial<Room>) => void
   moveRoom: (id: string, dx: number, dy: number) => void
   deleteRoom: (id: string) => void
+  /** Nastaví délku stěny (posune navazující stěnu). Neplatná hodnota se ignoruje. */
+  setWallLength: (roomId: string, edge: number, length: number) => void
+  /** Nastaví tloušťku zdi; u sdílené zdi drží její osu (viz geometry/walls.ts). */
+  setWallThickness: (roomId: string, edge: number, thickness: number) => void
   addObstacle: (kind: ObstacleKind, roomId: string) => string | null
   updateObstacle: (id: string, patch: Partial<Obstacle>) => void
   deleteObstacle: (id: string) => void
@@ -27,7 +33,7 @@ const newId = () => crypto.randomUUID()
 function newRoom(pts: Room['pts']): Room {
   return {
     id: newId(), name: ROOM_TYPES.other.label, type: 'other', pts,
-    wallT: DEFAULT_WALL_THICKNESS, height: DEFAULT_ROOM_HEIGHT,
+    walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
   }
 }
 
@@ -75,6 +81,17 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       rooms: s.rooms.filter(r => r.id !== id),
       obstacles: s.obstacles.filter(o => o.roomId !== id),
     })),
+
+  setWallLength: (roomId, edge, length) => {
+    const room = get().rooms.find(r => r.id === roomId)
+    if (!room || !(length > 0)) return
+    get().updateRoom(roomId, { pts: setEdgeLength(room.pts, edge, length) })
+  },
+
+  setWallThickness: (roomId, edge, thickness) => {
+    const next = applyWallThickness(get().rooms, roomId, edge, clamp(thickness, MIN_WALL, MAX_WALL))
+    if (next) set({ rooms: next })
+  },
 
   addObstacle: (kind, roomId) => {
     const room = get().rooms.find(r => r.id === roomId)

@@ -1,16 +1,23 @@
 import type { Obstacle, Pt, Room } from '../domain/types'
 import { clamp } from './math'
 import { edgeInfo } from './polygon'
+import type { WallModel } from './walls'
 
 export interface Placement { x: number; y: number; rot: number }
 
+/** Tloušťka zdi, ke které je překážka připnutá (jinak výchozí první stěny). */
+export function wallThicknessFor(o: Obstacle, room: Room, walls: WallModel): number {
+  return walls.info(room.id, o.attach?.edge ?? 0).thickness
+}
+
 /** Skutečná poloha překážky; je-li připnutá ke stěně, počítá se ze stěny (a tak ji sleduje při změně rozměrů). */
-export function resolveObstacle(o: Obstacle, room: Room): Placement {
+export function resolveObstacle(o: Obstacle, room: Room, walls: WallModel): Placement {
   if (!o.attach || o.attach.edge >= room.pts.length) return { x: o.x, y: o.y, rot: o.rot }
   const e = edgeInfo(room.pts, o.attach.edge)
   const along = clamp(o.attach.along, o.w / 2, e.len - o.w / 2)
   const inWall = o.kind === 'window' || o.kind === 'door'
-  const offset = inWall ? -room.wallT / 2 : o.d / 2  // do středu zdi vs. těsně u zdi uvnitř
+  const wallT = wallThicknessFor(o, room, walls)
+  const offset = inWall ? -wallT / 2 : o.d / 2  // do středu zdi vs. těsně u zdi uvnitř
   return {
     x: e.a.x + e.dir.x * along + e.inward.x * offset,
     y: e.a.y + e.dir.y * along + e.inward.y * offset,

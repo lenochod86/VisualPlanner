@@ -1,16 +1,25 @@
 import { useEffect } from 'react'
+import { redo, undo } from './store/history'
 import { useProjectStore } from './store/projectStore'
 import { useUiStore } from './store/uiStore'
 
-/** Delete maže vybranou místnost/překážku, Esc ruší výběr a kreslení. */
+/** Ctrl+Z / Ctrl+Y (nebo Ctrl+Shift+Z) = zpět/znovu, Delete maže vybrané, Esc ruší výběr a kreslení. */
 export function useKeyboardShortcuts() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return  // nepřebíjíme psaní do políček
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return  // v políčkách nechceme přebíjet psaní
 
       const ui = useUiStore.getState()
-      if (e.key === 'Escape') {
+      const key = e.key.toLowerCase()
+
+      if ((e.ctrlKey || e.metaKey) && key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) redo(); else undo()
+      } else if ((e.ctrlKey || e.metaKey) && key === 'y') {
+        e.preventDefault()
+        redo()
+      } else if (e.key === 'Escape') {
         ui.select(null)
         ui.setTool('select')
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selection) {

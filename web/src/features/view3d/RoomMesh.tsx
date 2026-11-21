@@ -1,36 +1,39 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ROOM_TYPES } from '../../domain/catalog'
-import type { Room } from '../../domain/types'
-import { edgeInfo } from '../../geometry/polygon'
+import type { Pt, Room } from '../../domain/types'
+import { outerPolygon } from '../../geometry/walls'
 
-/** Podlaha + stěny jedné místnosti. Převod souřadnic: plán (x, y) -> 3D (x, výška, z = y). */
-export function RoomMesh({ room, wallOpacity }: { room: Room; wallOpacity: number }) {
-  const floor = useMemo(() => {
-    // rotace o -90° kolem X zobrazí (x, y) na (x, 0, -y); předáváme proto -y, aby vyšlo z = y
-    const shape = new THREE.Shape(room.pts.map(p => new THREE.Vector2(p.x, -p.y)))
-    return new THREE.ShapeGeometry(shape)
-  }, [room.pts])
+// Převod souřadnic: plán (x, y) -> 3D (x, výška, z = y). Po rotaci o -90° kolem X by se (x, y) zobrazilo
+// na (x, 0, -y), proto tvary stavíme z bodů (x, -y), aby vyšlo z = y.
+const toShapePoints = (pts: Pt[]) => pts.map(p => new THREE.Vector2(p.x, -p.y))
+
+interface Props {
+  room: Room
+  thicknesses: number[]
+  wallOpacity: number
+}
+
+/** Podlaha a zdi jedné místnosti. Zdi jsou jedno těleso: vnější obrys s dírou ve tvaru místnosti, vytažený do výšky. */
+export function RoomMesh({ room, thicknesses, wallOpacity }: Props) {
+  const floor = useMemo(() => new THREE.ShapeGeometry(new THREE.Shape(toShapePoints(room.pts))), [room.pts])
+
+  const thicknessKey = thicknesses.join(',')
+  const walls = useMemo(() => {
+    const shape = new THREE.Shape(toShapePoints(outerPolygon(room.pts, thicknesses)))
+    shape.holes.push(new THREE.Path(toShapePoints(room.pts)))
+    return new THREE.ExtrudeGeometry(shape, { depth: room.height, bevelEnabled: false })
+  }, [room.pts, room.height, thicknessKey])
 
   const transparent = wallOpacity < 1
   return (
-    <group>
-      <mesh geometry={floor} rotation={[-Math.PI / 2, 0, 0]}>
+    <group rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh geometry={floor}>
         <meshStandardMaterial color={ROOM_TYPES[room.type].color} side={THREE.DoubleSide} />
       </mesh>
-      {room.pts.map((_, i) => {
-        const e = edgeInfo(room.pts, i)
-        const t = room.wallT
-        return (
-          // zeď je vně od vnitřního líce: střed posunutý o t/2 ven, o t delší kvůli rohům
-          <mesh key={i}
-            position={[(e.a.x + e.b.x) / 2 + e.outward.x * t / 2, room.height / 2, (e.a.y + e.b.y) / 2 + e.outward.y * t / 2]}
-            rotation={[0, -Math.atan2(e.dir.y, e.dir.x), 0]}>
-            <boxGeometry args={[e.len + t, room.height, t]} />
-            <meshStandardMaterial color="#f4f1ea" transparent={transparent} opacity={wallOpacity} depthWrite={!transparent} />
-          </mesh>
-        )
-      })}
+      <mesh geometry={walls}>
+        <meshStandardMaterial color="#f4f1ea" transparent={transparent} opacity={wallOpacity} depthWrite={!transparent} />
+      </mesh>
     </group>
   )
 }

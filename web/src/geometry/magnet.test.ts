@@ -8,12 +8,12 @@ const WALL = 10
 describe('magnet', () => {
   it('přitáhne sousední místnost tak, aby mezi nimi zbyla jedna zeď', () => {
     const b = shapePts('rect', 415, 0, 300, 300)  // mezera 15 místo 10
-    expect(magnetRoomShift(b, [A], WALL)).toEqual({ x: -5, y: 0 })
+    expect(magnetRoomShift(b, [A], [WALL, WALL, WALL, WALL])).toEqual({ x: -5, y: 0 })
   })
 
   it('nepřitahuje, když je místnost daleko', () => {
     const b = shapePts('rect', 600, 0, 300, 300)
-    expect(magnetRoomShift(b, [A], WALL)).toEqual({ x: 0, y: 0 })
+    expect(magnetRoomShift(b, [A], [WALL, WALL, WALL, WALL])).toEqual({ x: 0, y: 0 })
   })
 
   it('přitáhne taženou stěnu na sdílenou zeď', () => {

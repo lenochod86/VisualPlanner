@@ -1,0 +1,48 @@
+import { describe, expect, it } from 'vitest'
+import type { Room } from '../domain/types'
+import { edgeInfo } from './polygon'
+import { shapePts } from './shapes'
+import { applyWallThickness, buildWallModel, outerPolygon } from './walls'
+
+const room = (id: string, x: number): Room => ({
+  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
+})
+// A: x 0..400, B: x 415..815 -> mezera 15 = sdílená zeď tloušťky 15 (pravá stěna A = index 1, levá B = index 3)
+const A = room('A', 0), B = room('B', 415)
+
+describe('walls', () => {
+  it('pozná sdílenou zeď a vezme tloušťku z mezery', () => {
+    const model = buildWallModel([A, B])
+    expect(model.info('A', 1)).toEqual({ thickness: 15, partners: [{ roomId: 'B', edge: 3 }] })
+    expect(model.info('A', 3)).toEqual({ thickness: 10, partners: [] })
+  })
+
+  it('vzdálené místnosti zeď nesdílí', () => {
+    expect(buildWallModel([A, room('C', 600)]).info('A', 1).partners).toEqual([])
+  })
+
+  it('změna sdílené zdi drží osu: obě místnosti ustoupí o půl změny', () => {
+    const next = applyWallThickness([A, B], 'A', 1, 25)!
+    const model = buildWallModel(next)
+    expect(model.info('A', 1).thickness).toBe(25)
+    const [a, b] = next
+    expect(edgeInfo(a.pts, 1).a.x).toBe(395) // 400 - 5
+    expect(edgeInfo(b.pts, 3).a.x).toBe(420) // 415 + 5
+  })
+
+  it('obvodová zeď mění jen tloušťku, místnost zůstane', () => {
+    const next = applyWallThickness([A, B], 'A', 3, 30)!
+    expect(next[0].walls[3]).toBe(30)
+    expect(next[0].pts).toEqual(A.pts)
+  })
+
+  it('odmítne změnu, která by místnost zdegenerovala', () => {
+    expect(applyWallThickness([A, B], 'A', 1, 795)).toBeNull()
+  })
+
+  it('vnější obrys respektuje tloušťky jednotlivých zdí', () => {
+    const outer = outerPolygon(A.pts, [10, 20, 10, 30])
+    expect(outer[0]).toEqual({ x: -30, y: -10 })   // levý horní roh: vlevo 30, nahoře 10
+    expect(outer[2]).toEqual({ x: 420, y: 310 })
+  })
+})
