@@ -10,7 +10,7 @@ import { buildWallPieces, wallBands } from './wallGeometry'
 
 const room = (id: string, x: number): Room => ({
   id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
-  wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], ceiling: { ...DEFAULT_CEILING },
+  wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], wallModes: ['auto', 'auto', 'auto', 'auto'], ceiling: { ...DEFAULT_CEILING },
 })
 
 const toPts = (ring: [number, number][]): Pt[] => ring.map(([x, y]) => ({ x, y }))
@@ -45,6 +45,25 @@ describe('kusy zdí po stěnách', () => {
 
   it('uvnitř místnosti zeď není', () => {
     expect(ownerAt(rooms, { x: 200, y: 150 })).toEqual([])
+  })
+})
+
+describe('skryté a vynucené stěny', () => {
+  const big = room('A', 0)
+  const nook: Room = { ...room('N', 0), pts: shapePts('rect', 200, 100, 100, 100) }
+  const pieceCount = (rooms: Room[], roomId: string) =>
+    buildWallPieces(rooms, buildWallModel(rooms)).filter(p => p.roomId === roomId).length
+
+  it('stěny kouta uvnitř místnosti se ve 3D automaticky nekreslí', () => {
+    expect(pieceCount([big, nook], 'N')).toBe(0)
+    expect(pieceCount([big, nook], 'A')).toBe(4)
+  })
+
+  it('stěna nastavená jako plná se nakreslí i uvnitř jiné místnosti', () => {
+    const solid = { ...nook, wallModes: ['solid', 'auto', 'auto', 'auto'] as Room['wallModes'] }
+    const rooms = [big, solid]
+    expect(pieceCount(rooms, 'N')).toBe(1)
+    expect(ownerAt(rooms, { x: 250, y: 95 })).toEqual(['N:0'])   // zeď leží nad horní hranou kouta (y 90..100)
   })
 })
 

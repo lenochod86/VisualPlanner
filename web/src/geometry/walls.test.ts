@@ -6,7 +6,7 @@ import { shapePts } from './shapes'
 import { applyWallThickness, buildWallModel, outerPolygon } from './walls'
 
 const room = (id: string, x: number): Room => ({
-  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260, wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], ceiling: { ...DEFAULT_CEILING },
+  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260, wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], wallModes: ['auto', 'auto', 'auto', 'auto'], ceiling: { ...DEFAULT_CEILING },
 })
 // A: x 0..400, B: x 415..815 -> mezera 15 = sdílená zeď tloušťky 15 (pravá stěna A = index 1, levá B = index 3)
 const A = room('A', 0), B = room('B', 415)
@@ -14,8 +14,8 @@ const A = room('A', 0), B = room('B', 415)
 describe('walls', () => {
   it('pozná sdílenou zeď a vezme tloušťku z mezery', () => {
     const model = buildWallModel([A, B])
-    expect(model.info('A', 1)).toEqual({ thickness: 15, partners: [{ roomId: 'B', edge: 3 }] })
-    expect(model.info('A', 3)).toEqual({ thickness: 10, partners: [] })
+    expect(model.info('A', 1)).toMatchObject({ thickness: 15, partners: [{ roomId: 'B', edge: 3 }], visible: true })
+    expect(model.info('A', 3)).toMatchObject({ thickness: 10, partners: [] })
   })
 
   it('vzdálené místnosti zeď nesdílí', () => {
@@ -45,5 +45,29 @@ describe('walls', () => {
     const outer = outerPolygon(A.pts, [10, 20, 10, 30])
     expect(outer[0]).toEqual({ x: -30, y: -10 })   // levý horní roh: vlevo 30, nahoře 10
     expect(outer[2]).toEqual({ x: 420, y: 310 })
+  })
+})
+
+describe('stěny uvnitř jiné místnosti (kout)', () => {
+  const big = room('A', 0)
+  const nook: Room = { ...room('N', 0), pts: shapePts('rect', 200, 100, 100, 100) }   // kout uvnitř místnosti A
+
+  it('automaticky je skrytá každá stěna kouta, vnější stěny místnosti ne', () => {
+    const model = buildWallModel([big, nook])
+    expect([0, 1, 2, 3].map(i => model.info('N', i).visible)).toEqual([false, false, false, false])
+    expect(model.info('N', 0).containedIn).toEqual(['A'])
+    expect(model.visibility(big)).toEqual([true, true, true, true])
+  })
+
+  it('režim "plná" stěnu ukáže, "skrytá" skryje i obvodovou', () => {
+    const solid = { ...nook, wallModes: ['solid', 'auto', 'auto', 'auto'] as Room['wallModes'] }
+    expect(buildWallModel([big, solid]).info('N', 0).visible).toBe(true)
+    const hiddenOuter = { ...big, wallModes: ['hidden', 'auto', 'auto', 'auto'] as Room['wallModes'] }
+    expect(buildWallModel([hiddenOuter]).info('A', 0).visible).toBe(false)
+  })
+
+  it('kout vedle zdi (sdílená zeď) zůstává viditelný', () => {
+    const next = room('B', 415)   // mezera 15 od A: sdílená zeď, B není uvnitř A
+    expect(buildWallModel([big, next]).info('B', 3).visible).toBe(true)
   })
 })

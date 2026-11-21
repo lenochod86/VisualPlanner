@@ -71,7 +71,7 @@ export function Plan2D() {
 
         {rooms.map(room => (
           <RoomView
-            key={room.id} room={room} thicknesses={walls.thicknesses(room)} k={viewport.k}
+            key={room.id} room={room} thicknesses={walls.thicknesses(room)} visibleEdges={walls.visibility(room)} k={viewport.k}
             highlightedEdge={hoveredWall?.roomId === room.id ? hoveredWall.edge : null}
             selected={selection?.type === 'room' && selection.id === room.id}
             onBodyPointerDown={e => interaction.beginRoomDrag(e, room.id)}

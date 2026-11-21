@@ -6,6 +6,8 @@ export interface Rect { x: number; y: number; w: number; h: number }
 export type RoomType = 'living' | 'bedroom' | 'kitchen' | 'bathroom' | 'toilet' | 'hall' | 'other'
 export type RoomShape = 'rect' | 'L-left' | 'L-right'
 export type WallMaterial = 'plaster' | 'brick' | 'concrete' | 'tile' | 'sdk'
+/** Zobrazení stěny: automaticky (skrytá, když leží uvnitř jiné místnosti), vždy plná, nebo skrytá (průhledná). */
+export type WallMode = 'auto' | 'solid' | 'hidden'
 export type CeilingType = 'none' | 'slab' | 'sdk'
 
 export interface Ceiling {
@@ -28,6 +30,8 @@ export interface Room {
   height: number
   /** Materiál zdi u každé stěny (stejné pořadí jako `pts`); u sdílené zdi platí pro polovinu na straně této místnosti. */
   wallMaterials: WallMaterial[]
+  /** Režim zobrazení u každé stěny (stejné pořadí jako `pts`). */
+  wallModes: WallMode[]
   ceiling: Ceiling
 }
 

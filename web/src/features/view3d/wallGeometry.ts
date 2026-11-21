@@ -4,8 +4,9 @@
 //  - kus stěny = čtyřúhelník mezi vnitřní a vnější hranou stěny (rohy v pokosu);
 //  - SDÍLENÁ zeď se v místě překryvu rozdělí uprostřed: každá místnost vlastní polovinu na své straně
 //    (takže koupelna může mít obklad a chodba omítku);
-//  - kusy se navzájem neprotínají: z každého se odečtou kusy vytvořené dříve a vnitřky všech místností
-//    (jinak by se na rozích překrývaly shodné plochy a blikaly).
+//  - kusy se navzájem neprotínají: z každého se odečtou kusy vytvořené dříve a vnitřky ostatních místností
+//    (jinak by se na rozích překrývaly shodné plochy a blikaly);
+//  - skryté stěny (režim "skrytá", nebo "auto" u stěny uvnitř jiné místnosti) se nevytvoří vůbec.
 //
 // Otvory (okna, dveře) se dělají po výškových pásech: v každém pásu je půdorys kusu bez těch otvorů,
 // které pásem procházejí. Každý pás se vytáhne jako samostatné těleso.
@@ -58,10 +59,14 @@ export function buildWallPieces(rooms: Room[], walls: WallModel): WallPiece[] {
     const n = room.pts.length
     const outer = outerPolygon(room.pts, walls.thicknesses(room))
     for (let edge = 0; edge < n; edge++) {
+      const info = walls.info(room.id, edge)
+      if (!info.visible) continue                      // skrytá / průhledná stěna se nekreslí
+      // stěna uvnitř jiné místnosti (kuchyňský kout v obýváku) smí ležet v jejím vnitřku, jinak by se odečetla
+      const interiors = inners.filter((_, i) => !info.containedIn.includes(rooms[i].id))
       const next = (edge + 1) % n
       const quad: Geom = [toRing([room.pts[edge], room.pts[next], outer[next], outer[edge]])]
       const footprint = polygonClipping.difference(
-        quad, ...partnerHalfCuts(room, edge, rooms, walls), ...inners, ...pieces.map(p => p.footprint),
+        quad, ...partnerHalfCuts(room, edge, rooms, walls), ...interiors, ...pieces.map(p => p.footprint),
       )
       if (footprint.length) pieces.push({ roomId: room.id, edge, footprint })
     }

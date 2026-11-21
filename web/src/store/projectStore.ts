@@ -8,7 +8,7 @@ import { DEFAULT_CEILING, DEFAULT_WALL_MATERIAL } from '../domain/materials'
 import { createInitialProject } from '../domain/project'
 import type {
   Cable, CableType, ElectricKind, ElectricPoint, Furniture, FurnitureKind, Obstacle, ObstacleKind, Placed, Project, Rect,
-  Room, RoomShape, Waypoint,
+  Room, RoomShape, WallMode, Waypoint,
 } from '../domain/types'
 import { autoRoute, cablePolyline, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
@@ -16,7 +16,7 @@ import { clamp } from '../geometry/math'
 import { rotatePatch } from '../geometry/placement'
 import { bbox, edgeInfo, setEdgeLength, translatePts } from '../geometry/polygon'
 import { rectPts, shapePts } from '../geometry/shapes'
-import { applyWallThickness } from '../geometry/walls'
+import { applyWallThickness, buildWallModel } from '../geometry/walls'
 
 interface ProjectState extends Project {
   loadProject: (project: Project) => void
@@ -31,6 +31,8 @@ interface ProjectState extends Project {
   setWallLength: (roomId: string, edge: number, length: number) => void
   /** Nastaví tloušťku zdi; u sdílené zdi drží její osu (viz geometry/walls.ts). */
   setWallThickness: (roomId: string, edge: number, thickness: number) => void
+  /** Nastaví zobrazení stěny (auto / plná / skrytá); u sdílené zdi i na straně sousední místnosti, ať zeď zmizí celá. */
+  setWallMode: (roomId: string, edge: number, mode: WallMode) => void
 
   addObstacle: (kind: ObstacleKind, roomId: string) => string | null
   updateObstacle: (id: string, patch: Partial<Obstacle>) => void
@@ -67,7 +69,7 @@ function newRoom(pts: Room['pts']): Room {
   return {
     id: newId(), name: ROOM_TYPES.other.label, type: 'other', pts,
     walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
-    wallMaterials: pts.map(() => DEFAULT_WALL_MATERIAL), ceiling: { ...DEFAULT_CEILING },
+    wallMaterials: pts.map(() => DEFAULT_WALL_MATERIAL), wallModes: pts.map(() => 'auto' as const), ceiling: { ...DEFAULT_CEILING },
   }
 }
 
@@ -157,6 +159,17 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   setWallThickness: (roomId, edge, thickness) => {
     const next = applyWallThickness(get().rooms, roomId, edge, clamp(thickness, MIN_WALL, MAX_WALL))
     if (next) set({ rooms: next })
+  },
+
+  setWallMode: (roomId, edge, mode) => {
+    const { rooms } = get()
+    const sides = [{ roomId, edge }, ...buildWallModel(rooms).info(roomId, edge).partners]
+    set({
+      rooms: rooms.map(r => ({
+        ...r,
+        wallModes: r.wallModes.map((m, i) => (sides.some(s => s.roomId === r.id && s.edge === i) ? mode : m)),
+      })),
+    })
   },
 
   addObstacle: (kind, roomId) => {

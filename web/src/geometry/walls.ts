@@ -4,7 +4,7 @@
 // (nic dalšího se neukládá), takže ji nikdy neohrozí nesoulad dat.
 import { DEFAULT_WALL_THICKNESS, MAX_SHARED_WALL, MIN_SHARED_OVERLAP } from '../config'
 import type { Pt, Room } from '../domain/types'
-import { edgeInfo, moveEdge, type EdgeInfo } from './polygon'
+import { containsPoint, edgeInfo, moveEdge, type EdgeInfo } from './polygon'
 
 export interface WallRef { roomId: string; edge: number }
 
@@ -13,13 +13,22 @@ export interface WallInfo {
   thickness: number
   /** Stěny jiných místností, se kterými je tahle zeď společná (prázdné = obvodová/vlastní zeď). */
   partners: WallRef[]
+  /** Kreslí se tahle stěna? Řídí to režim stěny (auto / plná / skrytá), viz `Room.wallModes`. */
+  visible: boolean
+  /** Místnosti, v jejichž vnitřku stěna leží (např. kuchyňský kout uvnitř obýváku). */
+  containedIn: string[]
 }
 
 export interface WallModel {
   info(roomId: string, edge: number): WallInfo
   /** Tloušťky všech stěn místnosti v pořadí stěn. */
   thicknesses(room: Room): number[]
+  /** Viditelnost všech stěn místnosti v pořadí stěn. */
+  visibility(room: Room): boolean[]
 }
+
+/** Jak daleko za vnitřní líc stěny se kouká, jestli je stěna uvnitř jiné místnosti (cm). */
+const PROBE_DISTANCE = 1
 
 const keyOf = (roomId: string, edge: number) => `${roomId}:${edge}`
 
@@ -59,15 +68,36 @@ export function buildWallModel(rooms: Room[]): WallModel {
     }
   }
 
+  // stěna, za jejímž lícem (venku) je vnitřek jiné místnosti, leží uvnitř té místnosti
+  const containment = new Map<string, string[]>()
+  for (const room of rooms) {
+    room.pts.forEach((_, i) => {
+      const e = edgeInfo(room.pts, i)
+      const probe = {
+        x: (e.a.x + e.b.x) / 2 + e.outward.x * PROBE_DISTANCE,
+        y: (e.a.y + e.b.y) / 2 + e.outward.y * PROBE_DISTANCE,
+      }
+      containment.set(keyOf(room.id, i), rooms.filter(o => o.id !== room.id && containsPoint(o.pts, probe)).map(o => o.id))
+    })
+  }
+
   const roomById = new Map(rooms.map(r => [r.id, r]))
   const info: WallModel['info'] = (roomId, edge) => {
     const links = shared.get(keyOf(roomId, edge))
+    const containedIn = containment.get(keyOf(roomId, edge)) ?? []
+    const mode = roomById.get(roomId)?.wallModes?.[edge] ?? 'auto'
+    // auto: stěna uvnitř jiné místnosti je skrytá (zeď kouta v obýváku); plná / skrytá jsou volba uživatele
+    const visible = mode === 'solid' ? true : mode === 'hidden' ? false : containedIn.length === 0
     if (links?.length) {
-      return { thickness: Math.min(...links.map(l => l.gap)), partners: links.map(l => l.ref) }
+      return { thickness: Math.min(...links.map(l => l.gap)), partners: links.map(l => l.ref), visible, containedIn }
     }
-    return { thickness: roomById.get(roomId)?.walls[edge] ?? DEFAULT_WALL_THICKNESS, partners: [] }
+    return { thickness: roomById.get(roomId)?.walls[edge] ?? DEFAULT_WALL_THICKNESS, partners: [], visible, containedIn }
   }
-  return { info, thicknesses: room => room.pts.map((_, i) => info(room.id, i).thickness) }
+  return {
+    info,
+    thicknesses: room => room.pts.map((_, i) => info(room.id, i).thickness),
+    visibility: room => room.pts.map((_, i) => info(room.id, i).visible),
+  }
 }
 
 /**

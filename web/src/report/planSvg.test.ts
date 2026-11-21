@@ -11,7 +11,7 @@ const project = (name = 'Obývák'): Project => {
   return {
     rooms: [{
       id: 'a', name, type: 'living', pts, walls: [10, 10, 10, 10], height: 260,
-      wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], ceiling: { ...DEFAULT_CEILING },
+      wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], wallModes: ['auto', 'auto', 'auto', 'auto'], ceiling: { ...DEFAULT_CEILING },
     }],
     obstacles: [
       { id: 'w', roomId: 'a', kind: 'window', w: 120, d: 12, h: 140, elev: 90, x: 0, y: 0, rot: 0, attach: { edge: 0, along: 200 } },

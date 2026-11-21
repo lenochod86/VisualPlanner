@@ -8,7 +8,7 @@ import { shapePts } from './shapes'
 import { buildWallModel } from './walls'
 
 const room = (id: string, x: number): Room => ({
-  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260, wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], ceiling: { ...DEFAULT_CEILING },
+  id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260, wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], wallModes: ['auto', 'auto', 'auto', 'auto'], ceiling: { ...DEFAULT_CEILING },
 })
 const A = room('A', 0), B = room('B', 500)
 const rooms = [A, B]

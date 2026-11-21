@@ -103,10 +103,18 @@ function floorsSvg(rooms: Room[]): string {
     `<path d="${ring(r.pts)}" fill="${ROOM_TYPES[r.type].color}" fill-opacity="0.45"/>`).join('\n')
 }
 
-/** Zdi = mezikruží mezi vnitřním a vnějším obrysem každé místnosti (sdílené zdi se překryjí beze změny vzhledu). */
+/** Zdi: čtyřúhelník každé viditelné stěny mezi vnitřním a vnějším lícem (sdílené zdi se překryjí beze změny vzhledu). */
 function wallsSvg(rooms: Room[], walls: WallModel): string {
-  return rooms.map(r =>
-    `<path d="${ring(outerPolygon(r.pts, walls.thicknesses(r)))}${ring(r.pts)}" fill="#3b3f45" fill-rule="evenodd"/>`).join('\n')
+  return rooms.flatMap(r => {
+    const outer = outerPolygon(r.pts, walls.thicknesses(r))
+    const visible = walls.visibility(r)
+    return r.pts.map((_, i) => {
+      const j = (i + 1) % r.pts.length
+      if (visible[i]) return `<path d="${ring([r.pts[i], r.pts[j], outer[j], outer[i]])}" fill="#3b3f45"/>`
+      // skrytá stěna: jen tenká čárkovaná čára na jejím líci
+      return `<line x1="${n(r.pts[i].x)}" y1="${n(r.pts[i].y)}" x2="${n(r.pts[j].x)}" y2="${n(r.pts[j].y)}" stroke="#888" stroke-width="0.15" stroke-dasharray="1.5 1" vector-effect="non-scaling-stroke"/>`
+    })
+  }).join('\n')
 }
 
 /** Okna a dveře: bílý řez zdí a značka (okno = tři čáry, dveře = křídlo a oblouk otevírání). */

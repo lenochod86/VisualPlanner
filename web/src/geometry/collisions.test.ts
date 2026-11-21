@@ -7,7 +7,7 @@ import { buildWallModel } from './walls'
 
 const room: Room = {
   id: 'A', name: 'A', type: 'other', pts: shapePts('rect', 0, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
-  wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], ceiling: { ...DEFAULT_CEILING },
+  wallMaterials: ['plaster', 'plaster', 'plaster', 'plaster'], wallModes: ['auto', 'auto', 'auto', 'auto'], ceiling: { ...DEFAULT_CEILING },
 }
 const walls = buildWallModel([room])
 

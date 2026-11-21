@@ -10,7 +10,7 @@ export function createInitialProject(): Project {
     rooms: [{
       id: 'initial-room', name: 'Obývák', type: 'living', pts,
       walls: pts.map(() => DEFAULT_WALL_THICKNESS), height: DEFAULT_ROOM_HEIGHT,
-      wallMaterials: pts.map(() => DEFAULT_WALL_MATERIAL), ceiling: { ...DEFAULT_CEILING },
+      wallMaterials: pts.map(() => DEFAULT_WALL_MATERIAL), wallModes: pts.map(() => 'auto' as const), ceiling: { ...DEFAULT_CEILING },
     }],
     obstacles: [],
     furniture: [],
@@ -26,7 +26,8 @@ function normalizeRoom(raw: Room & { wallT?: number; wallMaterial?: WallMaterial
   const walls = room.pts.map((_, i) => (Array.isArray(room.walls) && room.walls[i] > 0 ? room.walls[i] : fallback))
   // materiál (dřív jeden na místnost) a strop starší projekty nemají
   const wallMaterials = room.pts.map((_, i) => room.wallMaterials?.[i] ?? wallMaterial ?? DEFAULT_WALL_MATERIAL)
-  return { ...room, walls, wallMaterials, ceiling: { ...DEFAULT_CEILING, ...room.ceiling } }
+  const wallModes = room.pts.map((_, i) => room.wallModes?.[i] ?? 'auto')   // starší projekty: všechny stěny automaticky
+  return { ...room, walls, wallMaterials, wallModes, ceiling: { ...DEFAULT_CEILING, ...room.ceiling } }
 }
 
 /** Ověří, že data z importu / serveru vypadají jako projekt. Při chybě vyhodí Error. */
