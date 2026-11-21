@@ -1,5 +1,4 @@
 import { Plan2D } from './features/plan2d/Plan2D'
-import { PrintMenu } from './features/plan2d/PrintMenu'
 import { useProjectSync } from './features/persistence/useProjectSync'
 import { Sidebar } from './features/sidebar/Sidebar'
 import { TopBar } from './features/topbar/TopBar'
@@ -29,7 +28,6 @@ export function App() {
             <div className="pane-title">Půdorys</div>
             <div className="plan-tools">
               <button onClick={requestFit} title="Přizpůsobit pohled celému bytu">⤢ Celý byt</button>
-              <PrintMenu />
             </div>
             <Plan2D />
             {!showPlan && <div className="rail-label">Půdorys</div>}

@@ -2,6 +2,7 @@ import type { SyncStatus } from '../persistence/useProjectSync'
 import { useUiStore, type Mode } from '../../store/uiStore'
 import { HistoryButtons } from '../sidebar/HistoryButtons'
 import { FileButtons } from './FileButtons'
+import { PrintMenu } from './PrintMenu'
 
 const TABS: { mode: Mode; label: string }[] = [
   { mode: 'plan', label: 'Půdorys' },
@@ -39,6 +40,7 @@ export function TopBar({ syncStatus }: { syncStatus: SyncStatus }) {
       <div className="topbar-actions">
         <HistoryButtons />
         <FileButtons />
+        <PrintMenu />
       </div>
     </header>
   )
