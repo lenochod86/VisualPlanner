@@ -5,7 +5,8 @@ import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWallModel } from '../../store/useWallModel'
 import { ObstacleMesh } from './ObstacleMesh'
-import { RoomMesh } from './RoomMesh'
+import { RoomFloor } from './RoomFloor'
+import { WallsMesh } from './WallsMesh'
 
 export function View3D() {
   const rooms = useProjectStore(s => s.rooms)
@@ -19,14 +20,16 @@ export function View3D() {
   const span = Math.max(b.maxX - b.minX, b.maxY - b.minY, 300)
 
   return (
-    <Canvas camera={{ position: [cx + span * 0.9, span, cz + span * 1.1], fov: 45, near: 1, far: 20000 }}>
+    <Canvas camera={{ position: [cx + span * 0.9, span, cz + span * 1.1], fov: 45, near: 10, far: 30000 }}>
       <color attach="background" args={['#eef1f5']} />
       <ambientLight intensity={0.7} />
       <directionalLight position={[cx + 500, 900, cz + 300]} intensity={1.1} />
-      <Grid position={[cx, -0.5, cz]} args={[4000, 4000]} cellSize={10} sectionSize={100}
-        cellColor="#d5d9df" sectionColor="#b3b9c2" fadeDistance={3000} infiniteGrid />
+      {/* hrubší mřížka (50/500 cm): jemná 10cm mřížka při pohledu pod malým úhlem dělala moaré */}
+      <Grid position={[cx, -1, cz]} args={[4000, 4000]} cellSize={50} sectionSize={500}
+        cellThickness={0.6} cellColor="#d5d9df" sectionColor="#b3b9c2" fadeDistance={4000} infiniteGrid />
 
-      {rooms.map(room => <RoomMesh key={room.id} room={room} thicknesses={walls.thicknesses(room)} wallOpacity={wallOpacity} />)}
+      {rooms.map(room => <RoomFloor key={room.id} room={room} />)}
+      <WallsMesh opacity={wallOpacity} />
       {obstacles.map(obstacle => {
         const room = rooms.find(r => r.id === obstacle.roomId)
         return room && <ObstacleMesh key={obstacle.id} obstacle={obstacle} room={room} walls={walls} />

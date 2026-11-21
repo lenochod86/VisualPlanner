@@ -10,12 +10,15 @@ interface UiState {
   selection: Selection
   tool: Tool
   wallOpacity: number
+  /** Je 3D pohled rozbalený v pravém panelu? */
+  show3d: boolean
   hoveredWall: WallHighlight
   /** Zvýšení čísla vyžádá "přizpůsob pohled" v 2D editoru (ten zná svou velikost). */
   fitRequest: number
   select: (selection: Selection) => void
   setTool: (tool: Tool) => void
   setWallOpacity: (value: number) => void
+  toggle3d: () => void
   setHoveredWall: (wall: WallHighlight) => void
   requestFit: () => void
 }
@@ -24,11 +27,13 @@ export const useUiStore = create<UiState>()(set => ({
   selection: null,
   tool: 'select',
   wallOpacity: 1,
+  show3d: true,
   hoveredWall: null,
   fitRequest: 0,
   select: selection => set({ selection }),
   setTool: tool => set({ tool }),
   setWallOpacity: wallOpacity => set({ wallOpacity }),
+  toggle3d: () => set(s => ({ show3d: !s.show3d })),
   setHoveredWall: hoveredWall => set({ hoveredWall }),
   requestFit: () => set(s => ({ fitRequest: s.fitRequest + 1 })),
 }))

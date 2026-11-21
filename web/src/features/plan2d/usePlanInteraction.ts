@@ -5,7 +5,7 @@ import { OBSTACLE_KINDS } from '../../domain/catalog'
 import type { Pt, Rect } from '../../domain/types'
 import { magnetEdgeCoord, magnetRoomShift } from '../../geometry/magnet'
 import { snap } from '../../geometry/math'
-import { nearestEdge } from '../../geometry/obstacles'
+import { nearestEdge, resizeAlongWall } from '../../geometry/obstacles'
 import { edgeInfo, moveEdge, translatePts } from '../../geometry/polygon'
 import { rectFromCorners } from '../../geometry/shapes'
 import { beginGesture, endGesture } from '../../store/history'
@@ -18,6 +18,7 @@ type Drag =
   | { kind: 'edge'; roomId: string; edge: number }
   | { kind: 'room'; roomId: string; last: Pt }
   | { kind: 'obstacle'; id: string }
+  | { kind: 'obstacleEnd'; id: string; end: 'start' | 'end' }
   | { kind: 'draw'; from: Pt; to: Pt }
 
 const snapPt = (p: Pt): Pt => ({ x: snap(p.x), y: snap(p.y) })
@@ -47,6 +48,11 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
   const beginObstacleDrag = (e: PointerEvent, id: string) => {
     useUiStore.getState().select({ type: 'obstacle', id })
     begin(e, { kind: 'obstacle', id })
+  }
+
+  const beginObstacleResize = (e: PointerEvent, id: string, end: 'start' | 'end') => {
+    useUiStore.getState().select({ type: 'obstacle', id })
+    begin(e, { kind: 'obstacleEnd', id, end })
   }
 
   const onBackgroundPointerDown = (e: PointerEvent) => {
@@ -98,6 +104,16 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     }
   }
 
+  function dragObstacleEnd(d: Extract<Drag, { kind: 'obstacleEnd' }>, p: Pt) {
+    const { obstacles, rooms, updateObstacle } = useProjectStore.getState()
+    const obstacle = obstacles.find(o => o.id === d.id)
+    const room = obstacle && rooms.find(r => r.id === obstacle.roomId)
+    if (!obstacle?.attach || !room) return
+    const e = edgeInfo(room.pts, obstacle.attach.edge)
+    const t = (p.x - e.a.x) * e.dir.x + (p.y - e.a.y) * e.dir.y  // poloha kurzoru podél zdi
+    updateObstacle(obstacle.id, resizeAlongWall({ ...obstacle, attach: obstacle.attach }, e.len, d.end, t))
+  }
+
   const onPointerMove = (e: PointerEvent) => {
     if (!drag) return
     if (drag.kind === 'pan') {
@@ -109,6 +125,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     if (drag.kind === 'edge') dragEdge(drag, p)
     else if (drag.kind === 'room') dragRoom(drag, p)
     else if (drag.kind === 'obstacle') dragObstacle(drag, p)
+    else if (drag.kind === 'obstacleEnd') dragObstacleEnd(drag, p)
     else setDrag({ ...drag, to: snapPt(p) })
   }
 
@@ -120,7 +137,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
 
   const drawRect: Rect | null = drag?.kind === 'draw' ? rectFromCorners(drag.from, drag.to) : null
 
-  return { drawRect, beginRoomDrag, beginEdgeDrag, beginObstacleDrag, onBackgroundPointerDown, onPointerMove, onPointerUp }
+  return { drawRect, beginRoomDrag, beginEdgeDrag, beginObstacleDrag, beginObstacleResize, onBackgroundPointerDown, onPointerMove, onPointerUp }
 }
 
 function finishDrawing(rect: Rect) {

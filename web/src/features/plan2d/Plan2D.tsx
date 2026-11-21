@@ -5,6 +5,7 @@ import { useWallModel } from '../../store/useWallModel'
 import { useUiStore } from '../../store/uiStore'
 import { EdgeLengthEditor } from './EdgeLengthEditor'
 import { GridBackground } from './GridBackground'
+import { ObstacleHandles } from './ObstacleHandles'
 import { ObstacleView } from './ObstacleView'
 import { RoomView } from './RoomView'
 import { usePlanInteraction } from './usePlanInteraction'
@@ -32,6 +33,8 @@ export function Plan2D() {
     viewport.fitTo(bbox(rooms.flatMap(r => r.pts)))
   }, [fitRequest])
 
+  const selectedObstacle = selection?.type === 'obstacle' ? obstacles.find(o => o.id === selection.id) : undefined
+  const selectedObstacleRoom = selectedObstacle && rooms.find(r => r.id === selectedObstacle.roomId)
   const editedRoom = editing && rooms.find(r => r.id === editing.roomId)
 
   return (
@@ -69,6 +72,13 @@ export function Plan2D() {
             />
           )
         })}
+
+        {selectedObstacle && selectedObstacleRoom && (
+          <ObstacleHandles
+            obstacle={selectedObstacle} room={selectedObstacleRoom} walls={walls} k={viewport.k}
+            onPointerDown={(e, end) => interaction.beginObstacleResize(e, selectedObstacle.id, end)}
+          />
+        )}
 
         {interaction.drawRect && (
           <rect {...interaction.drawRect} fill="#2f6fed22" stroke="#2f6fed" strokeWidth={2 * viewport.k}

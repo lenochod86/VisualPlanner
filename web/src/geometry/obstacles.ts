@@ -1,5 +1,6 @@
 import type { Obstacle, Pt, Room } from '../domain/types'
-import { clamp } from './math'
+import { MIN_OBSTACLE_WIDTH } from '../config'
+import { clamp, snap } from './math'
 import { edgeInfo } from './polygon'
 import type { WallModel } from './walls'
 
@@ -36,4 +37,21 @@ export function nearestEdge(pts: Pt[], p: Pt): { edge: number; dist: number; alo
     if (dist < best.dist) best = { edge: i, dist, along }
   }
   return best
+}
+
+/**
+ * Tažení za konec okna/dveří/topení podél zdi: tažený konec se posune na polohu `t` (cm od začátku stěny),
+ * druhý konec zůstane na místě. Vrací změnu šířky a středu.
+ */
+export function resizeAlongWall(
+  o: Obstacle & { attach: NonNullable<Obstacle['attach']> },
+  edgeLength: number,
+  end: 'start' | 'end',
+  t: number,
+): { w: number; attach: { edge: number; along: number } } {
+  let from = o.attach.along - o.w / 2
+  let to = o.attach.along + o.w / 2
+  if (end === 'start') from = clamp(snap(t), 0, to - MIN_OBSTACLE_WIDTH)
+  else to = clamp(snap(t), from + MIN_OBSTACLE_WIDTH, edgeLength)
+  return { w: to - from, attach: { edge: o.attach.edge, along: (from + to) / 2 } }
 }
