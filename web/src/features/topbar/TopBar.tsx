@@ -7,8 +7,8 @@ import { PrintMenu } from './PrintMenu'
 const TABS: { mode: Mode; label: string }[] = [
   { mode: 'plan', label: 'Půdorys' },
   { mode: 'equipment', label: 'Vybavení' },
-  { mode: 'decor', label: 'Dekorace' },
   { mode: 'electro', label: 'Elektro' },
+  { mode: 'decor', label: 'Dekorace' },
 ]
 
 const STATUS_LABEL: Record<SyncStatus, string> = {
