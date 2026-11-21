@@ -23,6 +23,7 @@ function Scene() {
   const cables = useProjectStore(s => s.cables)
   const selection = useUiStore(s => s.selection)
   const electroView = useUiStore(s => s.electroView)
+  const inElectroTab = useUiStore(s => s.mode === 'electro')
   const wallOpacity = useUiStore(s => s.wallOpacity)
   const furnitureOpacity = useUiStore(s => s.furnitureOpacity)
   const ceilingView = useUiStore(s => s.ceilingView)
@@ -77,6 +78,8 @@ function Scene() {
       {electroView !== 'off' && (
         <>
           {electric.map(point => {
+            // světla se ukazují jen v záložce Elektro; zásuvky, vypínače a rozvaděč jsou vidět vždy
+            if (point.kind === 'light' && !inElectroTab) return null
             const room = rooms.find(r => r.id === point.roomId)
             return room && (
               <ElectricPointMesh
@@ -86,7 +89,8 @@ function Scene() {
               />
             )
           })}
-          {cables.map(cable => {
+          {/* vedení (kabely) se ukazuje jen v záložce Elektro */}
+          {inElectroTab && cables.map(cable => {
             const polyline = cablePolyline(cable, electric, rooms)
             return polyline && (
               <CableMesh key={cable.id} cable={cable} polyline={polyline} xray={electroView === 'xray'}
