@@ -63,19 +63,19 @@ export interface PlanSvg {
   scale: number
 }
 
-const SCALES = [20, 25, 50, 75, 100, 150, 200, 250, 500]
-const MARGIN = 10          // okraj stránky (mm)
-const TITLE_HEIGHT = 22    // výška razítka (mm)
-const DIM_SPACE = 14       // místo pro vnější kóty (mm)
+const MARGIN = 8           // okraj stránky (mm)
+const TITLE_HEIGHT = 20    // výška razítka (mm)
+const DIM_SPACE = 12       // místo pro vnější kóty (mm)
+/** Měřítko se zaokrouhluje nahoru na násobky tohoto čísla (1:30, 1:35, 1:40 …). */
+const SCALE_STEP = 5
 
-/** Nejdetailnější standardní měřítko, ve kterém se rozměry (cm) vejdou do plochy (mm). */
+/**
+ * Nejdetailnější měřítko (násobek 5), ve kterém se rozměry (cm) vejdou do plochy (mm). Výkres tak vyplní
+ * stránku co nejvíc; standardní stupně (1:50, 1:100) by u většiny bytů nechaly půlku stránky prázdnou.
+ */
 export function pickScale(widthCm: number, heightCm: number, areaWidthMm: number, areaHeightMm: number): number {
-  const fits = (d: number) => (widthCm * 10) / d <= areaWidthMm && (heightCm * 10) / d <= areaHeightMm
-  const standard = SCALES.find(fits)
-  if (standard) return standard
-  // velmi velký objekt: nejbližší vyšší násobek 50
   const needed = Math.max((widthCm * 10) / areaWidthMm, (heightCm * 10) / areaHeightMm)
-  return Math.ceil(needed / 50) * 50
+  return Math.max(SCALE_STEP * 2, Math.ceil(needed / SCALE_STEP) * SCALE_STEP)
 }
 
 const escapeXml = (text: string) =>
@@ -203,14 +203,14 @@ function furnitureSvg(
     if (!room) return []
     const p = resolvePlacement(f, room, walls)
     const label = FURNITURE_KINDS[f.kind].label
-    const fits = full && Math.min(f.w, f.d) > mm(9)       // názvy jen na plné stránce a tam, kam se vejdou
+    const fits = full && Math.min(f.w, f.d) > mm(11)       // názvy jen na plné stránce a tam, kam se vejdou
     const look = full
       ? `fill="#fff" fill-opacity="0.6" stroke="#666" stroke-width="${n(mm(0.18))}"`
       : `fill="none" stroke="#aaa" stroke-width="${n(mm(0.12))}"`   // slabý obrys pro orientaci
     return [
       `<g transform="translate(${n(p.x)} ${n(p.y)}) rotate(${n((p.rot * 180) / Math.PI)})">` +
       `<rect x="${n(-f.w / 2)}" y="${n(-f.d / 2)}" width="${n(f.w)}" height="${n(f.d)}" ${look}/></g>` +
-      (fits ? `<text x="${n(p.x)}" y="${n(p.y)}" font-size="${n(mm(1.8))}" fill="#555" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text>` : ''),
+      (fits ? `<text x="${n(p.x)}" y="${n(p.y)}" font-size="${n(mm(2.4))}" fill="#555" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text>` : ''),
     ]
   }).join('\n')
 }
@@ -251,14 +251,14 @@ function labelsSvg(rooms: Room[], mm: (v: number) => number): string {
   return rooms.map(r => {
     const c = centroid(r.pts)
     return `<text x="${n(c.x)}" y="${n(c.y)}" text-anchor="middle" fill="#222">` +
-      `<tspan font-size="${n(mm(3))}" font-weight="bold">${escapeXml(r.name)}</tspan>` +
-      `<tspan x="${n(c.x)}" dy="${n(mm(3.4))}" font-size="${n(mm(2.4))}" fill="#555">${formatAreaM2(polygonArea(r.pts))}</tspan></text>`
+      `<tspan font-size="${n(mm(3.8))}" font-weight="bold">${escapeXml(r.name)}</tspan>` +
+      `<tspan x="${n(c.x)}" dy="${n(mm(4))}" font-size="${n(mm(3))}" fill="#555">${formatAreaM2(polygonArea(r.pts))}</tspan></text>`
   }).join('\n')
 }
 
 /** Světlé délky stěn (cm) uvnitř místností u každé stěny; svislé stěny mají text otočený podél zdi. */
 function edgeDimensionsSvg(rooms: Room[], s: number, mm: (v: number) => number): string {
-  const size = 2
+  const size = 2.5
   return rooms.flatMap(room => room.pts.map((_, i) => {
     const e = edgeInfo(room.pts, i)
     const label = String(Math.round(e.len))

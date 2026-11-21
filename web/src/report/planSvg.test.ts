@@ -25,12 +25,12 @@ const project = (name = 'Obývák'): Project => {
 }
 
 describe('pickScale', () => {
-  it('vybere nejdetailnější měřítko, do kterého se byt vejde', () => {
+  it('vybere nejdetailnější měřítko (násobek 5), do kterého se byt vejde', () => {
     expect(pickScale(400, 300, 250, 150)).toBe(20)       // 400 cm = 200 mm při 1:20
-    expect(pickScale(1500, 900, 250, 150)).toBe(75)      // 1:50 je 300 mm = moc
+    expect(pickScale(1500, 900, 250, 150)).toBe(60)      // přesně 250 mm na 1:60
   })
-  it('pro obrovský objekt zvolí vyšší násobek 50', () => {
-    expect(pickScale(50000, 50000, 250, 150)).toBe(3350)
+  it('pro obrovský objekt zvolí odpovídající velké měřítko', () => {
+    expect(pickScale(50000, 50000, 250, 150)).toBe(3335)
   })
 })
 
@@ -116,5 +116,13 @@ describe('otvor a dveře v tisku', () => {
       return buildPlanSvg(p, options()).svg.match(/ A90 90 0 0 (\d) /)?.[1]
     }
     expect(arc({ hinge: 'right' })).not.toBe(arc({ hinge: 'left' }))
+  })
+})
+
+describe('využití stránky', () => {
+  it('výkres vyplní stránku: v jednom rozměru zabírá aspoň 85 % použitelné plochy', () => {
+    const { svg, scale } = buildPlanSvg(project(), options())        // 4,5 × 3,5 m (+ zdi)
+    expect(scale).toBeLessThanOrEqual(25)                            // dřív 1:50, výkres byl poloviční
+    expect(svg).toContain(`Měřítko 1:${scale}`)
   })
 })
