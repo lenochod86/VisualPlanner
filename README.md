@@ -24,6 +24,7 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
         electric.ts           poloha elektro bodů, auto-trasování kabelů, délky
       src/store/              Zustand: projectStore (data), uiStore (výběr, nástroj), history (undo/redo)
       src/api/                klient REST API
+      src/report/             bilance elektra (soupis, délky kabelů) a export CSV
       src/features/
         plan2d/               2D editor: viewport, tažení, vykreslení místností/překážek
         view3d/               3D scéna (react-three-fiber)

@@ -85,3 +85,11 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .view-menu-popover { margin-top: 4px; width: 280px; padding: 8px 12px; background: #fff; border: 1px solid #d5d9df; border-radius: 8px; box-shadow: 0 4px 16px #0002; }
 .view-menu-popover small { display: block; color: #667; margin-top: 4px; }
 .view3d-panel.open .pane-title { left: 150px; }
+
+/* ---- soupis elektra ---- */
+.report-counts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; margin-bottom: 6px; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+.report-table th { text-align: left; color: #667; font-weight: 500; border-bottom: 1px solid #d5d9df; padding: 2px 4px; }
+.report-table td { padding: 2px 4px; border-bottom: 1px solid #eef0f3; }
+.report-table th:not(:first-child), .report-table td:not(:first-child) { text-align: right; white-space: nowrap; }
+.report-table .total-row td { font-weight: 600; border-bottom: none; }

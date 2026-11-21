@@ -1,3 +1,4 @@
+import { CABLE_RESERVE } from '../../config'
 import { CABLE_TYPES } from '../../domain/electricCatalog'
 import type { Cable, CableType } from '../../domain/types'
 import { cablePolyline, polylineLength } from '../../geometry/electric'
@@ -5,9 +6,6 @@ import { beginGesture, endGesture } from '../../store/history'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import { NumberInput } from './NumberField'
-
-/** Rezerva na ohyby a připojení, kterou se k délce trasy přičítá při objednávce (kabel se nakupuje s přídavkem). */
-const RESERVE = 1.1
 
 export function CableProperties({ cable }: { cable: Cable }) {
   const store = useProjectStore()
@@ -33,7 +31,7 @@ export function CableProperties({ cable }: { cable: Cable }) {
           onChange={e => store.updateCable(cable.id, { circuit: e.target.value })} />
       </label>
       <div className="total"><span>Délka trasy</span><strong>{length.toFixed(2).replace('.', ',')} m</strong></div>
-      <div className="total"><span>S rezervou 10 %</span><strong>{(length * RESERVE).toFixed(2).replace('.', ',')} m</strong></div>
+      <div className="total"><span>S rezervou 10 %</span><strong>{(length * CABLE_RESERVE).toFixed(2).replace('.', ',')} m</strong></div>
 
       <h2>Body trasy (x, y, výška v cm)</h2>
       {cable.via.length === 0 && <small>Kabel vede přímo. Tažením za „+“ na trase v půdorysu přidáte bod.</small>}

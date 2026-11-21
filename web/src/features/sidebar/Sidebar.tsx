@@ -2,6 +2,7 @@ import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import { CableProperties } from './CableProperties'
 import { ElectricProperties } from './ElectricProperties'
+import { ElectroReport } from './ElectroReport'
 import { ElectroPanel } from './ElectroPanel'
 import { FlatSummary } from './FlatSummary'
 import { FurnitureProperties } from './FurnitureProperties'
@@ -36,6 +37,7 @@ export function Sidebar() {
       {cable && <CableProperties cable={cable} />}
 
       {mode === 'plan' && <FlatSummary />}
+      {mode === 'electro' && <ElectroReport />}
 
       <small className="hint">
         Táhni stěnu = změna rozměru. Klik na číslo = zadání rozměru. Kolečko = zoom, tažení pozadí = posun.
