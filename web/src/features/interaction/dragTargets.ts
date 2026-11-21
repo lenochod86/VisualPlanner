@@ -1,5 +1,6 @@
 // Přesun věcí (překážky, nábytek, elektro body) na polohu kurzoru v půdorysných souřadnicích.
 // Sdílí ho 2D plán i 3D pohled, aby se věci chovaly stejně (snap ke zdi, přechod mezi místnostmi…).
+import { FIXED_POINT_WALL_SNAP } from '../../config'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
 import type { Placed, Pt } from '../../domain/types'
 import { dragElectricPatch } from '../../geometry/electric'
@@ -42,6 +43,8 @@ export function dragTargetTo(target: DragTarget, p: Pt) {
   }
   const room = state.rooms.find(r => r.id === item.roomId)
   const obstacle = state.obstacles.find(o => o.id === target.id)
-  const inWall = !!obstacle && OBSTACLE_KINDS[obstacle.kind].inWall
-  if (room) patchItem(target, dragObstaclePatch(room, p, inWall))
+  const spec = obstacle && OBSTACLE_KINDS[obstacle.kind]
+  // pevný bod (sloup) se přichytí, až když je jeho okraj těsně u zdi; jinde stojí volně
+  const reach = obstacle && spec?.freestanding ? obstacle.d / 2 + FIXED_POINT_WALL_SNAP : undefined
+  if (room) patchItem(target, dragObstaclePatch(room, p, !!spec?.inWall, reach))
 }

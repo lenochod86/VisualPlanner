@@ -5,6 +5,7 @@ export const MIN_EDGE = 30               // nejkratší povolená stěna
 export const MIN_DRAWN_ROOM = 60         // nejmenší místnost, která se vytvoří nakreslením
 export const MAGNET_DISTANCE = 12        // do jaké vzdálenosti se stěny přitahují k sousedním místnostem
 export const OBSTACLE_WALL_SNAP = 30     // do jaké vzdálenosti od stěny se překážka k ní přichytí
+export const FIXED_POINT_WALL_SNAP = 5      // pevný bod (sloup) se přichytí ke zdi, až když je jeho okraj blíž než tolik cm
 
 export const DEFAULT_WALL_THICKNESS = 10
 export const MIN_WALL = 2                // nejtenčí / nejtlustší zeď, kterou lze zadat

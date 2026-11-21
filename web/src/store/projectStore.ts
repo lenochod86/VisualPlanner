@@ -186,7 +186,10 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   addObstacle: (kind, roomId) => {
     const room = get().rooms.find(r => r.id === roomId)
     if (!room) return null
-    const obstacle: Obstacle = { id: newId(), kind, ...newPlaced(room, OBSTACLE_KINDS[kind]) }
+    const spec = OBSTACLE_KINDS[kind]
+    // pevný bod (sloup) se přidá volně doprostřed místnosti, ostatní prvky ke zdi
+    const placed = spec.freestanding ? { ...newPlaced(room, spec), attach: undefined } : newPlaced(room, spec)
+    const obstacle: Obstacle = { id: newId(), kind, ...placed }
     set(s => ({ obstacles: [...s.obstacles, obstacle] }))
     return obstacle.id
   },

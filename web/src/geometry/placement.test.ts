@@ -2,7 +2,7 @@ import { DEFAULT_CEILING } from '../domain/materials'
 import { describe, expect, it } from 'vitest'
 import type { Placed, Room } from '../domain/types'
 import {
-  dragFurniturePatch, resizeAlongWall, resolvePlacement, rotatedPatch, roomAt,
+  dragFurniturePatch, dragObstaclePatch, resizeAlongWall, resolvePlacement, rotatedPatch, roomAt,
 } from './placement'
 import { dragElectricPatch } from './electric'
 import { shapePts } from './shapes'
@@ -110,5 +110,24 @@ describe('roomAt: vnořené místnosti', () => {
     const patch = dragElectricPatch(point, [big, nook], { x: 190, y: 150 })   // těsně u pravé stěny kouta (x = 200)
     expect(patch.roomId).toBe('nook')
     expect(patch.attach?.edge).toBe(1)                                        // pravá stěna kouta
+  })
+})
+
+describe('dragObstaclePatch: pevný bod stojí volně', () => {
+  const room = A
+  const reachFor = (d: number) => d / 2 + 5                       // jako v dragTargets: půl hloubky + 5 cm
+
+  it('s výchozím dosahem se prvek přichytí už z 30 cm od zdi', () => {
+    expect(dragObstaclePatch(room, { x: 200, y: 25 }, false).attach).toBeDefined()
+  })
+
+  it('sloup o průměru 30 cm se přichytí, až když je jeho okraj do 5 cm od zdi', () => {
+    expect(dragObstaclePatch(room, { x: 200, y: 25 }, false, reachFor(30)).attach).toBeUndefined()    // okraj 10 cm od zdi: volně
+    expect(dragObstaclePatch(room, { x: 200, y: 25 }, false, reachFor(30)).y).toBe(25)
+    expect(dragObstaclePatch(room, { x: 200, y: 18 }, false, reachFor(30)).attach).toBeDefined()      // okraj 3 cm od zdi: přichytí se
+  })
+
+  it('okna a dveře jsou vždy na zdi bez ohledu na dosah', () => {
+    expect(dragObstaclePatch(room, { x: 200, y: 150 }, true, 1).attach).toBeDefined()
   })
 })

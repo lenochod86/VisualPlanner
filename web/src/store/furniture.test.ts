@@ -79,6 +79,7 @@ describe('digestoř a pevné body', () => {
     const round = state().addObstacle('fixed-round', room)!
     const rect = state().addObstacle('fixed-rect', room)!
     expect(state().obstacles.find(o => o.id === round)).toMatchObject({ kind: 'fixed-round', w: 30, d: 30, h: 260 })
+    expect(state().obstacles.find(o => o.id === round)!.attach).toBeUndefined()    // volně uprostřed místnosti, ne u zdi
     expect(state().obstacles.find(o => o.id === rect)).toMatchObject({ kind: 'fixed-rect', w: 40, d: 30, h: 260 })
   })
 })

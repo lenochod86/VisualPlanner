@@ -89,10 +89,14 @@ export function roomAt(rooms: Room[], p: Pt): Room | undefined {
   return best
 }
 
-/** Změna překážky při tažení kurzorem: okna/dveře jsou vždy na zdi, ostatní se ke zdi přichytí z blízka. */
-export function dragObstaclePatch(room: Room, cursor: Pt, inWall: boolean): Partial<Placed> {
+/**
+ * Změna překážky při tažení kurzorem: okna/dveře jsou vždy na zdi, ostatní se ke zdi přichytí z blízka.
+ * `reach` je největší vzdálenost kurzoru (středu) od zdi, při které se prvek přichytí; výchozí OBSTACLE_WALL_SNAP.
+ * Pevné body (sloupy) mají `reach` těsný, aby mohly stát volně v prostoru (viz dragTargets).
+ */
+export function dragObstaclePatch(room: Room, cursor: Pt, inWall: boolean, reach = OBSTACLE_WALL_SNAP): Partial<Placed> {
   const near = nearestEdge(room.pts, cursor)
-  if (inWall || near.dist < OBSTACLE_WALL_SNAP) {
+  if (inWall || near.dist < reach) {
     return { attach: { edge: near.edge, along: snap(near.along) } }
   }
   return { attach: undefined, x: snap(cursor.x), y: snap(cursor.y) }
