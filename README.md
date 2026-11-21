@@ -13,7 +13,7 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
 
     web/                      frontend (Vite + React + TypeScript)
       src/config.ts           ladicí konstanty (mřížka, magnet, minima)
-      src/domain/             datový model (types), katalogy (místnosti, překážky, nábytek), výchozí projekt + validace
+      src/domain/             datový model (types), katalogy (místnosti, překážky, nábytek, dekorace), povrchy (finishes), výchozí projekt + validace
       src/geometry/           čistá geometrie bez Reactu a bez stavu (+ testy)
         polygon.ts            plocha, těžiště, stěny, změna délky/pozice stěny
         magnet.ts             přichytávání místností k sousedům (sdílená zeď)
@@ -23,13 +23,15 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
         ceiling.ts            výška podhledu, rastr profilů SDK
         electric.ts           poloha elektro bodů, auto-trasování kabelů, délky
         collisions.ts         kontrola nábytku: přesah do zdi, překrytí, výška, dveře
+        doors.ts              otevírání dveří (závěs, směr, oblouk)
+        distances.ts          vzdálenosti elektro bodů od zdí a okolí
       src/store/              Zustand: projectStore (data), uiStore (výběr, nástroj), history (undo/redo)
       src/api/                klient REST API
       src/report/             bilance elektra (soupis, export CSV) a tisk: stránky Půdorys / Vybavení / Elektro (SVG v měřítku, tisk/PDF)
       src/features/
         plan2d/               2D editor: viewport, tažení, vykreslení místností/překážek
         view3d/               3D scéna (react-three-fiber)
-        topbar/               horní lišta: záložky Půdorys / Vybavení / Elektro, zpět/znovu, export/import
+        topbar/               horní lišta: záložky Půdorys / Vybavení / Elektro / Dekorace, zpět/znovu, export/import
         sidebar/              levý panel: nástroje podle záložky a vlastnosti vybraného
         interaction/          sdílená logika přesouvání věcí (2D i 3D)
         persistence/          načtení + automatické ukládání na server
@@ -48,3 +50,10 @@ Závislosti míří jedním směrem: `features → store → geometry/domain`; `
 4. [x] Nábytek: katalog (WC volné i Geberit, sprcha, vana, umyvadlo, TV, stůl, židle, linka, gauč, postele, skříň), snap ke zdi, otáčení, přesun mezi místnostmi
 5. [x] Otvory ve zdech pro okna a dveře, materiály zdí, stropy (omítnutý, SDK podhled s rastrem profilů, průhledný režim)
 6. [x] Elektro: zásuvky, vypínače, světla, rozvaděč; kabely s typem a okruhem, auto-trasování (editovatelné), zobrazení skrz zdi/strop/nábytek
+7. [x] Nábytek a spotřebiče: pračka, sušička, lednice, digestoř; volné otáčení, kolize, tisk po stránkách (Půdorys / Vybavení / Elektro)
+8. [x] Stavební prvky: stoupačka, topení, okno, dveře (závěs, směr otevírání), otvor, pevné body (kruh, obdélník) s volitelným přichycením ke zdi
+9. [x] Dekorace: police, regál, květiny; barva a materiál podlahy, barva a materiál každé stěny, obklad do zvolené výšky (např. koupelna, WC)
+
+## Záložky
+Každá záložka upravuje jen svou vrstvu (v 2D, 3D, panelu i klávesnicí), ostatní jsou průsvitné a nereagují na myš:
+**Půdorys** (místnosti, stavební prvky), **Vybavení** (nábytek), **Elektro** (body a kabely), **Dekorace** (police, květiny, povrchy místností).
