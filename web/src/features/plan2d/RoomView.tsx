@@ -1,10 +1,9 @@
 import type { PointerEvent } from 'react'
 import { ROOM_TYPES } from '../../domain/catalog'
 import type { Pt, Room } from '../../domain/types'
-import { formatAreaM2 } from '../../format'
-import { centroid, edgeInfo, polygonArea } from '../../geometry/polygon'
+import { edgeInfo } from '../../geometry/polygon'
 import { wallQuad } from '../../geometry/walls'
-import { DimensionLabel } from './DimensionLabel'
+import { EdgeHandle } from './DimensionLabel'
 
 interface Props {
   room: Room
@@ -17,14 +16,12 @@ interface Props {
   k: number
   onBodyPointerDown: (e: PointerEvent) => void
   onEdgePointerDown: (e: PointerEvent, edge: number) => void
-  onEditDimension: (edge: number) => void
 }
 
 const ring = (pts: Pt[]) => `M${pts.map(p => `${p.x} ${p.y}`).join('L')}Z`
 
-export function RoomView({ room, thicknesses, visibleEdges, selected, highlightedEdge, k, onBodyPointerDown, onEdgePointerDown, onEditDimension }: Props) {
+export function RoomView({ room, thicknesses, visibleEdges, selected, highlightedEdge, k, onBodyPointerDown, onEdgePointerDown }: Props) {
   const points = room.pts.map(p => `${p.x},${p.y}`).join(' ')
-  const label = centroid(room.pts)
   // zeď každé viditelné stěny = čtyřúhelník mezi vnitřním a vnějším lícem (rohy v pokosu)
   const walls = room.pts.map((_, i) => (visibleEdges[i] ? ring(wallQuad(room.pts, thicknesses, visibleEdges, i)) : '')).join('')
   const highlighted = highlightedEdge === null ? null : edgeInfo(room.pts, highlightedEdge)
@@ -45,17 +42,9 @@ export function RoomView({ room, thicknesses, visibleEdges, selected, highlighte
           stroke="#ff9800" strokeWidth={5 * k} pointerEvents="none" />
       )}
 
-      <text x={label.x} y={label.y} textAnchor="middle" pointerEvents="none" fill="#333">
-        <tspan fontSize={15 * k} fontWeight={600}>{room.name}</tspan>
-        <tspan x={label.x} dy={16 * k} fontSize={12 * k} fill="#666">{formatAreaM2(polygonArea(room.pts))}</tspan>
-      </text>
-
+      {/* názvy a kóty jsou ve vrstvě RoomLabels nad nábytkem; tady zůstávají jen úchyty pro tažení stěn */}
       {room.pts.map((_, i) => (
-        <DimensionLabel
-          key={i} pts={room.pts} edge={i} k={k}
-          onDragStart={e => onEdgePointerDown(e, i)}
-          onEdit={() => onEditDimension(i)}
-        />
+        <EdgeHandle key={i} pts={room.pts} edge={i} k={k} onDragStart={e => onEdgePointerDown(e, i)} />
       ))}
     </g>
   )

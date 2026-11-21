@@ -14,6 +14,7 @@ import { FurnitureView } from './FurnitureView'
 import { GridBackground } from './GridBackground'
 import { ItemHandles } from './ItemHandles'
 import { ObstacleView } from './ObstacleView'
+import { RoomLabels } from './RoomLabels'
 import { RoomView } from './RoomView'
 import { usePlanInteraction } from './usePlanInteraction'
 import { useViewport } from './useViewport'
@@ -76,7 +77,6 @@ export function Plan2D() {
             selected={selection?.type === 'room' && selection.id === room.id}
             onBodyPointerDown={e => interaction.beginRoomDrag(e, room.id)}
             onEdgePointerDown={(e, edge) => interaction.beginEdgeDrag(e, room.id, edge)}
-            onEditDimension={edge => setEditing({ roomId: room.id, edge })}
           />
         ))}
 
@@ -131,6 +131,11 @@ export function Plan2D() {
             />
           )
         })}
+
+        {/* názvy a kóty místností nahoře, nad nábytkem, překážkami i elektrem */}
+        {rooms.map(room => (
+          <RoomLabels key={room.id} room={room} k={viewport.k} onEditDimension={edge => setEditing({ roomId: room.id, edge })} />
+        ))}
 
         {handleItem && handleRoom && (
           <ItemHandles
