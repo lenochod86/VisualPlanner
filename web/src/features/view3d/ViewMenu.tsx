@@ -12,14 +12,25 @@ function OpacitySlider({ label, value, onChange }: { label: string; value: numbe
   )
 }
 
-/** Nastavení 3D zobrazení (průhlednost zdí a nábytku, strop, elektro) jako vyskakovací nabídka v hlavičce 3D panelu. */
+/**
+ * Ovládání 3D zobrazení v hlavičce 3D panelu: rychlý přepínač průhledných předních stěn a nabídka Zobrazení
+ * (průhlednost zdí a nábytku, strop, elektro).
+ */
 export function ViewMenu() {
   const [open, setOpen] = useState(false)
   const ui = useUiStore()
 
   return (
     <div className="view-menu">
-      <button onClick={() => setOpen(!open)} className={open ? 'active' : ''}>⚙ Zobrazení</button>
+      <div className="view-menu-bar">
+        <button onClick={() => setOpen(!open)} className={open ? 'active' : ''}>⚙ Zobrazení</button>
+        <button
+          onClick={ui.toggleGhostFrontWalls} className={ui.ghostFrontWalls ? 'active' : ''}
+          title="Stěny, které hledí na kameru, jsou průhledné, aby šlo vidět dovnitř"
+        >
+          ◧ Přední stěny průhledné
+        </button>
+      </div>
       {open && (
         <div className="view-menu-popover">
           <OpacitySlider label="Zdi" value={ui.wallOpacity} onChange={ui.setWallOpacity} />

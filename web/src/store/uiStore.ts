@@ -18,6 +18,8 @@ interface UiState {
   tool: Tool
   mode: Mode
   wallOpacity: number
+  /** Ve 3D zprůhlednit "přední" stěny (ty, které hledí na kameru), aby šlo dovnitř. */
+  ghostFrontWalls: boolean
   furnitureOpacity: number
   ceilingView: CeilingView
   electroView: ElectroView
@@ -37,6 +39,7 @@ interface UiState {
   /** Přepne záložku; rozpracovaný nástroj (kreslení místnosti, kabelu) se ukončí. */
   setMode: (mode: Mode) => void
   setWallOpacity: (value: number) => void
+  toggleGhostFrontWalls: () => void
   setFurnitureOpacity: (value: number) => void
   setCeilingView: (view: CeilingView) => void
   setElectroView: (view: ElectroView) => void
@@ -53,6 +56,7 @@ export const useUiStore = create<UiState>()(set => ({
   tool: 'select',
   mode: 'plan',
   wallOpacity: 1,
+  ghostFrontWalls: true,
   furnitureOpacity: 1,
   ceilingView: 'off',
   electroView: 'on',
@@ -66,6 +70,7 @@ export const useUiStore = create<UiState>()(set => ({
   setTool: tool => set({ tool }),
   setMode: mode => set({ mode, tool: 'select', cableStart: null }),
   setWallOpacity: wallOpacity => set({ wallOpacity }),
+  toggleGhostFrontWalls: () => set(s => ({ ghostFrontWalls: !s.ghostFrontWalls })),
   setFurnitureOpacity: furnitureOpacity => set({ furnitureOpacity }),
   setCeilingView: ceilingView => set({ ceilingView }),
   setElectroView: electroView => set({ electroView }),

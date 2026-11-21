@@ -6,7 +6,7 @@ import { buildOpenings } from '../../geometry/openings'
 import { containsPoint } from '../../geometry/polygon'
 import { shapePts } from '../../geometry/shapes'
 import { buildWallModel } from '../../geometry/walls'
-import { buildWallPieces, wallBands } from './wallGeometry'
+import { buildWallPieces, wallBands, wallFacesCamera } from './wallGeometry'
 
 const room = (id: string, x: number): Room => ({
   id, name: id, type: 'other', pts: shapePts('rect', x, 0, 400, 300), walls: [10, 10, 10, 10], height: 260,
@@ -101,5 +101,21 @@ describe('otvory ve zdech', () => {
 
   it('bez otvorů je zeď jeden pás přes celou výšku', () => {
     expect(wallBands(topWall, 260, []).map(b => [b.z0, b.z1])).toEqual([[0, 260]])
+  })
+})
+
+describe('wallFacesCamera: přední stěny', () => {
+  const wall = { outward: { x: 0, y: -1 }, center: { x: 200, y: 0 } }         // horní stěna, vnější strana míří nahoru (y < 0)
+
+  it('stěna hledí na kameru, když je kamera na její vnější straně', () => {
+    expect(wallFacesCamera(wall.outward, wall.center, { x: 200, y: -800 })).toBe(true)
+  })
+
+  it('stěna na protější straně (kamera uvnitř / za ní) není přední', () => {
+    expect(wallFacesCamera(wall.outward, wall.center, { x: 200, y: 800 })).toBe(false)
+  })
+
+  it('stěna kolmá na pohled (kamera naboku) není přední', () => {
+    expect(wallFacesCamera(wall.outward, wall.center, { x: 900, y: 0 })).toBe(false)
   })
 })

@@ -97,7 +97,27 @@ export function wallBands(footprint: MultiPolygon, height: number, openings: Ope
   return bands
 }
 
-export interface WallSolid { roomId: string; edge: number; geometry: THREE.BufferGeometry }
+export interface WallSolid {
+  roomId: string
+  edge: number
+  geometry: THREE.BufferGeometry
+  /** Jednotková normála vnější strany stěny (půdorysné souřadnice) a střed stěny: podle nich se pozná, že stěna hledí na kameru. */
+  outward: Pt
+  center: Pt
+}
+
+/** Od jakého cosinu úhlu (normála stěny × směr ke kameře) se stěna pokládá za přední (hledí na kameru). */
+const FRONT_COSINE = 0.1
+
+/**
+ * Hledí stěna na kameru, tj. je to "přední" stěna, přes kterou se kouká dovnitř? Platí, když vnější strana
+ * stěny míří ke kameře. `camera` jsou půdorysné souřadnice kamery (x, z = y).
+ */
+export function wallFacesCamera(outward: Pt, center: Pt, camera: Pt): boolean {
+  const dx = camera.x - center.x, dy = camera.y - center.y
+  const length = Math.hypot(dx, dy)
+  return length > 0 && (outward.x * dx + outward.y * dy) / length > FRONT_COSINE
+}
 
 const toVectors = (ring: Ring) => {
   const points = ring.map(([x, y]) => new THREE.Vector2(x, y))
@@ -129,10 +149,15 @@ export function extrudeFootprint(footprint: MultiPolygon, z0: number, z1: number
 /** Tělesa zdí; každé patří jedné stěně jedné místnosti. */
 export function buildWallSolids(rooms: Room[], walls: WallModel, openings: Opening[]): WallSolid[] {
   return buildWallPieces(rooms, walls).flatMap(piece => {
-    const height = rooms.find(r => r.id === piece.roomId)?.height ?? 0
+    const room = rooms.find(r => r.id === piece.roomId)
+    const height = room?.height ?? 0
+    const e = room ? edgeInfo(room.pts, piece.edge) : null
+    const outward = e ? e.outward : { x: 0, y: 0 }
+    const center = e ? { x: (e.a.x + e.b.x) / 2, y: (e.a.y + e.b.y) / 2 } : { x: 0, y: 0 }
     // otvor řeže zeď bez ohledu na to, které místnosti patří
     return wallBands(piece.footprint, height, openings).map(band => ({
-      roomId: piece.roomId, edge: piece.edge, geometry: extrudeFootprint(band.footprint, band.z0, band.z1),
+      roomId: piece.roomId, edge: piece.edge, outward, center,
+      geometry: extrudeFootprint(band.footprint, band.z0, band.z1),
     }))
   })
 }
