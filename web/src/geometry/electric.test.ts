@@ -156,11 +156,12 @@ describe('planAutoConnections: primárně k rozvaděči', () => {
     expect(plan.find(c => c.type === 'cyky-3x1.5')!.circuit).toBe('Světla')
   })
 
-  it('rozvaděč se kvůli napojení nepřepisuje: jeho existující kabely zůstanou', () => {
+  it('už hotové kabely zůstanou a nový bod se napojí na rozvaděč, ne na hotový bod (třeba okruh sporáku)', () => {
     const existing: Cable = { id: 'x', type: 'cyky-3x2.5', circuit: 'Kuchyň', fromId: 'rozv', toId: 's1', via: [] }
     const electric = [board, at('s1', 'socket', 60, 100), at('s2', 'socket', 120, 100)]
     const plan = planAutoConnections({ rooms: [A], electric, cables: [existing] })
-    expect(plan).toEqual([{ fromId: 's1', toId: 's2', type: 'cyky-3x2.5', circuit: 'Kuchyň' }])   // s2 je blíž k s1 než k rozvaděči
+    // s2 je blíž k s1, ale s1 už je hotový okruh "Kuchyň": nový bod jde z rozvaděče a má vlastní okruh
+    expect(plan).toEqual([{ fromId: 'rozv', toId: 's2', type: 'cyky-3x2.5', circuit: 'Zásuvky' }])
   })
 })
 

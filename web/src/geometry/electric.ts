@@ -130,8 +130,9 @@ const OTHER_ROOM_PENALTY = 1000
  * Navrhne kabely pro body, které zatím žádný kabel nemají (hotové kabely se nemění):
  *  - **vypínače** na rozvaděč (každý přímo; bez rozvaděče se řetězí mezi sebou),
  *  - **světla** na nejbližší vypínač (každé přímo a okruh přebírá od vypínače; bez vypínačů viz zásuvky),
- *  - **zásuvky** primárně k rozvaděči: ten je kořenem sítě, nejbližší zásuvka se připojí k němu a další se
- *    řetězí na nejbližší už napojený bod (zásuvka). Bez rozvaděče se začne od první zásuvky.
+ *  - **zásuvky** vždy primárně k rozvaděči: ten je kořenem sítě, nejbližší zásuvka se připojí k němu a další se
+ *    řetězí na nejbližší nově napojenou zásuvku (ne na zásuvky, které už mají kabel, např. okruh sporáku).
+ *    Bez rozvaděče se napojuje na hotové zásuvky, případně se začne od první.
  * Každý kabel vedoucí přímo z rozvaděče začíná nový okruh; ostatní převezmou okruh bodu, na který se napojují.
  * Napojuje se přednostně v rámci téže místnosti.
  */
@@ -158,7 +159,6 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
     return name
   }
   const hasCable = (p: ElectricPoint) => cables.some(c => c.fromId === p.id || c.toId === p.id)
-  const isConnected = (p: ElectricPoint) => hasCable(p) || planned.some(c => c.fromId === p.id || c.toId === p.id)
 
   const boards = electric.filter(p => p.kind === 'board')
   const switches = electric.filter(p => p.kind === 'switch')
@@ -175,7 +175,9 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
     else if (group.role === 'light' && switches.length > 0) { targets = switches; chain = false }
     else { targets = boards; chain = true }
 
-    const network = [...targets, ...(chain ? points.filter(isConnected) : [])]
+    // Rozvaděč má přednost: když existuje, síť začíná jen jím a nové body se k němu řetězí. Už hotové kabely
+    // (třeba okruh sporáku) se nepoužijí jako místo, kam se napojuje. Bez rozvaděče se napojuje na hotové body skupiny.
+    const network = [...targets, ...(chain && targets.length === 0 ? points.filter(hasCable) : [])]
     if (network.length === 0) {                           // není na co napojit: začneme prvním bodem skupiny
       if (!chain || pending.length < 2) continue
       network.push(pending.shift()!)
