@@ -86,6 +86,7 @@ export type FurnitureKind =
   | 'wc-free' | 'wc-wall' | 'shower' | 'bathtub' | 'sink'
   | 'washer' | 'dryer' | 'fridge' | 'hood'
   | 'shelf' | 'bookcase' | 'plant-small' | 'plant-large'
+  | 'floor-lamp' | 'table-lamp'
 export interface Furniture extends Placed {
   kind: FurnitureKind
   /** Přichytává se tažení ke zdi? Výchozí ano. */

@@ -43,11 +43,14 @@ export function FurnitureMesh({ furniture: f, room, walls, opacity, selected, is
             rotation={part.shape === 'cylz' ? [Math.PI / 2, 0, 0] : [0, 0, 0]}
             scale={part.shape === 'cylz' ? [size[0], size[2], size[1]] : size}
           >
-            {part.shape === 'box' ? <boxGeometry args={[1, 1, 1]} /> : <cylinderGeometry args={[0.5, 0.5, 1, 24]} />}
+            {part.shape === 'box' ? <boxGeometry args={[1, 1, 1]} />
+              : part.shape === 'sphere' ? <sphereGeometry args={[0.5, 16, 12]} />
+              : <cylinderGeometry args={[0.5 * (part.taper ?? 1), 0.5, 1, 24]} />}
             {/* key: three.js přepnutí `transparent` za běhu bez překompilování shaderu nepromítne (alfa zůstane 1), proto nový materiál */}
             <meshStandardMaterial
               key={partOpacity < 1 ? 'transparent' : 'opaque'}
-              color={part.color} transparent={partOpacity < 1} opacity={partOpacity} depthWrite={partOpacity >= 1} />
+              color={part.color} emissive={part.glow ? part.color : '#000000'} emissiveIntensity={part.glow ? 0.55 : 0}
+              transparent={partOpacity < 1} opacity={partOpacity} depthWrite={partOpacity >= 1} />
           </mesh>
         )
       })}

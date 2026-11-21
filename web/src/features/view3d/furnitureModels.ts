@@ -6,17 +6,23 @@ import type { FurnitureKind } from '../../domain/types'
 type Range = [number, number]
 
 export interface ModelPart {
-  /** Válec: 'cyl' stojí svisle (průměr určuje x a z), 'cylz' leží podélně od zdi do místnosti (průměr určuje x a y; kulaté okénko pračky). */
-  shape: 'box' | 'cyl' | 'cylz'
+  /** Válec: 'cyl' stojí svisle (průměr určuje x a z), 'cylz' leží podélně od zdi do místnosti (průměr určuje x a y; kulaté okénko pračky), 'sphere' je koule / elipsoid vepsaný do rozsahů. */
+  shape: 'box' | 'cyl' | 'cylz' | 'sphere'
   x: Range
   y: Range
   z: Range
   color: string
   opacity?: number
+  /** Válec zúžený nahoru: poloměr horní podstavy jako zlomek dolní (kužel lampy). */
+  taper?: number
+  /** Svítí (lampa): barva se přidá i jako vlastní záře. */
+  glow?: boolean
 }
 
 const box = (x: Range, y: Range, z: Range, color: string, opacity?: number): ModelPart => ({ shape: 'box', x, y, z, color, opacity })
 const cyl = (x: Range, y: Range, z: Range, color: string): ModelPart => ({ shape: 'cyl', x, y, z, color })
+const sphere = (x: Range, y: Range, z: Range, color: string): ModelPart => ({ shape: 'sphere', x, y, z, color })
+const cone = (x: Range, y: Range, z: Range, color: string, taper: number, glow = false): ModelPart => ({ shape: 'cyl', x, y, z, color, taper, glow })
 const cylZ = (x: Range, y: Range, z: Range, color: string): ModelPart => ({ shape: 'cylz', x, y, z, color })
 
 /** Čtyři nohy v rozích: `x`/`z` jsou rozsahy levé zadní nohy, ostatní jsou zrcadlově. */
@@ -24,9 +30,67 @@ const legs = (x: Range, z: Range, y: Range, color: string): ModelPart[] =>
   [x, [1 - x[1], 1 - x[0]] as Range].flatMap(xs =>
     [z, [1 - z[1], 1 - z[0]] as Range].map(zs => box(xs, y, zs, color)))
 
+
+/** Rozsah o středu `c` a poloviční velikosti `r`, ořezaný na 0-1 (list nesmí přesáhnout rozměr kusu). */
+const around = (c: number, r: number): Range => [Math.max(0, c - r), Math.min(1, c + r)]
+
+/**
+ * Pokojová rostlina: květináč s okrajem a zeminou, několik stonků a kolem nich věnec listů (zploštělé elipsoidy)
+ * ve čtyřech odstínech zelené. Listy se rozmístí deterministicky (zlatý úhel), takže model vypadá pokaždé stejně.
+ */
+function houseplant(opts: { pot: string; potTop: number; leaves: number; leafSize: number; crownBottom: number; aspect: number }): ModelPart[] {
+  const { pot, potTop, leaves, leafSize, crownBottom, aspect } = opts
+  // zlomky výšky jsou vůči šířce natažené (`aspect` = šířka / výška kusu): list je tak vysoký jen asi poloviny své šířky
+  const leafY = leafSize * 0.5 * aspect
+  const parts: ModelPart[] = [
+    cyl([0.22, 0.78], [0, potTop * 0.85], [0.22, 0.78], pot),                    // tělo květináče
+    cyl([0.18, 0.82], [potTop * 0.85, potTop], [0.18, 0.82], pot),               // okraj
+    cyl([0.23, 0.77], [potTop * 0.96, potTop * 1.02], [0.23, 0.77], '#4a3626'),  // zemina
+  ]
+  const greens = ['#2f7a3e', '#3f9250', '#4fa85a', '#68bb6c']
+  // stonky z květináče do koruny
+  for (let i = 0; i < 5; i++) {
+    const a = i * 2.4, r = 0.1 + (i % 2) * 0.05
+    const cx = 0.5 + Math.cos(a) * r, cz = 0.5 + Math.sin(a) * r
+    parts.push(cyl(around(cx, 0.012), [potTop, crownBottom + 0.12 + (i % 3) * 0.08], around(cz, 0.012), '#5d7f3f'))
+  }
+  // listy: s výškou se věnec zužuje
+  for (let i = 0; i < leaves; i++) {
+    const t = i / (leaves - 1)
+    const a = i * 2.39996                                                     // zlatý úhel
+    const radius = 0.38 * (1 - t * 0.75)
+    const cx = 0.5 + Math.cos(a) * radius, cz = 0.5 + Math.sin(a) * radius
+    const cy = crownBottom + t * (0.93 - crownBottom)
+    const size = leafSize * (1 - t * 0.3)
+    parts.push(sphere(around(cx, size), around(cy, leafY), around(cz, size), greens[i % greens.length]))
+  }
+  parts.push(sphere(around(0.5, leafSize * 0.8), around(0.93, leafY), around(0.5, leafSize * 0.8), greens[3]))   // vršek
+  return parts
+}
+
+/** Police na zdi: deska, čelo, konzoly pod deskou a drobnosti navrchu. */
+function shelf(): ModelPart[] {
+  const wood = '#c9a883', dark = '#a98763'
+  return [
+    box([0, 1], [0.1, 0.17], [0, 1], wood),                       // deska
+    box([0, 1], [0.1, 0.17], [0.94, 1], dark),                    // čelo
+    box([0.1, 0.14], [0, 0.1], [0, 0.85], '#8d8f93'),             // levá konzola
+    box([0.86, 0.9], [0, 0.1], [0, 0.85], '#8d8f93'),             // pravá konzola
+    box([0.06, 0.2], [0.17, 0.78], [0.2, 0.7], '#b5513f'),        // knihy
+    box([0.2, 0.26], [0.17, 0.7], [0.2, 0.7], '#3f6fb5'),
+    box([0.26, 0.33], [0.17, 0.85], [0.2, 0.7], '#d9b64a'),
+    cyl([0.55, 0.7], [0.17, 0.45], [0.3, 0.65], '#e8e4da'),       // váza
+    cyl([0.615, 0.625], [0.45, 0.95], [0.46, 0.5], '#5d7f3f'),    // větvička
+    sphere([0.58, 0.67], [0.8, 0.95], [0.4, 0.58], '#4fa85a'),
+    cyl([0.82, 0.92], [0.17, 0.4], [0.35, 0.65], '#d9d4c7'),      // svíčka
+    cone([0.855, 0.885], [0.4, 0.5], [0.47, 0.53], '#f2b84a', 0.2, true),
+  ]
+}
+
 /** Regál: zadní stěna, dva boky, police a řada knih na každé polici. */
 function bookcase(): ModelPart[] {
   const parts: ModelPart[] = [
+    box([0, 1], [0, 0.03], [0, 1], '#8a6f4f'),                       // sokl
     box([0, 1], [0, 1], [0, 0.05], '#a98763'),                       // záda
     box([0, 0.04], [0, 1], [0, 1], '#c9a883'),                        // levý bok
     box([0.96, 1], [0, 1], [0, 1], '#c9a883'),                        // pravý bok
@@ -155,28 +219,34 @@ export const FURNITURE_MODELS: Record<FurnitureKind, ModelPart[]> = {
     box([0.3, 0.7], [0.2, 1], [0, 0.55], '#b4bac0'),               // komín
   ],
 
-  // nástěnná police s dřevěným čelem
-  shelf: [
-    box([0, 1], [0, 1], [0, 1], '#c9a883'),
-    box([0, 1], [0, 1], [0.94, 1.003], '#a98763'),                  // čelo police
-  ],
+  // nástěnná police: deska s čelem, dvě konzoly a drobnosti navrchu (knihy, váza s větvičkou, svíčka)
+  shelf: shelf(),
 
   // regál: zadní stěna, boky, police a barevné knihy
   bookcase: bookcase(),
 
-  // květina v květináči: terakotový květináč a dvě vrstvy listů
-  'plant-small': [
-    cyl([0.2, 0.8], [0, 0.32], [0.2, 0.8], '#b5654a'),
-    cyl([0.05, 0.95], [0.32, 0.6], [0.05, 0.95], '#3f8f4a'),
-    cyl([0.2, 0.8], [0.6, 1], [0.2, 0.8], '#4fa85a'),
+  // květina: menší květináč, nízká hustá koruna
+  'plant-small': houseplant({ pot: '#b5654a', potTop: 0.3, leaves: 16, leafSize: 0.2, crownBottom: 0.38, aspect: 25 / 60 }),
+
+  // velká rostlina: nižší šedý květináč a vyšší koruna s větším počtem listů
+  'plant-large': houseplant({ pot: '#8a8f94', potTop: 0.2, leaves: 40, leafSize: 0.2, crownBottom: 0.3, aspect: 45 / 160 }),
+
+  // stojací lampa: kruhová podstava, tenká noha s mosazným prstencem a látkové stínidlo se světlem uvnitř
+  'floor-lamp': [
+    cyl([0.1, 0.9], [0, 0.012], [0.1, 0.9], '#3a3d42'),
+    cyl([0.46, 0.54], [0.012, 0.78], [0.46, 0.54], '#3a3d42'),
+    cyl([0.44, 0.56], [0.4, 0.42], [0.44, 0.56], '#b8964a'),
+    cyl([0.3, 0.7], [0.76, 0.79], [0.3, 0.7], '#b8964a'),
+    cone([0.05, 0.95], [0.78, 0.97], [0.05, 0.95], '#f1e4bd', 0.62, true),
+    cyl([0.46, 0.54], [0.97, 0.985], [0.46, 0.54], '#b8964a'),
   ],
 
-  // velká rostlina: nízký květináč, kmen a tři vrstvy koruny
-  'plant-large': [
-    cyl([0.25, 0.75], [0, 0.14], [0.25, 0.75], '#8a8f94'),
-    cyl([0.44, 0.56], [0.14, 0.55], [0.44, 0.56], '#7a5a3a'),
-    cyl([0.05, 0.95], [0.45, 0.72], [0.05, 0.95], '#3a7f44'),
-    cyl([0.15, 0.85], [0.72, 0.9], [0.15, 0.85], '#46944f'),
-    cyl([0.3, 0.7], [0.9, 1], [0.3, 0.7], '#55a95f'),
+  // stolní lampička: kulatý keramický podstavec, krk a široké stínidlo
+  'table-lamp': [
+    cyl([0.2, 0.8], [0, 0.04], [0.2, 0.8], '#3a3d42'),
+    sphere([0.25, 0.75], [0.03, 0.5], [0.25, 0.75], '#5b86a6'),
+    cyl([0.44, 0.56], [0.45, 0.65], [0.44, 0.56], '#b8964a'),
+    cone([0.05, 0.95], [0.6, 0.98], [0.05, 0.95], '#f1e4bd', 0.6, true),
   ],
+
 }

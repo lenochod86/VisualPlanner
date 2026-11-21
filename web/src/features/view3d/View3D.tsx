@@ -47,7 +47,9 @@ function Scene() {
   return (
     <>
       <color attach="background" args={['#eef1f5']} />
-      <ambientLight intensity={0.7} />
+      <ambientLight intensity={1.15} />
+      {/* protisvětlo z opačné strany: stěny odvrácené od hlavního světla nesmí být šedé */}
+      <directionalLight position={[cx - 500, 600, cz - 400]} intensity={0.55} />
       <directionalLight position={[cx + 500, 900, cz + 300]} intensity={1.1} />
       {/* hrubší mřížka (50/500 cm): jemná 10cm mřížka při pohledu pod malým úhlem dělala moaré */}
       <Grid position={[cx, -1, cz]} args={[gridSize, gridSize]} cellSize={100} sectionSize={500}

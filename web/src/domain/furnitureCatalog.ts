@@ -41,9 +41,11 @@ export const FURNITURE_KINDS: Record<FurnitureKind, FurnitureSpec> = {
   washer:         { label: 'Pračka',            category: 'appliances', w: 60, d: 60, h: 85,  elev: 0, color: '#f4f6f8' },
   dryer:          { label: 'Sušička',           category: 'appliances', w: 60, d: 60, h: 85,  elev: 0, color: '#eef1f4' },
   fridge:         { label: 'Lednice',           category: 'appliances', w: 60, d: 65, h: 185, elev: 0, color: '#e8ecef' },
-  shelf:          { label: 'Police',            category: 'decor',      w: 80,  d: 20,  h: 4,   elev: 140, color: '#c9a883' },
+  shelf:          { label: 'Police',            category: 'decor',      w: 80,  d: 20,  h: 26,  elev: 140, color: '#c9a883' },
   bookcase:       { label: 'Regál',             category: 'decor',      w: 80,  d: 30,  h: 180, elev: 0,   color: '#c9a883' },
   'plant-small':  { label: 'Květina',           category: 'decor',      w: 25,  d: 25,  h: 60,  elev: 0,   color: '#8fc28a', round: true },
+  'floor-lamp':   { label: 'Stojací lampa',     category: 'decor',      w: 40,  d: 40,  h: 170, elev: 0,   color: '#e8d9a8', round: true },
+  'table-lamp':   { label: 'Stolní lampička',   category: 'decor',      w: 22,  d: 22,  h: 40,  elev: 75,  color: '#e8d9a8', round: true },
   'plant-large':  { label: 'Velká rostlina',    category: 'decor',      w: 45,  d: 45,  h: 160, elev: 0,   color: '#7db579', round: true },
 }
 
