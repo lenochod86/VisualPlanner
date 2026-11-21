@@ -13,7 +13,7 @@ import type {
 import { autoRoute, cablePolyline, electricPosition, PIPE_RUN_HEIGHT, planAutoConnections, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
 import { wallPipeRoute } from '../geometry/pipeRoute'
-import { fixtureWiringPoints } from './fixtureWiring'
+import { fixtureRelinkPatches, fixtureWiringPoints } from './fixtureWiring'
 import { clamp } from '../geometry/math'
 import { resolvePlacement, rotatedPatch } from '../geometry/placement'
 import { bbox, edgeInfo, setEdgeLength, translatePts } from '../geometry/polygon'
@@ -50,6 +50,8 @@ interface ProjectState extends Project {
   /** Nastaví natočení nábytku na libovolný úhel ve stupních (rovnoběžné se zdí zůstane u zdi, jinak se uvolní). */
   setFurnitureRotation: (id: string, degrees: number) => void
   deleteFurniture: (id: string) => void
+  /** Přepočítá polohu přípojek (voda, odpad) patřících k nábytku; volá se po každé změně nábytku. */
+  relinkFixturePoints: (id: string) => void
 
   /** Přidá elektrický bod do místnosti (nástěnný uprostřed první stěny, světlo uprostřed místnosti). */
   addElectric: (kind: PointKind, roomId: string) => string | null
@@ -226,8 +228,22 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     return furniture.id
   },
 
-  updateFurniture: (id, patch) =>
-    set(s => ({ furniture: s.furniture.map(f => (f.id === id ? { ...f, ...patch } : f)) })),
+  updateFurniture: (id, patch) => {
+    set(s => ({ furniture: s.furniture.map(f => (f.id === id ? { ...f, ...patch } : f)) }))
+    get().relinkFixturePoints(id)
+  },
+
+  // přípojky patřící k nábytku se přesunou s ním; potrubí, které z nich vede, se přetrasuje
+  relinkFixturePoints: id => {
+    const { furniture, rooms, electric, cables } = get()
+    const item = furniture.find(f => f.id === id)
+    const room = item && rooms.find(r => r.id === item.roomId)
+    if (!item || !room || !electric.some(p => p.fixtureId === id)) return
+    const patches = fixtureRelinkPatches(item, room, buildWallModel(rooms), electric)
+    if (patches.size === 0) return
+    set(s => ({ electric: s.electric.map(p => (patches.has(p.id) ? { ...p, ...patches.get(p.id) } : p)) }))
+    cables.filter(c => patches.has(c.fromId) || patches.has(c.toId)).forEach(c => get().rerouteCable(c.id))
+  },
 
   rotateFurniture: (id, degrees = 90) => {
     const { furniture, rooms } = get()
@@ -247,7 +263,17 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     get().updateFurniture(id, { ...patch, keepRotation: true })
   },
 
-  deleteFurniture: id => set(s => ({ furniture: s.furniture.filter(f => f.id !== id) })),
+  deleteFurniture: id =>
+    set(s => {
+      // přípojky nábytku se mažou s ním (i potrubí, které z nich vede)
+      const electric = s.electric.filter(p => p.fixtureId !== id)
+      const alive = new Set(electric.map(p => p.id))
+      return {
+        furniture: s.furniture.filter(f => f.id !== id),
+        electric,
+        cables: s.cables.filter(c => alive.has(c.fromId) && alive.has(c.toId)),
+      }
+    }),
 
   addElectric: (kind, roomId) => {
     const room = get().rooms.find(r => r.id === roomId)

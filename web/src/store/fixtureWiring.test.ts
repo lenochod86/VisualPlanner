@@ -64,3 +64,90 @@ describe('přípojky vody k umyvadlu a sprše', () => {
     expect(state().electric).toHaveLength(0)
   })
 })
+
+describe('přípojky patří k nábytku', () => {
+  let roomId: string
+  const names = () => state().electric.map(p => p.name).sort()
+
+  beforeEach(() => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    clearHistory()
+    roomId = state().addRoom('rect')
+  })
+
+  const at = (prefix: string) => {
+    const point = state().electric.find(p => p.name.startsWith(prefix))!
+    return electricPosition(point, state().rooms.find(r => r.id === point.roomId)!)
+  }
+
+  it('při posunu umyvadla podél zdi se přípojky posunou s ním', () => {
+    state().addFurniture('sink', roomId)
+    const sink = state().furniture[0]
+    const before = at('TUV')
+    state().updateFurniture(sink.id, { attach: { ...sink.attach!, along: sink.attach!.along + 80 } })
+    const after = at('TUV')
+    expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeCloseTo(80)
+    // odpad zůstává uprostřed mezi SV a TUV
+    const hot = at('TUV'), cold = at('SV'), drain = at('Odpad')
+    expect(drain.x).toBeCloseTo((hot.x + cold.x) / 2)
+  })
+
+  it('při přesunu na jinou stěnu se přípojky přepnou na tu stěnu', () => {
+    state().addFurniture('sink', roomId)
+    const sink = state().furniture[0]
+    state().updateFurniture(sink.id, { attach: { ...sink.attach!, edge: 2, along: 150 } })     // dolní stěna
+    for (const p of state().electric) expect(p.attach?.edge).toBe(2)
+  })
+
+  it('sprchová vanička s odtokem v podlaze: odtok jede s ní', () => {
+    state().addFurniture('shower', roomId)
+    const shower = state().furniture[0]
+    const before = state().electric.find(p => p.kind === 'drain')!
+    state().updateFurniture(shower.id, { attach: { ...shower.attach!, along: shower.attach!.along + 60 } })
+    const after = state().electric.find(p => p.kind === 'drain')!
+    expect(after.x - before.x).toBeCloseTo(60)
+    expect(after.y).toBeCloseTo(before.y)
+  })
+
+  it('otočení kolem zdi a změna rozměru přípojky přepočítají', () => {
+    state().addFurniture('sink', roomId)
+    const sink = state().furniture[0]
+    const before = at('SV')
+    state().updateFurniture(sink.id, { w: 100, attach: { ...sink.attach!, along: sink.attach!.along + 20 } })
+    expect(at('SV').x).not.toBeCloseTo(before.x)
+  })
+
+  it('ruční úpravy (výška, název) zůstanou a potrubí z přípojky se přetrasuje', () => {
+    state().addFurniture('sink', roomId)
+    const sink = state().furniture[0]
+    const tap = state().electric.find(p => p.name.startsWith('SV'))!
+    const drain = state().electric.find(p => p.name.startsWith('Odpad'))!
+    state().updateElectric(tap.id, { height: 60, name: 'SV moje' })
+    const pipeId = state().addCable(tap.id, drain.id, 'pipe-cold')!
+    state().updateFurniture(sink.id, { attach: { ...sink.attach!, along: sink.attach!.along + 100 } })
+    const moved = state().electric.find(p => p.id === tap.id)!
+    expect(moved).toMatchObject({ height: 60, name: 'SV moje' })
+    expect(state().cables.find(c => c.id === pipeId)).toBeDefined()
+  })
+
+  it('smazání nábytku smaže i jeho přípojky a potrubí z nich', () => {
+    state().addFurniture('sink', roomId)
+    const [a, b] = state().electric
+    state().addCable(a.id, b.id, 'pipe-cold')
+    state().deleteFurniture(state().furniture[0].id)
+    expect(state().electric).toHaveLength(0)
+    expect(state().cables).toHaveLength(0)
+    expect(names()).toEqual([])
+  })
+
+  it('odpojený bod už s nábytkem nejede', () => {
+    state().addFurniture('sink', roomId)
+    const sink = state().furniture[0]
+    const tap = state().electric.find(p => p.name.startsWith('SV'))!
+    state().updateElectric(tap.id, { fixtureId: undefined, fixtureRole: undefined })
+    const before = at('SV')
+    state().updateFurniture(sink.id, { attach: { ...sink.attach!, along: sink.attach!.along + 80 } })
+    expect(at('SV')).toEqual(before)
+    expect(state().electric.filter(p => p.fixtureId === sink.id)).toHaveLength(2)             // ostatní přípojky jedou dál
+  })
+})

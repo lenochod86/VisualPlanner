@@ -126,6 +126,9 @@ export interface ElectricPoint {
   attach?: { edge: number; along: number }
   /** Přichytává se tažením ke zdi? Výchozí ano; vypnutý bod stojí volně v místnosti (např. odpadní stoupačka). */
   snapToWalls?: boolean
+  /** Přípojka patří k nábytku (umyvadlo, sprcha): s ním se přesouvá, otáčí a maže. `fixtureRole` říká, která to je. */
+  fixtureId?: string
+  fixtureRole?: 'hot' | 'cold' | 'drain'
   /** Výška nad podlahou (cm) u nástěnných bodů; stropní body jsou ve výšce stropu. U rozvaděče je to jeho SPODNÍ hrana, u ostatních bodů střed. */
   height: number
   /** Rozvaděč: šířka, výška a hloubka skříně (cm); bez nich platí výchozí rozměry. */

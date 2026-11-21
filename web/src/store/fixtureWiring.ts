@@ -43,19 +43,37 @@ export function fixtureWiringPoints(
   // při pohledu na zeď zevnitř místnosti (osa y míří dolů) je vlevo vektor (fy, -fx), kde f míří ke zdi
   const left = { x: e.outward.y, y: -e.outward.x }
   const hotSide = Math.sign(e.dir.x * left.x + e.dir.y * left.y) || 1
-  const onWall = (name: string, kind: ElectricPoint['kind'], at: number, height: number): ElectricPoint => ({
-    id: newId(), roomId: room.id, kind, name, x: center.x, y: center.y, height,
+  const link = (fixtureRole: NonNullable<ElectricPoint['fixtureRole']>) => ({ fixtureId: furniture.id, fixtureRole })
+  const onWall = (name: string, role: NonNullable<ElectricPoint['fixtureRole']>, kind: ElectricPoint['kind'], at: number, height: number): ElectricPoint => ({
+    id: newId(), roomId: room.id, kind, name, x: center.x, y: center.y, height, ...link(role),
     attach: { edge, along: clamp(at, CORNER_MARGIN, e.len - CORNER_MARGIN) },
   })
 
   const { taps, drain } = wiring
   const points = [
-    onWall(`TUV ${label}`, 'tap', along + (hotSide * taps.spacing) / 2, taps.height),
-    onWall(`SV ${label}`, 'tap', along - (hotSide * taps.spacing) / 2, taps.height),
+    onWall(`TUV ${label}`, 'hot', 'tap', along + (hotSide * taps.spacing) / 2, taps.height),
+    onWall(`SV ${label}`, 'cold', 'tap', along - (hotSide * taps.spacing) / 2, taps.height),
   ]
   points.push(drain.inFloor
     // odpad v podlaze pod nábytkem stojí volně (nepřichytává se ke zdi)
-    ? { id: newId(), roomId: room.id, kind: 'drain', name: `Odpad ${label}`, x: center.x, y: center.y, height: drain.height, snapToWalls: false }
-    : onWall(`Odpad ${label}`, 'drain', along, drain.height))
+    ? { id: newId(), roomId: room.id, kind: 'drain', name: `Odpad ${label}`, x: center.x, y: center.y, height: drain.height, snapToWalls: false, ...link('drain') }
+    : onWall(`Odpad ${label}`, 'drain', 'drain', along, drain.height))
   return points
+}
+
+/**
+ * Změny přípojek po přesunu, otočení nebo změně rozměru nábytku: každý bod nábytku dostane novou stěnu, polohu na ní
+ * a místnost, jako by se nábytek přidal znovu. Výška, název a další ruční úpravy zůstávají. Klíčem je id bodu.
+ */
+export function fixtureRelinkPatches(
+  furniture: Furniture, room: Room, walls: WallModel, points: ElectricPoint[],
+): Map<string, Partial<ElectricPoint>> {
+  const fresh = fixtureWiringPoints(furniture, room, walls, () => '')
+  const patches = new Map<string, Partial<ElectricPoint>>()
+  for (const point of points) {
+    if (point.fixtureId !== furniture.id) continue
+    const target = fresh.find(f => f.fixtureRole === point.fixtureRole)
+    if (target) patches.set(point.id, { roomId: target.roomId, attach: target.attach, x: target.x, y: target.y })
+  }
+  return patches
 }

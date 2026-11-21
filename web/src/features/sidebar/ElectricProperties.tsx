@@ -54,6 +54,12 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
           </small>
         </>
       )}
+      {point.fixtureId && (
+        <>
+          <small>Patří k nábytku: s ním se přesouvá, otáčí a maže.</small>
+          <button onClick={() => updateElectric(point.id, { fixtureId: undefined, fixtureRole: undefined })}>Odpojit od nábytku</button>
+        </>
+      )}
       {isBoard && <small>Kabely se do rozvaděče připojují na jeho horní hraně.</small>}
 
       <small>{plumbing ? 'Připojené potrubí' : 'Připojené kabely'}: {connected.length}</small>
