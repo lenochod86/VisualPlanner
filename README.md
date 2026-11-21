@@ -25,7 +25,7 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
         collisions.ts         kontrola nábytku: přesah do zdi, překrytí, výška, dveře
       src/store/              Zustand: projectStore (data), uiStore (výběr, nástroj), history (undo/redo)
       src/api/                klient REST API
-      src/report/             bilance elektra (soupis, export CSV) a tisknutelný půdorys (SVG ve měřítku, tisk/PDF)
+      src/report/             bilance elektra (soupis, export CSV) a tisk: stránky Půdorys / Vybavení / Elektro (SVG v měřítku, tisk/PDF)
       src/features/
         plan2d/               2D editor: viewport, tažení, vykreslení místností/překážek
         view3d/               3D scéna (react-three-fiber)

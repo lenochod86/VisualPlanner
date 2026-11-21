@@ -11,18 +11,50 @@ import { resolvePlacement, wallThicknessFor } from '../geometry/placement'
 import { bbox, centroid, edgeInfo, polygonArea } from '../geometry/polygon'
 import { buildWallModel, outerPolygon, wallQuad, type WallModel } from '../geometry/walls'
 
-export interface PlanSvgOptions {
-  /** Kóty: délky stěn a celkové vnější rozměry. */
-  dimensions: boolean
-  furniture: boolean
+/** Co se na stránce kreslí. Zdi, otvory a podlahy jsou na každé stránce. */
+export interface PageLayers {
+  /** Názvy a plochy místností. */
+  roomNames: boolean
+  /** Kóty: délky u jednotlivých stěn. */
+  wallDimensions: boolean
+  /** Kóty: celkové vnější rozměry bytu. */
+  overallDimensions: boolean
+  /** Nábytek: žádný, jen slabé obrysy (pro orientaci), nebo plný s názvy. */
+  furniture: 'none' | 'faint' | 'full'
+  /** Elektro body a kabely (a legenda kabelů v razítku). */
   electro: boolean
+}
+
+export interface PlanSvgOptions {
+  layers: PageLayers
   /** Nadpis v razítku. */
   title: string
   /** Datum v razítku (kvůli testům se předává zvenku). */
   date: string
 }
 
+/** Stránky tisku: každá ukazuje jednu věc samostatně. */
+export type PageKind = 'plan' | 'equipment' | 'electro'
+
+export const PAGES: Record<PageKind, { title: string; layers: PageLayers }> = {
+  plan: {
+    title: 'Půdorys',
+    layers: { roomNames: true, wallDimensions: true, overallDimensions: true, furniture: 'none', electro: false },
+  },
+  equipment: {
+    title: 'Vybavení',
+    layers: { roomNames: false, wallDimensions: false, overallDimensions: false, furniture: 'full', electro: false },
+  },
+  electro: {
+    title: 'Elektro',
+    layers: { roomNames: true, wallDimensions: false, overallDimensions: false, furniture: 'faint', electro: true },
+  },
+}
+
 export interface PlanSvg {
+  /** Která stránka to je (je-li z `buildPlanPages`). */
+  kind?: PageKind
+
   svg: string
   /** Rozměry stránky v mm (A4 na výšku nebo na šířku podle tvaru bytu). */
   pageWidth: number
@@ -53,6 +85,7 @@ const ring = (pts: Pt[]) => `M${pts.map(p => `${n(p.x)} ${n(p.y)}`).join('L')}Z`
 
 export function buildPlanSvg(project: Project, options: PlanSvgOptions): PlanSvg {
   const { rooms, obstacles, furniture, cables } = project
+  const { layers } = options
   const walls = buildWallModel(rooms)
 
   // vnější rozměry bytu (včetně zdí)
@@ -66,7 +99,8 @@ export function buildPlanSvg(project: Project, options: PlanSvgOptions): PlanSvg
   // orientace stránky podle tvaru bytu, pak měřítko a umístění výkresu na stránce
   const landscape = heightCm <= widthCm * 1.1
   const pageWidth = landscape ? 297 : 210, pageHeight = landscape ? 210 : 297
-  const dimSpace = options.dimensions ? DIM_SPACE : 4
+  // místo pro vnější kóty se vyhrazuje vždy, ať mají všechny stránky stejné měřítko a výkres je na nich na stejném místě
+  const dimSpace = DIM_SPACE
   const areaX = MARGIN + dimSpace, areaY = MARGIN + 4
   const areaW = pageWidth - 2 * MARGIN - 2 * dimSpace
   const areaH = pageHeight - 2 * MARGIN - TITLE_HEIGHT - dimSpace - 4
@@ -80,10 +114,10 @@ export function buildPlanSvg(project: Project, options: PlanSvgOptions): PlanSvg
     floorsSvg(rooms),
     wallsSvg(rooms, walls),
     openingsSvg(rooms, obstacles, walls, mm),
-    options.furniture ? furnitureSvg(rooms, furniture, walls, mm) : '',
-    options.electro ? electroSvg(project, mm) : '',
-    labelsSvg(rooms, mm),
-    options.dimensions ? edgeDimensionsSvg(rooms, s, mm) : '',
+    layers.furniture !== 'none' ? furnitureSvg(rooms, furniture, walls, mm, layers.furniture === 'full') : '',
+    layers.electro ? electroSvg(project, mm) : '',
+    layers.roomNames ? labelsSvg(rooms, mm) : '',
+    layers.wallDimensions ? edgeDimensionsSvg(rooms, s, mm) : '',
   ].join('\n')
 
   const svg = [
@@ -92,7 +126,7 @@ export function buildPlanSvg(project: Project, options: PlanSvgOptions): PlanSvg
     `<g transform="translate(${n(ox - box.minX * s)} ${n(oy - box.minY * s)}) scale(${Math.round(s * 1e5) / 1e5})">`,
     body,
     `</g>`,
-    options.dimensions ? overallDimensionsSvg(ox, oy, drawW, drawH, widthCm, heightCm) : '',
+    layers.overallDimensions ? overallDimensionsSvg(ox, oy, drawW, drawH, widthCm, heightCm) : '',
     titleBlockSvg({ rooms, cables, options, scale, pageWidth, pageHeight }),
     `</svg>`,
   ].join('\n')
@@ -161,16 +195,21 @@ function openingsSvg(rooms: Room[], obstacles: Project['obstacles'], walls: Wall
   }).join('\n')
 }
 
-function furnitureSvg(rooms: Room[], furniture: Project['furniture'], walls: WallModel, mm: (v: number) => number): string {
+function furnitureSvg(
+  rooms: Room[], furniture: Project['furniture'], walls: WallModel, mm: (v: number) => number, full: boolean,
+): string {
   return furniture.flatMap(f => {
     const room = rooms.find(r => r.id === f.roomId)
     if (!room) return []
     const p = resolvePlacement(f, room, walls)
     const label = FURNITURE_KINDS[f.kind].label
-    const fits = Math.min(f.w, f.d) > mm(9)       // na malé ploše název nevyjde
+    const fits = full && Math.min(f.w, f.d) > mm(9)       // názvy jen na plné stránce a tam, kam se vejdou
+    const look = full
+      ? `fill="#fff" fill-opacity="0.6" stroke="#666" stroke-width="${n(mm(0.18))}"`
+      : `fill="none" stroke="#aaa" stroke-width="${n(mm(0.12))}"`   // slabý obrys pro orientaci
     return [
       `<g transform="translate(${n(p.x)} ${n(p.y)}) rotate(${n((p.rot * 180) / Math.PI)})">` +
-      `<rect x="${n(-f.w / 2)}" y="${n(-f.d / 2)}" width="${n(f.w)}" height="${n(f.d)}" fill="#fff" fill-opacity="0.6" stroke="#666" stroke-width="${n(mm(0.18))}"/></g>` +
+      `<rect x="${n(-f.w / 2)}" y="${n(-f.d / 2)}" width="${n(f.w)}" height="${n(f.d)}" ${look}/></g>` +
       (fits ? `<text x="${n(p.x)}" y="${n(p.y)}" font-size="${n(mm(1.8))}" fill="#555" text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text>` : ''),
     ]
   }).join('\n')
@@ -261,7 +300,7 @@ function titleBlockSvg(args: {
   const barMm = (barCm * 10) / scale
   const barX = x + w - barMm - 8, barY = y + 14
 
-  const usedTypes = options.electro ? [...new Set(cables.map(c => c.type))] as CableType[] : []
+  const usedTypes = options.layers.electro ? [...new Set(cables.map(c => c.type))] as CableType[] : []
   const legend = usedTypes.map((t, i) =>
     `<line x1="${n(x + 4 + i * 46)}" y1="${n(y + 18)}" x2="${n(x + 12 + i * 46)}" y2="${n(y + 18)}" stroke="${CABLE_TYPES[t].color}" stroke-width="0.6" stroke-dasharray="2 1"/>` +
     `<text x="${n(x + 14 + i * 46)}" y="${n(y + 19)}" font-size="2.4" fill="#333">${escapeXml(CABLE_TYPES[t].label.split(' (')[0])}</text>`).join('')
@@ -276,4 +315,25 @@ function titleBlockSvg(args: {
     `<line x1="${n(barX + barMm)}" y1="${n(barY - 1.5)}" x2="${n(barX + barMm)}" y2="${n(barY + 1.5)}" stroke="#222" stroke-width="0.4"/>`,
     `<text x="${n(barX + barMm / 2)}" y="${n(barY - 2.4)}" font-size="2.6" text-anchor="middle" fill="#222">${barCm / 100} m</text>`,
   ].join('\n')
+}
+
+// ---- víc stránek ----
+
+/** Které stránky mají co ukázat: půdorys vždy, vybavení jen s nábytkem, elektro jen s elektrem. */
+export function availablePages(project: Pick<Project, 'furniture' | 'electric' | 'cables'>): PageKind[] {
+  const pages: PageKind[] = ['plan']
+  if (project.furniture.length > 0) pages.push('equipment')
+  if (project.electric.length > 0 || project.cables.length > 0) pages.push('electro')
+  return pages
+}
+
+/**
+ * Samostatné stránky výkresu (půdorys / vybavení / elektro). Všechny mají stejné měřítko a výkres
+ * na stejném místě, takže jdou přiložit přes sebe proti světlu.
+ */
+export function buildPlanPages(project: Project, base: { title: string; date: string }, kinds: PageKind[]): PlanSvg[] {
+  return kinds.map(kind => ({
+    ...buildPlanSvg(project, { layers: PAGES[kind].layers, title: `${base.title} - ${PAGES[kind].title}`, date: base.date }),
+    kind,
+  }))
 }
