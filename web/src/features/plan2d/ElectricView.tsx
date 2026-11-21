@@ -24,8 +24,10 @@ export function ElectricView({ point, room, selected, pending, k, onPointerDown 
   return (
     <g
       transform={`translate(${p.x} ${p.y}) rotate(${(p.rot * 180) / Math.PI})`}
-      onPointerDown={onPointerDown} style={{ cursor: 'pointer' }}
+      onPointerDown={onPointerDown} style={{ cursor: 'move' }}
     >
+      {/* větší neviditelná plocha, ať se bod snadno chytí (kurzor přesunutí se ukáže hned u značky) */}
+      <circle cx={0} cy={point.kind === 'light' ? 0 : r} r={Math.max(size, 10 * k)} fill="transparent" />
       <title>{point.name || ELECTRIC_KINDS[point.kind].label}</title>
       {point.kind === 'socket' && <circle cx={0} cy={r} r={r} {...line} />}
       {point.kind === 'socket-double' && (

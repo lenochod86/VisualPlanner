@@ -226,7 +226,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const point: ElectricPoint = {
       id: newId(), roomId, kind, name: '', height: spec.height,
       x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2,   // světlo: střed místnosti
-      attach: spec.mount === 'wall' ? { edge: 0, along: edgeInfo(room.pts, 0).len / 2 } : undefined,
+      // nástěnný bod se přidá do čtvrtiny první stěny: na středu by ho zakrývala kóta s délkou stěny
+      attach: spec.mount === 'wall' ? { edge: 0, along: edgeInfo(room.pts, 0).len * 0.25 } : undefined,
     }
     set(s => ({ electric: [...s.electric, point] }))
     return point.id

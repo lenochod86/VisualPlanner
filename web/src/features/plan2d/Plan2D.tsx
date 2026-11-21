@@ -93,18 +93,6 @@ export function Plan2D() {
           )
         })}
 
-        {obstacles.map(obstacle => {
-          const room = rooms.find(r => r.id === obstacle.roomId)
-          if (!room) return null
-          return (
-            <ObstacleView
-              key={obstacle.id} obstacle={obstacle} room={room} walls={walls} k={viewport.k}
-              selected={selection?.type === 'obstacle' && selection.id === obstacle.id}
-              onPointerDown={e => interaction.beginItemDrag(e, { collection: 'obstacles', id: obstacle.id })}
-            />
-          )
-        })}
-
         {cables.map(cable => {
           const polyline = cablePolyline(cable, electric, rooms)
           if (!polyline) return null
@@ -115,6 +103,23 @@ export function Plan2D() {
               onSelect={e => interaction.selectCable(e, cable.id)}
               onWaypointPointerDown={(e, index) => interaction.beginWaypointDrag(e, cable.id, index)}
               onInsertPointerDown={(e, index, at) => interaction.beginWaypointInsert(e, cable.id, index, at)}
+            />
+          )
+        })}
+
+        {/* názvy a kóty místností nad nábytkem; okna, dveře a elektro body jsou ještě výš, ať jdou vždy chytit */}
+        {rooms.map(room => (
+          <RoomLabels key={room.id} room={room} k={viewport.k} onEditDimension={edge => setEditing({ roomId: room.id, edge })} />
+        ))}
+
+        {obstacles.map(obstacle => {
+          const room = rooms.find(r => r.id === obstacle.roomId)
+          if (!room) return null
+          return (
+            <ObstacleView
+              key={obstacle.id} obstacle={obstacle} room={room} walls={walls} k={viewport.k}
+              selected={selection?.type === 'obstacle' && selection.id === obstacle.id}
+              onPointerDown={e => interaction.beginItemDrag(e, { collection: 'obstacles', id: obstacle.id })}
             />
           )
         })}
@@ -131,11 +136,6 @@ export function Plan2D() {
             />
           )
         })}
-
-        {/* názvy a kóty místností nahoře, nad nábytkem, překážkami i elektrem */}
-        {rooms.map(room => (
-          <RoomLabels key={room.id} room={room} k={viewport.k} onEditDimension={edge => setEditing({ roomId: room.id, edge })} />
-        ))}
 
         {handleItem && handleRoom && (
           <ItemHandles

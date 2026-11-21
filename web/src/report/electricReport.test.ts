@@ -25,10 +25,11 @@ describe('bilance elektra', () => {
 
   it('délka kabelu = nahoru ve zdi, vodorovně, dolů ke světlu', () => {
     state().addCable(socketId, lightId, 'cyky-3x1.5')
-    // (200,0,30) -> (200,0,230) -> (200,150,230) -> (200,150,260) = 200 + 150 + 30 cm
+    // zásuvka je ve čtvrtině horní stěny (100, 0, 30), světlo uprostřed (200, 150, strop):
+    // nahoru 200 + vodorovně 100 + 150 + dolů ke světlu 30 = 480 cm
     const r = report()
-    expect(r.totalLengthM).toBeCloseTo(3.8)
-    expect(r.types[0]).toMatchObject({ type: 'cyky-3x1.5', cables: 1, orderM: 5 })   // 3,8 × 1,1 = 4,18 -> 5
+    expect(r.totalLengthM).toBeCloseTo(4.8)
+    expect(r.types[0]).toMatchObject({ type: 'cyky-3x1.5', cables: 1, orderM: 6 })   // 4,8 × 1,1 = 5,28 -> 6
   })
 
   it('kabely se stejným okruhem se sečtou', () => {
@@ -39,14 +40,14 @@ describe('bilance elektra', () => {
     const r = report()
     expect(r.circuits).toHaveLength(1)
     expect(r.circuits[0]).toMatchObject({ circuit: 'Obývák', cables: 2 })
-    expect(r.circuits[0].lengthM).toBeCloseTo(7.6)
+    expect(r.circuits[0].lengthM).toBeCloseTo(9.6)
   })
 
   it('CSV má BOM, středníky a desetinnou čárku', () => {
     state().addCable(socketId, lightId, 'cyky-3x1.5')
     const csv = reportToCsv(report())
     expect(csv.startsWith('﻿Soupis elektroinstalace')).toBe(true)
-    expect(csv).toContain('3,80')
+    expect(csv).toContain('4,80')
     expect(csv).toContain('Místnost;Zásuvka;')
   })
 })
