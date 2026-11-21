@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ELECTRIC_KINDS } from '../../domain/electricCatalog'
 import type { ElectricPoint } from '../../domain/types'
 import { boardSize } from '../../geometry/electric'
@@ -9,6 +10,8 @@ import { NumberField } from './NumberField'
 export function ElectricProperties({ point }: { point: ElectricPoint }) {
   const updateElectric = useProjectStore(s => s.updateElectric)
   const deleteElectric = useProjectStore(s => s.deleteElectric)
+  const autoConnectPoint = useProjectStore(s => s.autoConnectPoint)
+  const [result, setResult] = useState<string | null>(null)
   const cables = useProjectStore(s => s.cables)
   const { select, setTool, setCableStart } = useUiStore()
   const spec = ELECTRIC_KINDS[point.kind]
@@ -40,6 +43,20 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
       {isBoard && <small>Kabely se do rozvaděče připojují na jeho horní hraně.</small>}
 
       <small>Připojené kabely: {connected.length}</small>
+      <button
+        title={connected.length === 0
+          ? 'Napojí bod podle pravidel (vypínač na rozvaděč, světlo na nejbližší vypínač, zásuvku v místnosti na rozvaděč nebo řetězově) a vytvoří trasu'
+          : "Znovu automaticky vytvoří trasy kabelů tohoto bodu; ruční úpravy těchto tras zahodí"}
+        onClick={() => {
+          beginGesture()                         // jeden krok v undo
+          const { added, rerouted } = autoConnectPoint(point.id)
+          endGesture()
+          setResult(added === 0 && rerouted === 0 ? "Není kam napojit (chybí rozvaděč, vypínač nebo jiná zásuvka v místnosti)." : `Napojeno nových kabelů: ${added}, přetrasováno: ${rerouted}.`)
+        }}
+      >
+        {connected.length === 0 ? "Napojit automaticky" : "Přetrasovat automaticky"}
+      </button>
+      {result && <small>{result}</small>}
       <div className="row">
         <button onClick={() => { setTool('cable'); setCableStart(point.id) }}>Vést kabel odsud…</button>
         <button className="danger" onClick={() => { deleteElectric(point.id); select(null) }}>Smazat</button>

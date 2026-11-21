@@ -98,3 +98,47 @@ describe('Přetrasovat vše: napojení a přetrasování', () => {
     expect(state().cables).toHaveLength(1)
   })
 })
+
+describe('Napojit / přetrasovat automaticky jen u jednoho bodu', () => {
+  beforeEach(() => {
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
+    clearHistory()
+  })
+
+  it('napojí jen vybraný bod a nechá ostatní kabely beze změny (i s ručními úpravami)', () => {
+    const room = state().addRoom('rect')
+    const board = state().addElectric('board', room)!
+    const s1 = state().addElectric('socket', room)!
+    const s2 = state().addElectric('socket', room)!
+    state().updateElectric(s1, { attach: { edge: 0, along: 100 } })
+    state().updateElectric(s2, { attach: { edge: 0, along: 300 } })
+    const first = state().addCable(board, s1, 'cyky-3x2.5')!
+    state().updateCable(first, { via: [{ x: 5, y: 5, z: 5 }] })      // ruční úprava, kterou nic jiného nesmí zahodit
+
+    const result = state().autoConnectPoint(s2)
+
+    expect(result.added).toBe(1)
+    expect(state().cables).toHaveLength(2)
+    expect(state().cables.find(c => c.id === first)!.via).toEqual([{ x: 5, y: 5, z: 5 }])   // první kabel se nedotkl
+    const added = state().cables.find(c => c.id !== first)!
+    expect([added.fromId, added.toId]).toEqual([s1, s2])             // místnost už je napojená: řetězí se na s1
+    expect(added.via.length).toBeGreaterThan(0)                       // a má trasu
+  })
+
+  it('bod, který už kabel má, jen přetrasuje své kabely', () => {
+    const room = state().addRoom('rect')
+    const s1 = state().addElectric('socket', room)!
+    const s2 = state().addElectric('socket', room)!
+    state().updateElectric(s2, { attach: { edge: 0, along: 300 } })
+    const own = state().addCable(s1, s2, 'cyky-3x2.5')!
+    const other = state().addCable(s1, s2, 'cyky-3x1.5')!
+    state().updateCable(own, { via: [] })
+    state().updateCable(other, { via: [{ x: 1, y: 1, z: 1 }] })
+
+    const result = state().autoConnectPoint(s2)
+
+    expect(result.added).toBe(0)
+    expect(result.rerouted).toBe(2)                                   // oba kabely se dotýkají tohoto bodu
+    expect(state().cables.find(c => c.id === own)!.via.length).toBeGreaterThan(0)
+  })
+})

@@ -156,11 +156,17 @@ describe('planAutoConnections: primárně k rozvaděči', () => {
     expect(plan.find(c => c.type === 'cyky-3x1.5')!.circuit).toBe('Světla')
   })
 
-  it('už hotové kabely zůstanou a nový bod se napojí na rozvaděč, ne na hotový bod (třeba okruh sporáku)', () => {
+  it('místnost už napojená na rozvaděč: nová zásuvka se řetězí na její zásuvku a převezme okruh', () => {
     const existing: Cable = { id: 'x', type: 'cyky-3x2.5', circuit: 'Kuchyň', fromId: 'rozv', toId: 's1', via: [] }
     const electric = [board, at('s1', 'socket', 60, 100), at('s2', 'socket', 120, 100)]
     const plan = planAutoConnections({ rooms: [A], electric, cables: [existing] })
-    // s2 je blíž k s1, ale s1 už je hotový okruh "Kuchyň": nový bod jde z rozvaděče a má vlastní okruh
+    expect(plan).toEqual([{ fromId: 's1', toId: 's2', type: 'cyky-3x2.5', circuit: 'Kuchyň' }])
+  })
+
+  it('okruh sporáku (kabel jiného typu) se jako cíl nepoužije: nová zásuvka jde k rozvaděči', () => {
+    const cooker: Cable = { id: 'x', type: 'cyky-5x4', circuit: 'Sporák', fromId: 'rozv', toId: 's1', via: [] }
+    const electric = [board, at('s1', 'socket', 60, 100), at('s2', 'socket', 120, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [cooker] })
     expect(plan).toEqual([{ fromId: 'rozv', toId: 's2', type: 'cyky-3x2.5', circuit: 'Zásuvky' }])
   })
 })
@@ -244,5 +250,32 @@ describe('planAutoConnections: zásuvky po místnostech', () => {
     const electric = [sock('a1', 50, 50, 'A'), sock('a2', 120, 50, 'A'), sock('b1', 500, 50, 'B'), sock('b2', 560, 50, 'B')]
     const plan = planAutoConnections({ rooms: [A, B], electric, cables: [] })
     expect(plan.map(c => [c.fromId, c.toId].sort().join('-')).sort()).toEqual(['a1-a2', 'b1-b2'])
+  })
+})
+
+describe('planAutoConnections: jen vybraný bod', () => {
+  const board: ElectricPoint = { id: 'rozv', roomId: 'A', kind: 'board', name: '', x: 0, y: 0, height: 150, attach: { edge: 3, along: 150 } }
+  const sock = (id: string, x: number, y: number): ElectricPoint => ({ id, roomId: 'A', kind: 'socket', name: '', x, y, height: 30 })
+
+  it('napojí jen zadaný bod, ostatní nenapojené nechá být', () => {
+    const electric = [board, sock('a', 50, 100), sock('b', 150, 100), sock('c', 250, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] }, ['b'])
+    expect(plan).toEqual([{ fromId: 'rozv', toId: 'b', type: 'cyky-3x2.5', circuit: 'Zásuvky' }])
+  })
+
+  it('nová zásuvka v napojené místnosti se řetězí na nejbližší hotovou zásuvku', () => {
+    const electric = [board, sock('a', 50, 100), sock('b', 150, 100), sock('c', 190, 100)]
+    const cables: Cable[] = [
+      { id: '1', type: 'cyky-3x2.5', circuit: 'Obývák', fromId: 'rozv', toId: 'a', via: [] },
+      { id: '2', type: 'cyky-3x2.5', circuit: 'Obývák', fromId: 'a', toId: 'b', via: [] },
+    ]
+    expect(planAutoConnections({ rooms: [A], electric, cables }, ['c']))
+      .toEqual([{ fromId: 'b', toId: 'c', type: 'cyky-3x2.5', circuit: 'Obývák' }])
+  })
+
+  it('bod, který už kabel má, se znovu nenapojuje', () => {
+    const electric = [board, sock('a', 50, 100)]
+    const cables: Cable[] = [{ id: '1', type: 'cyky-3x2.5', circuit: 'x', fromId: 'rozv', toId: 'a', via: [] }]
+    expect(planAutoConnections({ rooms: [A], electric, cables }, ['a'])).toEqual([])
   })
 })

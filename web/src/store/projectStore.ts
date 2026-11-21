@@ -64,6 +64,11 @@ interface ProjectState extends Project {
    * automaticky přetrasuje všechny kabely. Vrací počet nově vytvořených kabelů a počet přetrasovaných.
    */
   autoConnectAndRerouteAll: () => { added: number; rerouted: number }
+  /**
+   * Napojí jeden bod automaticky podle stejných pravidel (nemá-li kabel) a přetrasuje jen kabely tohoto bodu.
+   * Ostatní kabely se nedotknou, takže po přidání zásuvky nemusíte přetrasovávat celý byt.
+   */
+  autoConnectPoint: (pointId: string) => { added: number; rerouted: number }
   insertWaypoint: (cableId: string, index: number, waypoint: Waypoint) => void
   updateWaypoint: (cableId: string, index: number, patch: Partial<Waypoint>) => void
   deleteWaypoint: (cableId: string, index: number) => void
@@ -269,6 +274,17 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const roomOf = (pointId: string) => rooms.find(r => r.id === electric.find(p => p.id === pointId)?.roomId)
     const via = autoRoute(polyline[0], polyline[1], runHeight(roomOf(cable.fromId), roomOf(cable.toId)), rooms)
     get().updateCable(id, { via })
+  },
+
+  autoConnectPoint: pointId => {
+    const planned = planAutoConnections(get(), [pointId])
+    for (const wire of planned) {
+      const id = get().addCable(wire.fromId, wire.toId, wire.type)
+      if (id) get().updateCable(id, { circuit: wire.circuit })
+    }
+    const touched = get().cables.filter(c => c.fromId === pointId || c.toId === pointId)
+    touched.forEach(c => get().rerouteCable(c.id))
+    return { added: planned.length, rerouted: touched.length }
   },
 
   autoConnectAndRerouteAll: () => {

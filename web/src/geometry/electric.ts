@@ -127,17 +127,22 @@ const WIRING_GROUPS: { role: WiringRole; kinds: ElectricKind[]; type: CableType;
 const OTHER_ROOM_PENALTY = 1000
 
 /**
- * Navrhne kabely pro body, které zatím žádný kabel nemají (hotové kabely se nemění):
+ * Navrhne kabely pro body, které zatím žádný kabel nemají (hotové kabely se nemění). Je-li zadáno `only`, napojí
+ * se jen tyto body (třeba právě přidaná zásuvka); ostatní se nezkoumají a nic se jim nemění:
  *  - **vypínače** na rozvaděč (každý přímo; bez rozvaděče se řetězí mezi sebou),
  *  - **světla** na nejbližší vypínač (každé přímo a okruh přebírá od vypínače; bez vypínačů viz zásuvky),
  *  - **zásuvky** vždy primárně k rozvaděči, ale po místnostech: v každé místnosti se nejbližší zásuvka napojí
  *    přímo k rozvaděči a ostatní se řetězí na nejbližší nově napojenou zásuvku TÉŽE místnosti (zásuvky různých
- *    místností se nikdy nespojují mezi sebou). Hotové kabely (např. okruh sporáku) se nepoužijí jako cíl.
- *    Bez rozvaděče se napojuje v rámci místnosti na hotové zásuvky, případně se začne od první.
+ *    místností se nikdy nespojují mezi sebou). Jako cíl slouží i už hotové zásuvky téže místnosti, ale jen ty,
+ *    které mají kabel stejného typu (okruh sporáku 5×4 se tak nepoužije). Když je místnost už napojená na rozvaděč,
+ *    nová zásuvka se řetězí na její zásuvky. Bez rozvaděče se začne od první zásuvky místnosti.
  * Každý kabel vedoucí přímo z rozvaděče začíná nový okruh; ostatní převezmou okruh bodu, na který se napojují.
  * Napojuje se přednostně v rámci téže místnosti.
  */
-export function planAutoConnections(project: { rooms: Room[]; electric: ElectricPoint[]; cables: Cable[] }): PlannedCable[] {
+export function planAutoConnections(
+  project: { rooms: Room[]; electric: ElectricPoint[]; cables: Cable[] },
+  only?: string[],
+): PlannedCable[] {
   const { rooms, electric, cables } = project
   const planned: PlannedCable[] = []
   const usedCircuits = new Set(cables.map(c => c.circuit))
@@ -166,7 +171,7 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
 
   for (const group of WIRING_GROUPS) {
     const points = electric.filter(p => group.kinds.includes(p.kind))
-    const pending = points.filter(p => !hasCable(p))
+    const pending = points.filter(p => !hasCable(p) && (!only || only.includes(p.id)))
     if (pending.length === 0) continue
 
     // kam se napojuje a smí se řetězit mezi body skupiny?
@@ -178,11 +183,16 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
 
     // Rozvaděč má přednost: když existuje, síť začíná jen jím a nové body se k němu řetězí. Už hotové kabely
     // (třeba okruh sporáku) se nepoužijí jako místo, kam se napojuje. Bez rozvaděče se napojuje na hotové body skupiny.
-    const network = [...targets, ...(chain && targets.length === 0 ? points.filter(hasCable) : [])]
+    // hotové body skupiny, na které lze navázat: mají kabel typu této skupiny (okruh sporáku 5x4 mezi zásuvky nepatří)
+    const wired = points.filter(p => cables.some(c => c.type === group.type && (c.fromId === p.id || c.toId === p.id)))
+    const network = [...targets, ...(chain ? wired : [])]
 
     // Při řetězení platí: body se spojují jen v rámci jedné místnosti a k rozvaděči se v každé místnosti napojí
     // přímo jen její nejbližší bod (ostatní se řetězí na body téže místnosti).
-    const roomsLinkedToBoard = new Set<string>()
+    const boardIds = new Set(boards.map(b => b.id))
+    const roomsLinkedToBoard = new Set<string>(
+      wired.filter(p => cables.some(c => c.type === group.type && ((c.fromId === p.id && boardIds.has(c.toId)) || (c.toId === p.id && boardIds.has(c.fromId))))).map(p => p.roomId),
+    )
     const allowed = (p: ElectricPoint, q: ElectricPoint) =>
       !chain || (q.kind === 'board' ? !roomsLinkedToBoard.has(p.roomId) : q.roomId === p.roomId)
 
