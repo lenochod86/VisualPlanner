@@ -2,11 +2,12 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { isDecor } from '../domain/furnitureCatalog'
-import type { CableType, FurnitureKind } from '../domain/types'
+import { systemOfLine, systemOfPoint } from '../domain/electricCatalog'
+import type { CableType, FurnitureKind, PipeType, PointKind } from '../domain/types'
 
 export type Selection = { type: 'room' | 'obstacle' | 'furniture' | 'electric' | 'cable'; id: string } | null
 /** Záložka v horní liště; určuje, jaké nástroje jsou v levém panelu. */
-export type Mode = 'plan' | 'equipment' | 'decor' | 'electro'
+export type Mode = 'plan' | 'equipment' | 'decor' | 'electro' | 'plumbing'
 export type Tool = 'select' | 'draw' | 'cable'
 /** Elektro ve 3D: skryté, zobrazené (zakryté zdmi a stropem), nebo "rentgen" (vidět skrz zdi, strop i nábytek). */
 export type ElectroView = 'off' | 'on' | 'xray'
@@ -29,6 +30,8 @@ interface UiState {
   cableStart: string | null
   /** Typ kabelu, který se vytvoří při dalším propojení. */
   cableType: CableType
+  /** Typ potrubí, které se vytvoří při dalším propojení v záložce Vodoinstalace. */
+  pipeType: PipeType
   /** Je 3D pohled rozbalený v pravém panelu? */
   show3d: boolean
   /** Je půdorys rozbalený? (sbaluje se doleva; aspoň jeden z panelů zůstane otevřený) */
@@ -47,6 +50,7 @@ interface UiState {
   setElectroView: (view: ElectroView) => void
   setCableStart: (id: string | null) => void
   setCableType: (type: CableType) => void
+  setPipeType: (type: PipeType) => void
   toggle3d: () => void
   togglePlan: () => void
   setHoveredWall: (wall: WallHighlight) => void
@@ -85,6 +89,7 @@ export const useUiStore = create<UiState>()(persist(set => ({
   electroView: 'on',
   cableStart: null,
   cableType: 'cyky-3x1.5',
+  pipeType: 'pipe-cold',
   show3d: true,
   showPlan: true,
   hoveredWall: null,
@@ -99,6 +104,7 @@ export const useUiStore = create<UiState>()(persist(set => ({
   setElectroView: electroView => set({ electroView }),
   setCableStart: cableStart => set({ cableStart }),
   setCableType: cableType => set({ cableType }),
+  setPipeType: pipeType => set({ pipeType }),
   toggle3d: () => set(s => (s.show3d && !s.showPlan ? s : { show3d: !s.show3d })),
   togglePlan: () => set(s => (s.showPlan && !s.show3d ? s : { showPlan: !s.showPlan })),
   setHoveredWall: hoveredWall => set({ hoveredWall }),
@@ -123,10 +129,16 @@ export const SELECTION_MODE: Record<NonNullable<Selection>['type'], Mode> = {
   cable: 'electro',
 }
 
-/** Záložka, která upravuje daný druh věci; u nábytku záleží na druhu (dekorace patří do záložky Dekorace). */
-export function modeOf(type: NonNullable<Selection>['type'], furnitureKind?: FurnitureKind): Mode {
-  return type === 'furniture' && furnitureKind && isDecor(furnitureKind) ? 'decor' : SELECTION_MODE[type]
+/** Druh konkrétní věci, podle kterého se pozná záložka: nábytek (dekorace), bod instalace (voda), vedení (potrubí). */
+export type ItemKind = { furniture?: FurnitureKind; point?: PointKind; line?: CableType }
+
+/** Záložka, která upravuje daný druh věci; u nábytku, bodů a vedení záleží na druhu (dekorace, voda). */
+export function modeOf(type: NonNullable<Selection>['type'], kind: ItemKind = {}): Mode {
+  if (type === 'furniture' && kind.furniture && isDecor(kind.furniture)) return 'decor'
+  if (type === 'electric' && kind.point && systemOfPoint(kind.point) === 'plumbing') return 'plumbing'
+  if (type === 'cable' && kind.line && systemOfLine(kind.line) === 'plumbing') return 'plumbing'
+  return SELECTION_MODE[type]
 }
 
-export const canEditInMode = (type: NonNullable<Selection>['type'], mode: Mode, furnitureKind?: FurnitureKind) =>
-  modeOf(type, furnitureKind) === mode
+export const canEditInMode = (type: NonNullable<Selection>['type'], mode: Mode, kind: ItemKind = {}) =>
+  modeOf(type, kind) === mode

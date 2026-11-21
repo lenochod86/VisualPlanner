@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { availablePages, buildPlanPages, PAGES, type PageKind } from '../../report/planSvg'
+import { availablePages, buildPlanPages, pageTitle, type PageKind } from '../../report/planSvg'
 import { downloadSvgPages, printPlan } from '../../report/printPlan'
 import { selectProject, useProjectStore } from '../../store/projectStore'
 
@@ -10,6 +10,8 @@ const PAGE_HINTS: Record<PageKind, string> = {
   plan: 'zdi, okna, dveře, názvy místností a kóty',
   equipment: 'nábytek a sanita, bez kót a názvů místností',
   electro: 'zásuvky, světla, rozvaděč a kabely',
+  plumbing: 'výtoky, odpady, přípojka, ohřívač a potrubí',
+  summary: 'soupis elektra, vodoinstalace a SDK profilů (CD, UD) s metrážemi',
 }
 
 /** Nabídka tisku: každá stránka (půdorys, vybavení, elektro) je samostatná. Tisk / PDF nebo stažení SVG. */
@@ -17,7 +19,7 @@ export function PrintMenu() {
   const [open, setOpen] = useState(false)
   const [excluded, setExcluded] = useState<PageKind[]>([])
   const [message, setMessage] = useState<string | null>(null)
-  const project = useProjectStore(useShallow(s => ({ furniture: s.furniture, electric: s.electric, cables: s.cables })))
+  const project = useProjectStore(useShallow(s => ({ rooms: s.rooms, furniture: s.furniture, electric: s.electric, cables: s.cables })))
 
   const available = availablePages(project)
   const chosen = available.filter(k => !excluded.includes(k))
@@ -33,12 +35,12 @@ export function PrintMenu() {
       {open && (
         <div className="print-popover">
           <strong>Stránky</strong>
-          {(['plan', 'equipment', 'electro'] as PageKind[]).map(kind => {
+          {(['plan', 'equipment', 'electro', 'plumbing', 'summary'] as PageKind[]).map(kind => {
             const exists = available.includes(kind)
             return (
               <label key={kind} className={exists ? '' : 'disabled'}>
                 <input type="checkbox" disabled={!exists} checked={exists && !excluded.includes(kind)} onChange={() => toggle(kind)} />
-                <span><b>{PAGES[kind].title}</b> <small>{exists ? PAGE_HINTS[kind] : 'zatím nic k vytištění'}</small></span>
+                <span><b>{pageTitle(kind)}</b> <small>{exists ? PAGE_HINTS[kind] : 'zatím nic k vytištění'}</small></span>
               </label>
             )
           })}

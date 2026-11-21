@@ -71,7 +71,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
       if (!ui.cableStart) { ui.setCableStart(id); return }
       if (ui.cableStart === id) return
       beginGesture() // vytvoření + trasování = jeden krok v undo
-      const cableId = useProjectStore.getState().addCable(ui.cableStart, id, ui.cableType)
+      const cableId = useProjectStore.getState().addCable(ui.cableStart, id, ui.mode === 'plumbing' ? ui.pipeType : ui.cableType)
       endGesture()
       ui.setCableStart(null)
       ui.setTool('select')

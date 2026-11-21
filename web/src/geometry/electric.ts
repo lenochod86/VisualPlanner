@@ -1,6 +1,6 @@
 // Elektro: poloha bodů, trasy kabelů, jejich automatické trasování a délka.
 import { BOARD_DEFAULT_SIZE, ELECTRIC_KINDS } from '../domain/electricCatalog'
-import type { Cable, CableType, ElectricKind, ElectricPoint, Pt, Room, Waypoint } from '../domain/types'
+import type { Cable, CableType, ElectricPoint, PipeType, PointKind, Pt, Room, Waypoint } from '../domain/types'
 import { ceilingLevel } from './ceiling'
 import { clamp, snap } from './math'
 import { frontRotation, nearestEdge, roomAt } from './placement'
@@ -88,11 +88,12 @@ export function runHeight(...rooms: (Room | undefined)[]): number {
 /**
  * Automatická trasa: z bodu svisle (ve zdi / ze stropu) do výšky vedení, pak vodorovně v pravých úhlech
  * (kolénko volíme tak, aby leželo uvnitř bytu) a svisle dolů ke koncovému bodu.
- * Výška vedení není nižší než koncové body: světlo na stropě je výš než běžné vedení 30 cm pod stropem a kabel
- * od něj nemá zbytečně klesat, vede se po stropě.
+ * Výška vedení není nižší než koncové body (`liftToEnds`): světlo na stropě je výš než běžné vedení 30 cm pod stropem
+ * a kabel od něj nemá zbytečně klesat, vede se po stropě. Potrubí se vede při podlaze a od výtoků jen stoupá, proto
+ * u něj se vypíná.
  */
-export function autoRoute(from: Pos3, to: Pos3, requestedRunZ: number, rooms: Room[]): Waypoint[] {
-  const runZ = Math.max(requestedRunZ, from.z, to.z)
+export function autoRoute(from: Pos3, to: Pos3, requestedRunZ: number, rooms: Room[], liftToEnds = true): Waypoint[] {
+  const runZ = liftToEnds ? Math.max(requestedRunZ, from.z, to.z) : requestedRunZ
   const route: Waypoint[] = [{ x: from.x, y: from.y, z: runZ }]
   if (from.x !== to.x && from.y !== to.y) {
     const inside = (p: Pt) => rooms.some(r => containsPoint(r.pts, p))
@@ -105,6 +106,11 @@ export function autoRoute(from: Pos3, to: Pos3, requestedRunZ: number, rooms: Ro
   // vynecháme body, které splývají s předchozím nebo s koncem trasy (např. světlo přímo ve výšce vedení)
   const sameAs = (a: Pos3, b: Pos3) => a.x === b.x && a.y === b.y && a.z === b.z
   return route.filter((p, i) => !sameAs(p, i === 0 ? from : route[i - 1]) && !(i === route.length - 1 && sameAs(p, to)))
+}
+
+/** Výška vedení potrubí (cm nad podlahou): voda při podlaze v podlaze a ve zdi, odpady nejníž ve spádu. Různé výšky, ať se potrubí nekříží v jedné rovině. */
+export const PIPE_RUN_HEIGHT: Record<PipeType, number> = {
+  'pipe-cold': 14, 'pipe-hot': 22, 'pipe-drain-50': 5, 'pipe-drain-110': 3,
 }
 
 // ---- automatické napojení ----
@@ -120,7 +126,7 @@ export interface PlannedCable {
 /** Role skupiny při napojování: vypínač, světlo, zásuvka. */
 type WiringRole = 'switch' | 'light' | 'socket'
 
-const WIRING_GROUPS: { role: WiringRole; kinds: ElectricKind[]; type: CableType; label: string }[] = [
+const WIRING_GROUPS: { role: WiringRole; kinds: PointKind[]; type: CableType; label: string }[] = [
   { role: 'switch', kinds: ['switch'], type: 'cyky-3x1.5', label: 'Osvětlení' },
   { role: 'light', kinds: ['light'], type: 'cyky-3x1.5', label: 'Světla' },
   { role: 'socket', kinds: ['socket', 'socket-double'], type: 'cyky-3x2.5', label: 'Zásuvky' },

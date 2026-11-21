@@ -105,10 +105,10 @@ describe('pevný bod: zrušení přichycení ke zdi', () => {
 describe('záložka Dekorace', () => {
   it('dekorace se upravují jen v záložce Dekorace, ostatní nábytek jen ve Vybavení', async () => {
     const { canEditInMode } = await import('./uiStore')
-    expect(canEditInMode('furniture', 'decor', 'shelf')).toBe(true)
-    expect(canEditInMode('furniture', 'equipment', 'shelf')).toBe(false)
-    expect(canEditInMode('furniture', 'equipment', 'sofa')).toBe(true)
-    expect(canEditInMode('furniture', 'decor', 'sofa')).toBe(false)
+    expect(canEditInMode('furniture', 'decor', { furniture: 'shelf' })).toBe(true)
+    expect(canEditInMode('furniture', 'equipment', { furniture: 'shelf' })).toBe(false)
+    expect(canEditInMode('furniture', 'equipment', { furniture: 'sofa' })).toBe(true)
+    expect(canEditInMode('furniture', 'decor', { furniture: 'sofa' })).toBe(false)
   })
 
   it('police a květiny jsou v katalogu s rozměry', () => {

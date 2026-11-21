@@ -21,17 +21,17 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
         placement.ts          poloha překážek a nábytku: připnutí ke zdi, tažení, otáčení
         openings.ts           otvory ve zdech pro okna a dveře
         ceiling.ts            výška podhledu, rastr profilů SDK
-        electric.ts           poloha elektro bodů, auto-trasování kabelů, délky
+        electric.ts           poloha bodů (elektro i voda), auto-trasování kabelů a potrubí, délky
         collisions.ts         kontrola nábytku: přesah do zdi, překrytí, výška, dveře
         doors.ts              otevírání dveří (závěs, směr, oblouk)
         distances.ts          vzdálenosti elektro bodů od zdí a okolí
       src/store/              Zustand: projectStore (data), uiStore (výběr, nástroj), history (undo/redo)
       src/api/                klient REST API
-      src/report/             bilance elektra (soupis, export CSV) a tisk: stránky Půdorys / Vybavení / Elektro (SVG v měřítku, tisk/PDF)
+      src/report/             bilance elektra a vody (soupis, export CSV), soupis SDK profilů a tisk: stránky Půdorys / Vybavení / Elektro / Vodoinstalace + závěrečný Soupis (SVG v měřítku, tisk/PDF)
       src/features/
         plan2d/               2D editor: viewport, tažení, vykreslení místností/překážek
         view3d/               3D scéna (react-three-fiber)
-        topbar/               horní lišta: záložky Půdorys / Vybavení / Elektro / Dekorace, zpět/znovu, export/import
+        topbar/               horní lišta: záložky Půdorys / Vybavení / Elektro / Vodoinstalace / Dekorace, zpět/znovu, export/import
         sidebar/              levý panel: nástroje podle záložky a vlastnosti vybraného
         interaction/          sdílená logika přesouvání věcí (2D i 3D)
         persistence/          načtení + automatické ukládání na server
@@ -56,4 +56,6 @@ Závislosti míří jedním směrem: `features → store → geometry/domain`; `
 
 ## Záložky
 Každá záložka upravuje jen svou vrstvu (v 2D, 3D, panelu i klávesnicí), ostatní jsou průsvitné a nereagují na myš:
-**Půdorys** (místnosti, stavební prvky), **Vybavení** (nábytek), **Elektro** (body a kabely), **Dekorace** (police, květiny, povrchy místností).
+**Půdorys** (místnosti, stavební prvky), **Vybavení** (nábytek), **Elektro** (body a kabely), **Vodoinstalace** (přípojka, ohřívač, výtoky, odpady a potrubí studené / teplé vody a odpadu), **Dekorace** (police, květiny, povrchy místností).
+10. [x] Vodoinstalace: body (přípojka, ohřívač, výtok, odpady DN50 / DN110, odpadní stoupačka) a potrubí (studená, teplá voda, odpady) s trasou při podlaze; sdílí s elektrem body a vedení, ale každá záložka upravuje jen svůj systém
+11. [x] Tisk: stránka Vodoinstalace a poslední stránka Soupis (elektro, voda, SDK profily CD a UD s metráží a počtem kusů po 3 m)

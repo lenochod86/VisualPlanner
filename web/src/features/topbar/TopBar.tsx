@@ -8,6 +8,7 @@ const TABS: { mode: Mode; label: string }[] = [
   { mode: 'plan', label: 'Půdorys' },
   { mode: 'equipment', label: 'Vybavení' },
   { mode: 'electro', label: 'Elektro' },
+  { mode: 'plumbing', label: 'Vodoinstalace' },
   { mode: 'decor', label: 'Dekorace' },
 ]
 

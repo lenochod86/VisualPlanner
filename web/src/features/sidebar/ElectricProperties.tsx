@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ELECTRIC_KINDS } from '../../domain/electricCatalog'
+import { ELECTRIC_KINDS, systemOfPoint } from '../../domain/electricCatalog'
 import type { ElectricPoint } from '../../domain/types'
 import { boardSize } from '../../geometry/electric'
 import { beginGesture, endGesture } from '../../store/history'
@@ -16,6 +16,7 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
   const { select, setTool, setCableStart } = useUiStore()
   const spec = ELECTRIC_KINDS[point.kind]
   const connected = cables.filter(c => c.fromId === point.id || c.toId === point.id)
+  const plumbing = systemOfPoint(point.kind) === 'plumbing'
   const isBoard = point.kind === 'board'
   const board = boardSize(point)
 
@@ -23,7 +24,7 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
     <section>
       <h2>{spec.label}</h2>
       <label className="field">Název
-        <input value={point.name} placeholder="např. TV, lednice" onFocus={beginGesture} onBlur={endGesture}
+        <input value={point.name} placeholder={plumbing ? 'např. umyvadlo, vana' : 'např. TV, lednice'} onFocus={beginGesture} onBlur={endGesture}
           onChange={e => updateElectric(point.id, { name: e.target.value })} />
       </label>
 
@@ -42,8 +43,8 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
         : <small>Světlo je na stropě (u SDK na desce podhledu).</small>}
       {isBoard && <small>Kabely se do rozvaděče připojují na jeho horní hraně.</small>}
 
-      <small>Připojené kabely: {connected.length}</small>
-      <button
+      <small>{plumbing ? 'Připojené potrubí' : 'Připojené kabely'}: {connected.length}</small>
+      {!plumbing && <button
         title={connected.length === 0
           ? 'Napojí bod podle pravidel (vypínač na rozvaděč, světlo na nejbližší vypínač, zásuvku v místnosti na rozvaděč nebo řetězově) a vytvoří trasu'
           : "Znovu automaticky vytvoří trasy kabelů tohoto bodu; ruční úpravy těchto tras zahodí"}
@@ -55,10 +56,10 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
         }}
       >
         {connected.length === 0 ? "Napojit automaticky" : "Přetrasovat automaticky"}
-      </button>
-      {result && <small>{result}</small>}
+      </button>}
+      {!plumbing && result && <small>{result}</small>}
       <div className="row">
-        <button onClick={() => { setTool('cable'); setCableStart(point.id) }}>Vést kabel odsud…</button>
+        <button onClick={() => { setTool('cable'); setCableStart(point.id) }}>{plumbing ? 'Vést potrubí odsud…' : 'Vést kabel odsud…'}</button>
         <button className="danger" onClick={() => { deleteElectric(point.id); select(null) }}>Smazat</button>
       </div>
     </section>

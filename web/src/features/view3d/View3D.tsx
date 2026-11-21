@@ -8,6 +8,7 @@ import { useFurnitureIssues } from '../../store/useFurnitureIssues'
 import { useWallModel } from '../../store/useWallModel'
 import { CeilingMesh } from './CeilingMesh'
 import { CableMesh, ElectricPointMesh } from './ElectricMesh'
+import { systemOfLine, systemOfPoint } from '../../domain/electricCatalog'
 import { isDecor } from '../../domain/furnitureCatalog'
 import { FurnitureMesh } from './FurnitureMesh'
 import { ObstacleMesh } from './ObstacleMesh'
@@ -29,6 +30,7 @@ function Scene() {
   const electroView = useUiStore(s => s.electroView)
   const mode = useUiStore(s => s.mode)
   const inElectroTab = mode === 'electro'
+  const inPlumbingTab = mode === 'plumbing'
   const wallOpacity = useUiStore(s => s.wallOpacity)
   const furnitureOpacity = useUiStore(s => s.furnitureOpacity)
   const ceilingView = useUiStore(s => s.ceilingView)
@@ -64,7 +66,7 @@ function Scene() {
         const room = rooms.find(r => r.id === item.roomId)
         return room && (
           <FurnitureMesh
-            key={item.id} furniture={item} room={room} walls={walls} opacity={(inElectroTab || (mode === 'decor' && !isDecor(item.kind)) || (mode === 'equipment' && isDecor(item.kind))) ? Math.min(furnitureOpacity, ELECTRO_TAB_FURNITURE_OPACITY) : furnitureOpacity}
+            key={item.id} furniture={item} room={room} walls={walls} opacity={(inElectroTab || inPlumbingTab || (mode === 'decor' && !isDecor(item.kind)) || (mode === 'equipment' && isDecor(item.kind))) ? Math.min(furnitureOpacity, ELECTRO_TAB_FURNITURE_OPACITY) : furnitureOpacity}
             selected={isSelected('furniture', item.id)}
             issue={issues.some(i => i.furnitureId === item.id)}
             onGrab={(e, center) => grab(e, { collection: 'furniture', id: item.id }, center)}
@@ -87,6 +89,8 @@ function Scene() {
           {electric.map(point => {
             // světla se ukazují jen v záložce Elektro; zásuvky, vypínače a rozvaděč jsou vidět vždy
             if (point.kind === 'light' && !inElectroTab) return null
+            // body vodoinstalace se ukazují jen v záložce Vodoinstalace
+            if (systemOfPoint(point.kind) === 'plumbing' && !inPlumbingTab) return null
             const room = rooms.find(r => r.id === point.roomId)
             return room && (
               <ElectricPointMesh
@@ -96,8 +100,8 @@ function Scene() {
               />
             )
           })}
-          {/* vedení (kabely) se ukazuje jen v záložce Elektro */}
-          {inElectroTab && cables.map(cable => {
+          {/* vedení se ukazuje jen ve své záložce: kabely v Elektro, potrubí ve Vodoinstalaci */}
+          {cables.filter(c => (systemOfLine(c.type) === 'plumbing' ? inPlumbingTab : inElectroTab)).map(cable => {
             const polyline = cablePolyline(cable, electric, rooms)
             return polyline && (
               <CableMesh key={cable.id} cable={cable} polyline={polyline} xray={electroView === 'xray'}

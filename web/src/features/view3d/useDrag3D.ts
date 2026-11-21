@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import type { Pt } from '../../domain/types'
 import { dragTargetTo, type DragTarget } from '../interaction/dragTargets'
 import { beginGesture, endGesture } from '../../store/history'
-import { canEditInMode, useUiStore, type Selection } from '../../store/uiStore'
+import { canEditInMode, useUiStore, type ItemKind, type Selection } from '../../store/uiStore'
 import { useProjectStore } from '../../store/projectStore'
 
 const SELECTION_TYPE: Record<DragTarget['collection'], NonNullable<Selection>['type']> = {
@@ -39,9 +39,13 @@ export function useDrag3D(): GrabHandler {
 
   return useCallback<GrabHandler>((e, target, center) => {
     if (e.nativeEvent.button !== 0) return        // pravé / prostřední tlačítko patří kameře
-    // Každá záložka edituje jen svou vrstvu (okna a dveře Půdorys, nábytek Vybavení, elektro Elektro);
+    // Každá záložka edituje jen svou vrstvu (okna a dveře Půdorys, nábytek Vybavení, elektro Elektro, potrubí Vodoinstalace);
     // jinde se objekt nechytí a pohyb myši patří kameře.
-    const kind = target.collection === 'furniture' ? useProjectStore.getState().furniture.find(f => f.id === target.id)?.kind : undefined
+    const project = useProjectStore.getState()
+    const kind: ItemKind =
+      target.collection === 'furniture' ? { furniture: project.furniture.find(f => f.id === target.id)?.kind }
+      : target.collection === 'electric' ? { point: project.electric.find(p => p.id === target.id)?.kind }
+      : {}
     if (!canEditInMode(SELECTION_TYPE[target.collection], useUiStore.getState().mode, kind)) return
     // Objekt za zdí není vidět, takže ho nechytíme a pohyb myši patří kameře. Výjimkou je elektro v režimu
     // "rentgen": ten se kreslí přes zdi, tedy je vidět a jde chytit.

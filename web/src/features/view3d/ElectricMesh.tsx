@@ -49,6 +49,28 @@ export function ElectricPointMesh({ point, room, xray, selected, onGrab }: Point
           <boxGeometry args={[board.w, board.h, board.d]} /><Material color="#9aa5b1" xray={xray} />
         </mesh>
       )}
+      {/* vodoinstalace: výtok (baterie), přípojka s vodoměrem, ohřívač a odpady; lokální osa z míří od zdi do místnosti */}
+      {point.kind === 'tap' && (
+        <>
+          <mesh position={[0, 0, 2.5]} rotation={[Math.PI / 2, 0, 0]} renderOrder={order}><cylinderGeometry args={[1.3, 1.3, 5, 12]} /><Material color="#b9c4d0" xray={xray} /></mesh>
+          <mesh position={[0, 0, 0.6]} rotation={[Math.PI / 2, 0, 0]} renderOrder={order}><cylinderGeometry args={[2.4, 2.4, 1.2, 16]} /><Material color="#2f80ed" xray={xray} /></mesh>
+        </>
+      )}
+      {point.kind === 'water-main' && (
+        <>
+          <mesh position={[0, 0, 4]} renderOrder={order}><boxGeometry args={[12, 8, 8]} /><Material color="#2f80ed" xray={xray} /></mesh>
+          <mesh position={[0, 0, 8.4]} rotation={[Math.PI / 2, 0, 0]} renderOrder={order}><cylinderGeometry args={[3.2, 3.2, 1, 16]} /><Material color="#e8ecef" xray={xray} /></mesh>
+        </>
+      )}
+      {point.kind === 'boiler' && (
+        <mesh position={[0, 0, 14]} renderOrder={order}><cylinderGeometry args={[12, 12, 45, 24]} /><Material color="#e8ecef" xray={xray} /></mesh>
+      )}
+      {(point.kind === 'drain' || point.kind === 'drain-wc' || point.kind === 'sewer') && (
+        <mesh position={[0, 0, 1]} rotation={[Math.PI / 2, 0, 0]} renderOrder={order}>
+          <cylinderGeometry args={point.kind === 'drain' ? [2.5, 2.5, 2, 16] : point.kind === 'drain-wc' ? [5.5, 5.5, 2, 20] : [6, 6, 2.5, 20]} />
+          <Material color={point.kind === 'drain' ? '#8d8f93' : point.kind === 'drain-wc' ? '#5d6066' : '#4a4d52'} xray={xray} />
+        </mesh>
+      )}
       {point.kind === 'light' && (
         <mesh position={[0, -1.5, 0]} renderOrder={order}>
           <cylinderGeometry args={[12, 12, 3, 24]} />

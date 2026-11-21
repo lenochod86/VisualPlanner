@@ -1,5 +1,5 @@
 import { CABLE_RESERVE } from '../../config'
-import { CABLE_TYPES } from '../../domain/electricCatalog'
+import { CABLE_TYPES, lineTypesOf, systemOfLine } from '../../domain/electricCatalog'
 import type { Cable, CableType } from '../../domain/types'
 import { cablePolyline, polylineLength } from '../../geometry/electric'
 import { beginGesture, endGesture } from '../../store/history'
@@ -11,6 +11,7 @@ export function CableProperties({ cable }: { cable: Cable }) {
   const store = useProjectStore()
   const select = useUiStore(s => s.select)
   const polyline = cablePolyline(cable, store.electric, store.rooms)
+  const plumbing = systemOfLine(cable.type) === 'plumbing'
   const length = polyline ? polylineLength(polyline) / 100 : 0   // v metrech
   const name = (id: string) => {
     const p = store.electric.find(x => x.id === id)
@@ -19,22 +20,22 @@ export function CableProperties({ cable }: { cable: Cable }) {
 
   return (
     <section>
-      <h2>Kabel</h2>
+      <h2>{plumbing ? 'Potrubí' : 'Kabel'}</h2>
       <small>{name(cable.fromId)} → {name(cable.toId)}</small>
       <label className="field">Typ
         <select value={cable.type} onChange={e => store.updateCable(cable.id, { type: e.target.value as CableType })}>
-          {(Object.keys(CABLE_TYPES) as CableType[]).map(t => <option key={t} value={t}>{CABLE_TYPES[t].label}</option>)}
+          {lineTypesOf(systemOfLine(cable.type)).map(t => <option key={t} value={t}>{CABLE_TYPES[t].label}</option>)}
         </select>
       </label>
-      <label className="field">Okruh
+      <label className="field">{plumbing ? 'Rozvod' : 'Okruh'}
         <input value={cable.circuit} onFocus={beginGesture} onBlur={endGesture}
           onChange={e => store.updateCable(cable.id, { circuit: e.target.value })} />
       </label>
       <div className="total"><span>Délka trasy</span><strong>{length.toFixed(2).replace('.', ',')} m</strong></div>
-      <div className="total"><span>S rezervou 10 %</span><strong>{(length * CABLE_RESERVE).toFixed(2).replace('.', ',')} m</strong></div>
+      {!plumbing && <div className="total"><span>S rezervou 10 %</span><strong>{(length * CABLE_RESERVE).toFixed(2).replace('.', ',')} m</strong></div>}
 
       <h2>Body trasy (x, y, výška v cm)</h2>
-      {cable.via.length === 0 && <small>Kabel vede přímo. Tažením za „+“ na trase v půdorysu přidáte bod.</small>}
+      {cable.via.length === 0 && <small>{plumbing ? 'Potrubí' : 'Kabel'} vede přímo. Tažením za „+“ na trase v půdorysu přidáte bod.</small>}
       <div className="waypoints">
         {cable.via.map((w, i) => (
           <div key={i} className="waypoint-row">
@@ -49,7 +50,7 @@ export function CableProperties({ cable }: { cable: Cable }) {
 
       <div className="row">
         <button onClick={() => store.rerouteCable(cable.id)} title="Zahodí ruční úpravy trasy">Přetrasovat automaticky</button>
-        <button className="danger" onClick={() => { store.deleteCable(cable.id); select(null) }}>Smazat kabel</button>
+        <button className="danger" onClick={() => { store.deleteCable(cable.id); select(null) }}>{plumbing ? 'Smazat potrubí' : 'Smazat kabel'}</button>
       </div>
     </section>
   )

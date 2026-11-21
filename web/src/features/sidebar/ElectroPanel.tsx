@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { CABLE_TYPES, ELECTRIC_KINDS } from '../../domain/electricCatalog'
-import type { CableType, ElectricKind } from '../../domain/types'
+import { CABLE_TYPES, ELECTRIC_KINDS, kindsOf, lineTypesOf } from '../../domain/electricCatalog'
+import type { CableType } from '../../domain/types'
 import { beginGesture, endGesture } from '../../store/history'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
@@ -10,7 +10,7 @@ import { useTargetRoomId } from './useTargetRoomId'
 export function ElectroPanel() {
   const targetRoomId = useTargetRoomId()
   const addElectric = useProjectStore(s => s.addElectric)
-  const electricCount = useProjectStore(s => s.electric.length)
+  const electricCount = useProjectStore(s => s.electric.filter(p => ELECTRIC_KINDS[p.kind].system === 'electro').length)
   const autoConnectAndRerouteAll = useProjectStore(s => s.autoConnectAndRerouteAll)
   const [result, setResult] = useState<string | null>(null)
   const { tool, cableStart, cableType, select, setTool, setCableStart, setCableType } = useUiStore()
@@ -20,7 +20,7 @@ export function ElectroPanel() {
     <section>
       <h2>Elektro</h2>
       <div className="row">
-        {(Object.keys(ELECTRIC_KINDS) as ElectricKind[]).map(kind => (
+        {kindsOf('electro').map(kind => (
           <button
             key={kind} disabled={!targetRoomId}
             onClick={() => {
@@ -36,7 +36,7 @@ export function ElectroPanel() {
 
       <label className="field">Typ kabelu
         <select value={cableType} onChange={e => setCableType(e.target.value as CableType)}>
-          {(Object.keys(CABLE_TYPES) as CableType[]).map(t => <option key={t} value={t}>{CABLE_TYPES[t].label}</option>)}
+          {lineTypesOf('electro').map(t => <option key={t} value={t}>{CABLE_TYPES[t].label}</option>)}
         </select>
       </label>
       <div className="row">

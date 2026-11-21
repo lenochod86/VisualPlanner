@@ -1,12 +1,13 @@
 import { useProjectStore } from '../../store/projectStore'
 import { canEditInMode, useUiStore } from '../../store/uiStore'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
-import { ELECTRIC_KINDS } from '../../domain/electricCatalog'
+import { ELECTRIC_KINDS, systemOfLine, systemOfPoint } from '../../domain/electricCatalog'
 import { FURNITURE_KINDS, isDecor } from '../../domain/furnitureCatalog'
 import { CableProperties } from './CableProperties'
 import { ElectricProperties } from './ElectricProperties'
 import { ElectroReport } from './ElectroReport'
 import { ElectroPanel } from './ElectroPanel'
+import { PlumbingPanel } from './PlumbingPanel'
 import { DecorPanel } from './DecorPanel'
 import { FlatSummary } from './FlatSummary'
 import { FurnitureProperties } from './FurnitureProperties'
@@ -46,6 +47,7 @@ export function Sidebar() {
       {mode === 'equipment' && <FurnitureIssues />}
       {mode === 'decor' && <DecorPanel />}
       {mode === 'electro' && <ElectroPanel />}
+      {mode === 'plumbing' && <PlumbingPanel />}
 
       {/* Každá záložka upravuje jen svou vrstvu; vybranou věc z jiné záložky panel jen pojmenuje a řekne, kde se upravuje. */}
       {room && (canEditInMode('room', mode)
@@ -54,18 +56,19 @@ export function Sidebar() {
       {obstacle && (canEditInMode('obstacle', mode)
         ? <ObstacleProperties obstacle={obstacle} />
         : <LockedNote title={OBSTACLE_KINDS[obstacle.kind].label} where='Půdorys' />)}
-      {furniture && (canEditInMode('furniture', mode, furniture.kind)
+      {furniture && (canEditInMode('furniture', mode, { furniture: furniture.kind })
         ? <FurnitureProperties furniture={furniture} />
         : <LockedNote title={FURNITURE_KINDS[furniture.kind].label} where={isDecor(furniture.kind) ? 'Dekorace' : 'Vybavení'} />)}
-      {electric && (canEditInMode('electric', mode)
+      {electric && (canEditInMode('electric', mode, { point: electric.kind })
         ? <ElectricProperties point={electric} />
-        : <LockedNote title={ELECTRIC_KINDS[electric.kind].label} where='Elektro' />)}
-      {cable && (canEditInMode('cable', mode)
+        : <LockedNote title={ELECTRIC_KINDS[electric.kind].label} where={systemOfPoint(electric.kind) === 'plumbing' ? 'Vodoinstalace' : 'Elektro'} />)}
+      {cable && (canEditInMode('cable', mode, { line: cable.type })
         ? <CableProperties cable={cable} />
-        : <LockedNote title="Kabel" where='Elektro' />)}
+        : <LockedNote title={systemOfLine(cable.type) === 'plumbing' ? 'Potrubí' : 'Kabel'} where={systemOfLine(cable.type) === 'plumbing' ? 'Vodoinstalace' : 'Elektro'} />)}
 
       {mode === 'plan' && <FlatSummary />}
       {mode === 'electro' && <ElectroReport />}
+      {mode === 'plumbing' && <ElectroReport system='plumbing' />}
 
       <small className="hint">
         Táhni stěnu = změna rozměru. Klik na číslo = zadání rozměru. Kolečko = zoom, tažení pozadí = posun.

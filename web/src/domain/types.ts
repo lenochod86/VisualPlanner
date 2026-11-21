@@ -105,12 +105,19 @@ export interface Project {
 }
 
 export type ElectricKind = 'socket' | 'socket-double' | 'switch' | 'light' | 'board'
+/** Body vodoinstalace: přípojka, zdroj teplé vody, výtok (baterie), odpady a napojení na odpadní stoupačku. */
+export type PlumbingKind = 'water-main' | 'boiler' | 'tap' | 'drain' | 'drain-wc' | 'sewer'
+/** Druh bodu v kolekci `electric`: elektro nebo vodoinstalace (viz `system` v katalogu). */
+export type PointKind = ElectricKind | PlumbingKind
 
-/** Elektroinstalační bod: zásuvka, vypínač, rozvaděč (na zdi) nebo světlo (na stropě). */
+/**
+ * Bod instalace: zásuvka, vypínač, rozvaděč (na zdi), světlo (na stropě), nebo bod vodoinstalace (výtok, odpad…).
+ * Elektro i voda sdílejí jednu kolekci, protože se s nimi zachází stejně (poloha na zdi, tažení, spojování).
+ */
 export interface ElectricPoint {
   id: string
   roomId: string
-  kind: ElectricKind
+  kind: PointKind
   name: string
   /** Poloha v půdorysu; platí u stropních bodů (světlo). Nástěnné body se počítají ze stěny. */
   x: number
@@ -125,12 +132,16 @@ export interface ElectricPoint {
   d?: number
 }
 
-export type CableType = 'cyky-3x1.5' | 'cyky-3x2.5' | 'cyky-5x1.5' | 'cyky-5x2.5' | 'cyky-5x4'
+export type ElectricCableType = 'cyky-3x1.5' | 'cyky-3x2.5' | 'cyky-5x1.5' | 'cyky-5x2.5' | 'cyky-5x4'
+/** Potrubí: studená, teplá voda a odpady. */
+export type PipeType = 'pipe-cold' | 'pipe-hot' | 'pipe-drain-50' | 'pipe-drain-110'
+/** Vedení mezi dvěma body: kabel (elektro) nebo potrubí (voda, odpad). */
+export type CableType = ElectricCableType | PipeType
 
 /** Bod trasy kabelu v prostoru (x, y v půdorysu, z = výška nad podlahou). */
 export interface Waypoint { x: number; y: number; z: number }
 
-/** Kabel mezi dvěma body. `via` jsou mezilehlé body trasy (editovatelné); konce se berou z bodů `fromId` a `toId`. */
+/** Kabel nebo potrubí mezi dvěma body. `via` jsou mezilehlé body trasy (editovatelné); konce se berou z bodů `fromId` a `toId`. */
 export interface Cable {
   id: string
   type: CableType

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
+import { systemOfLine, systemOfPoint, type System } from '../../domain/electricCatalog'
 import { isDecor } from '../../domain/furnitureCatalog'
 import type { Placed } from '../../domain/types'
 import { electricDistances } from '../../geometry/distances'
@@ -49,11 +50,16 @@ export function Plan2D() {
 
   // Každá záložka upravuje svou vrstvu: ostatní jsou průsvitné a nereagují na myš, aby nepřekážely.
   // Půdorys = místnosti (nábytek i elektro jen slabě prosvítá), Vybavení = nábytek, Elektro = elektro (nábytek prosvítá).
-  const furnitureLayer = mode === 'equipment' ? LAYER_ACTIVE : mode === 'electro' || mode === 'decor' ? LAYER_DIMMED : LAYER_FAINT
+  const furnitureLayer = mode === 'equipment' ? LAYER_ACTIVE : mode === 'electro' || mode === 'plumbing' || mode === 'decor' ? LAYER_DIMMED : LAYER_FAINT
   // dekorace (police, květiny) mají vlastní vrstvu: aktivní jen v záložce Dekorace
   const decorLayer = mode === 'decor' ? LAYER_ACTIVE : mode === 'plan' ? LAYER_FAINT : LAYER_DIMMED
   const electroLayer = mode === 'electro' ? LAYER_ACTIVE : mode === 'equipment' ? LAYER_DIMMED : LAYER_FAINT
+  // vodoinstalace má vlastní vrstvu: aktivní jen v záložce Vodoinstalace, jinde slabě prosvítá
+  const plumbingLayer = mode === 'plumbing' ? LAYER_ACTIVE : mode === 'equipment' ? LAYER_DIMMED : LAYER_FAINT
+  const layerOf = (system: System) => (system === 'electro' ? electroLayer : plumbingLayer)
   const editableRooms = mode === 'plan'
+  const activeSystem: System = mode === 'plumbing' ? 'plumbing' : 'electro'
+  const inactiveSystem: System = mode === 'plumbing' ? 'electro' : 'plumbing'
 
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -70,7 +76,7 @@ export function Plan2D() {
   // Vybraná věc na zdi dostane úchyty pro změnu šířky.
   const selectedObstacle = selection?.type === 'obstacle' && canEditInMode('obstacle', mode) ? obstacles.find(o => o.id === selection.id) : undefined
   const selectedFurnitureAny = selection?.type === 'furniture' ? furniture.find(f => f.id === selection.id) : undefined
-  const selectedFurniture = selectedFurnitureAny && canEditInMode('furniture', mode, selectedFurnitureAny.kind) ? selectedFurnitureAny : undefined
+  const selectedFurniture = selectedFurnitureAny && canEditInMode('furniture', mode, { furniture: selectedFurnitureAny.kind }) ? selectedFurnitureAny : undefined
   const handleItem: (Placed & { inWall: boolean; collection: 'obstacles' | 'furniture' }) | undefined =
     selectedObstacle ? { ...selectedObstacle, inWall: OBSTACLE_KINDS[selectedObstacle.kind].inWall, collection: 'obstacles' }
     : selectedFurniture ? { ...selectedFurniture, inWall: false, collection: 'furniture' }
@@ -104,9 +110,9 @@ export function Plan2D() {
       <g {...layerProps(decorLayer)}>{renderFurniture(furniture.filter(f => isDecor(f.kind)))}</g>
     </>
   )
-  const cablesJsxFor = (part: 'all' | 'hit' | 'top') => (
-        <g {...layerProps(electroLayer)}>
-        {cables.map(cable => {
+  const cablesJsxFor = (part: 'all' | 'hit' | 'top', system: System) => (
+        <g {...layerProps(layerOf(system))}>
+        {cables.filter(c => systemOfLine(c.type) === system).map(cable => {
           const polyline = cablePolyline(cable, electric, rooms)
           if (!polyline) return null
           return (
@@ -121,7 +127,6 @@ export function Plan2D() {
         })}
         </g>
   )
-  const cablesJsx = cablesJsxFor('all')
   const labelsJsx = (
     <>
         {rooms.map(room => (
@@ -149,9 +154,9 @@ export function Plan2D() {
         })}
     </g>
   )
-  const pointsJsx = (
-        <g {...layerProps(electroLayer)}>
-        {electric.map(point => {
+  const pointsJsxFor = (system: System) => (
+        <g {...layerProps(layerOf(system))}>
+        {electric.filter(p => systemOfPoint(p.kind) === system).map(point => {
           const room = rooms.find(r => r.id === point.roomId)
           if (!room) return null
           return (
@@ -195,9 +200,10 @@ export function Plan2D() {
         {/* V záložce Elektro je elektro úplně nahoře, nad stoupačkami, dveřmi i popisky, ať se nic neschová: viditelné čáry kabelů
             a jejich úchyty jsou nad elektro body (nad rozvaděčem), jen plocha pro kliknutí na kabel zůstává pod body.
             Jinak jsou popisky nad nábytkem a okna, dveře a elektro body ještě výš, ať jdou vždy chytit. */}
-        {mode === 'electro'
-          ? <>{labelsJsx}{obstaclesJsx}{cablesJsxFor('hit')}{pointsJsx}{cablesJsxFor('top')}</>
-          : <>{cablesJsx}{labelsJsx}{obstaclesJsx}{pointsJsx}</>}
+        {/* v záložce Elektro / Vodoinstalace je aktivní instalace nahoře; druhá prosvítá pod ní */}
+        {mode === 'electro' || mode === 'plumbing'
+          ? <>{cablesJsxFor('all', inactiveSystem)}{labelsJsx}{obstaclesJsx}{pointsJsxFor(inactiveSystem)}{cablesJsxFor('hit', activeSystem)}{pointsJsxFor(activeSystem)}{cablesJsxFor('top', activeSystem)}</>
+          : <>{cablesJsxFor('all', 'plumbing')}{cablesJsxFor('all', 'electro')}{labelsJsx}{obstaclesJsx}{pointsJsxFor('plumbing')}{pointsJsxFor('electro')}</>}
 
 
         {/* vzdálenosti vybraného elektro bodu od zdí a okolí (jen v záložce Elektro) */}

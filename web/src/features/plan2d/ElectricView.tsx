@@ -1,7 +1,18 @@
 import type { PointerEvent } from 'react'
 import { ELECTRIC_KINDS } from '../../domain/electricCatalog'
+import type { PlumbingKind } from '../../domain/types'
 import type { ElectricPoint, Room } from '../../domain/types'
 import { boardSize, electricPosition } from '../../geometry/electric'
+
+/** Značky bodů vodoinstalace: barva výplně a písmeno uvnitř. */
+const PLUMBING_SYMBOL: Record<PlumbingKind, { fill: string; text: string }> = {
+  'water-main': { fill: '#cfe3fb', text: 'V' },
+  boiler: { fill: '#f9d3cf', text: 'B' },
+  tap: { fill: '#cfe3fb', text: 'T' },
+  drain: { fill: '#dcdcdc', text: 'O' },
+  'drain-wc': { fill: '#dcdcdc', text: 'WC' },
+  sewer: { fill: '#bfc2c7', text: 'S' },
+}
 
 interface Props {
   point: ElectricPoint
@@ -50,6 +61,13 @@ export function ElectricView({ point, room, selected, pending, k, onPointerDown 
           <circle cx={0} cy={0} r={r} {...line} />
           <line x1={-r * 0.7} y1={-r * 0.7} x2={r * 0.7} y2={r * 0.7} stroke={stroke} strokeWidth={1.2 * k} />
           <line x1={-r * 0.7} y1={r * 0.7} x2={r * 0.7} y2={-r * 0.7} stroke={stroke} strokeWidth={1.2 * k} />
+        </>
+      )}
+      {point.kind in PLUMBING_SYMBOL && (
+        <>
+          <circle cx={0} cy={r} r={r} {...line} fill={PLUMBING_SYMBOL[point.kind as PlumbingKind].fill} />
+          <text x={0} y={r} textAnchor="middle" dominantBaseline="central" fontSize={r * (point.kind === 'drain-wc' ? 1 : 1.3)}
+            fill={stroke} pointerEvents="none">{PLUMBING_SYMBOL[point.kind as PlumbingKind].text}</text>
         </>
       )}
       {point.kind === 'board' && (

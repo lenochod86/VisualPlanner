@@ -2,15 +2,15 @@
 import { create } from 'zustand'
 import { DEFAULT_ROOM_HEIGHT, DEFAULT_WALL_THICKNESS, MAX_WALL, MIN_WALL } from '../config'
 import { OBSTACLE_KINDS, ROOM_TYPES } from '../domain/catalog'
-import { ELECTRIC_KINDS } from '../domain/electricCatalog'
+import { ELECTRIC_KINDS, systemOfLine, systemOfPoint } from '../domain/electricCatalog'
 import { FURNITURE_KINDS } from '../domain/furnitureCatalog'
 import { DEFAULT_CEILING, DEFAULT_WALL_MATERIAL } from '../domain/materials'
 import { createInitialProject } from '../domain/project'
 import type {
-  Cable, CableType, ElectricKind, ElectricPoint, Furniture, FurnitureKind, Obstacle, ObstacleKind, Placed, Project, Rect,
+  Cable, CableType, ElectricPoint, Furniture, FurnitureKind, Obstacle, ObstacleKind, PipeType, Placed, PointKind, Project, Rect,
   Room, RoomShape, WallMode, Waypoint,
 } from '../domain/types'
-import { autoRoute, cablePolyline, planAutoConnections, runHeight } from '../geometry/electric'
+import { autoRoute, cablePolyline, PIPE_RUN_HEIGHT, planAutoConnections, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
 import { clamp } from '../geometry/math'
 import { resolvePlacement, rotatedPatch } from '../geometry/placement'
@@ -50,7 +50,7 @@ interface ProjectState extends Project {
   deleteFurniture: (id: string) => void
 
   /** Přidá elektrický bod do místnosti (nástěnný uprostřed první stěny, světlo uprostřed místnosti). */
-  addElectric: (kind: ElectricKind, roomId: string) => string | null
+  addElectric: (kind: PointKind, roomId: string) => string | null
   updateElectric: (id: string, patch: Partial<ElectricPoint>) => void
   /** Smaže bod i všechny kabely, které do něj vedou. */
   deleteElectric: (id: string) => void
@@ -269,8 +269,13 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   addCable: (fromId, toId, type) => {
     if (fromId === toId) return null
+    // spojuje se jen v rámci jednoho systému: kabel elektro body, potrubí body vodoinstalace
+    const system = systemOfLine(type)
+    const ends = [fromId, toId].map(id => get().electric.find(p => p.id === id))
+    if (ends.some(p => !p || systemOfPoint(p.kind) !== system)) return null
+    const sameSystem = get().cables.filter(c => systemOfLine(c.type) === system).length
     const cable: Cable = {
-      id: newId(), type, circuit: `Okruh ${get().cables.length + 1}`, fromId, toId, via: [],
+      id: newId(), type, circuit: system === 'plumbing' ? `Rozvod ${sameSystem + 1}` : `Okruh ${sameSystem + 1}`, fromId, toId, via: [],
     }
     set(s => ({ cables: [...s.cables, cable] }))
     get().rerouteCable(cable.id)
@@ -288,7 +293,9 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const polyline = cable && cablePolyline({ ...cable, via: [] }, electric, rooms)
     if (!cable || !polyline) return
     const roomOf = (pointId: string) => rooms.find(r => r.id === electric.find(p => p.id === pointId)?.roomId)
-    const via = autoRoute(polyline[0], polyline[1], runHeight(roomOf(cable.fromId), roomOf(cable.toId)), rooms)
+    const via = systemOfLine(cable.type) === 'plumbing'
+      ? autoRoute(polyline[0], polyline[1], PIPE_RUN_HEIGHT[cable.type as PipeType], rooms, false)
+      : autoRoute(polyline[0], polyline[1], runHeight(roomOf(cable.fromId), roomOf(cable.toId)), rooms)
     get().updateCable(id, { via })
   },
 
@@ -309,7 +316,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       const id = get().addCable(wire.fromId, wire.toId, wire.type)
       if (id) get().updateCable(id, { circuit: wire.circuit })
     }
-    const all = get().cables
+    const all = get().cables.filter(c => systemOfLine(c.type) === 'electro')   // potrubí se nepřetrasovává
     all.forEach(c => get().rerouteCable(c.id))
     return { added: planned.length, rerouted: all.length }
   },

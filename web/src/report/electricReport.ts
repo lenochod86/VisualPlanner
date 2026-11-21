@@ -1,11 +1,11 @@
-// Bilance elektroinstalace: kolik je kterých bodů, kolik metrů kterého kabelu a po okruzích.
+// Bilance instalace (elektro i vodoinstalace): kolik je kterých bodů, kolik metrů kterého vedení a po okruzích / rozvodech.
 // Čisté funkce nad projektem (žádné UI), aby šly testovat a použít pro export.
 import { CABLE_RESERVE } from '../config'
-import { CABLE_TYPES, ELECTRIC_KINDS } from '../domain/electricCatalog'
-import type { CableType, ElectricKind, Project } from '../domain/types'
+import { CABLE_TYPES, ELECTRIC_KINDS, kindsOf, systemOfLine, systemOfPoint, type System } from '../domain/electricCatalog'
+import type { CableType, PointKind, Project } from '../domain/types'
 import { cablePolyline, polylineLength } from '../geometry/electric'
 
-type KindCounts = Record<ElectricKind, number>
+type KindCounts = Record<PointKind, number>
 
 export interface RoomRow { room: string; counts: KindCounts }
 export interface CircuitRow { circuit: string; types: CableType[]; cables: number; lengthM: number }
@@ -18,6 +18,7 @@ export interface TypeRow {
 }
 
 export interface ElectricReport {
+  system: System
   rooms: RoomRow[]
   totals: KindCounts
   circuits: CircuitRow[]
@@ -25,12 +26,17 @@ export interface ElectricReport {
   totalLengthM: number
 }
 
-const NO_CIRCUIT = '(bez okruhu)'
-const emptyCounts = (): KindCounts => ({ socket: 0, 'socket-double': 0, switch: 0, board: 0, light: 0 })
-const kinds = Object.keys(ELECTRIC_KINDS) as ElectricKind[]
+const NO_CIRCUIT = '(bez označení)'
+const emptyCounts = (): KindCounts =>
+  Object.fromEntries((Object.keys(ELECTRIC_KINDS) as PointKind[]).map(k => [k, 0])) as KindCounts
 
-export function buildElectricReport(project: Pick<Project, 'rooms' | 'electric' | 'cables'>): ElectricReport {
-  const { rooms, electric, cables } = project
+/** Bilance jednoho systému (výchozí elektro); body a vedení druhého systému se nepočítají. */
+export function buildElectricReport(
+  project: Pick<Project, 'rooms' | 'electric' | 'cables'>, system: System = 'electro',
+): ElectricReport {
+  const { rooms } = project
+  const electric = project.electric.filter(p => systemOfPoint(p.kind) === system)
+  const cables = project.cables.filter(c => systemOfLine(c.type) === system)
 
   // body podle místností
   const roomRows = rooms.map(room => ({ room: room.name, counts: emptyCounts() }))
@@ -64,6 +70,7 @@ export function buildElectricReport(project: Pick<Project, 'rooms' | 'electric' 
   const typeRows = [...types.values()].map(t => ({ ...t, orderM: Math.ceil(t.lengthM * CABLE_RESERVE) }))
 
   return {
+    system,
     rooms: roomRows,
     totals,
     circuits: [...circuits.values()].sort((a, b) => a.circuit.localeCompare(b.circuit, 'cs', { numeric: true })),
@@ -80,21 +87,23 @@ const cell = (value: string | number) => {
 
 /** CSV pro české Excely: oddělovač středník, desetinná čárka, na začátku BOM kvůli diakritice. */
 export function reportToCsv(report: ElectricReport): string {
+  const kinds = kindsOf(report.system)
+  const plumbing = report.system === 'plumbing'
   const line = (...cells: (string | number)[]) => cells.map(cell).join(';')
   const rows: string[] = [
-    line('Soupis elektroinstalace'),
+    line(plumbing ? 'Soupis vodoinstalace' : 'Soupis elektroinstalace'),
     '',
     line('Body podle místností'),
     line('Místnost', ...kinds.map(k => ELECTRIC_KINDS[k].label)),
     ...report.rooms.map(r => line(r.room, ...kinds.map(k => r.counts[k]))),
     line('Celkem', ...kinds.map(k => report.totals[k])),
     '',
-    line('Okruhy'),
-    line('Okruh', 'Typ kabelu', 'Počet kabelů', 'Délka [m]'),
+    line(plumbing ? 'Rozvody' : 'Okruhy'),
+    line(plumbing ? 'Rozvod' : 'Okruh', plumbing ? 'Typ potrubí' : 'Typ kabelu', plumbing ? 'Počet úseků' : 'Počet kabelů', 'Délka [m]'),
     ...report.circuits.map(c => line(c.circuit, c.types.map(t => CABLE_TYPES[t].label).join(', '), c.cables, decimal(c.lengthM))),
     '',
-    line('Kabely celkem'),
-    line('Typ kabelu', 'Počet kabelů', 'Délka [m]', `K nákupu s rezervou ${Math.round((CABLE_RESERVE - 1) * 100)} % [m]`),
+    line(plumbing ? 'Potrubí celkem' : 'Kabely celkem'),
+    line(plumbing ? 'Typ potrubí' : 'Typ kabelu', plumbing ? 'Počet úseků' : 'Počet kabelů', 'Délka [m]', `K nákupu s rezervou ${Math.round((CABLE_RESERVE - 1) * 100)} % [m]`),
     ...report.types.map(t => line(CABLE_TYPES[t.type].label, t.cables, decimal(t.lengthM), t.orderM)),
     line('Celkem', '', decimal(report.totalLengthM), ''),
   ]

@@ -82,7 +82,7 @@ describe('stránka Elektro', () => {
 describe('více stránek', () => {
   it('nabídne jen stránky, které mají co ukázat', () => {
     expect(availablePages({ furniture: [], electric: [], cables: [] })).toEqual(['plan'])
-    expect(availablePages(project())).toEqual(['plan', 'equipment', 'electro'])
+    expect(availablePages(project())).toEqual(['plan', 'equipment', 'electro', 'summary'])
   })
 
   it('všechny stránky mají stejný formát, měřítko a výkres na stejném místě', () => {
