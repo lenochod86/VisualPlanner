@@ -23,11 +23,14 @@ export function useKeyboardShortcuts() {
         useProjectStore.getState().rotateFurniture(ui.selection.id)
       } else if (e.key === 'Escape') {
         ui.select(null)
+        ui.setCableStart(null)
         ui.setTool('select')
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selection) {
         const project = useProjectStore.getState()
         if (ui.selection.type === 'room') project.deleteRoom(ui.selection.id)
         else if (ui.selection.type === 'furniture') project.deleteFurniture(ui.selection.id)
+        else if (ui.selection.type === 'electric') project.deleteElectric(ui.selection.id)
+        else if (ui.selection.type === 'cable') project.deleteCable(ui.selection.id)
         else project.deleteObstacle(ui.selection.id)
         ui.select(null)
       }

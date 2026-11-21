@@ -1,8 +1,11 @@
 // Stav rozhraní, který se neukládá do projektu: výběr, aktivní nástroj, nastavení 3D.
 import { create } from 'zustand'
+import type { CableType } from '../domain/types'
 
-export type Selection = { type: 'room' | 'obstacle' | 'furniture'; id: string } | null
-export type Tool = 'select' | 'draw'
+export type Selection = { type: 'room' | 'obstacle' | 'furniture' | 'electric' | 'cable'; id: string } | null
+export type Tool = 'select' | 'draw' | 'cable'
+/** Elektro ve 3D: skryté, zobrazené (zakryté zdmi a stropem), nebo "rentgen" (vidět skrz zdi, strop i nábytek). */
+export type ElectroView = 'off' | 'on' | 'xray'
 /** Strop ve 3D: skrytý (výchozí, aby šlo shora do místností), plný, nebo průhledný s viditelným rastrem profilů. */
 export type CeilingView = 'off' | 'solid' | 'transparent'
 /** Stěna zvýrazněná v plánu (např. při najetí na řádek v panelu). */
@@ -14,6 +17,11 @@ interface UiState {
   wallOpacity: number
   furnitureOpacity: number
   ceilingView: CeilingView
+  electroView: ElectroView
+  /** Při kreslení kabelu: bod, ze kterého kabel vychází (po prvním kliknutí). */
+  cableStart: string | null
+  /** Typ kabelu, který se vytvoří při dalším propojení. */
+  cableType: CableType
   /** Je 3D pohled rozbalený v pravém panelu? */
   show3d: boolean
   hoveredWall: WallHighlight
@@ -24,6 +32,9 @@ interface UiState {
   setWallOpacity: (value: number) => void
   setFurnitureOpacity: (value: number) => void
   setCeilingView: (view: CeilingView) => void
+  setElectroView: (view: ElectroView) => void
+  setCableStart: (id: string | null) => void
+  setCableType: (type: CableType) => void
   toggle3d: () => void
   setHoveredWall: (wall: WallHighlight) => void
   requestFit: () => void
@@ -35,6 +46,9 @@ export const useUiStore = create<UiState>()(set => ({
   wallOpacity: 1,
   furnitureOpacity: 1,
   ceilingView: 'off',
+  electroView: 'on',
+  cableStart: null,
+  cableType: 'cyky-3x1.5',
   show3d: true,
   hoveredWall: null,
   fitRequest: 0,
@@ -43,6 +57,9 @@ export const useUiStore = create<UiState>()(set => ({
   setWallOpacity: wallOpacity => set({ wallOpacity }),
   setFurnitureOpacity: furnitureOpacity => set({ furnitureOpacity }),
   setCeilingView: ceilingView => set({ ceilingView }),
+  setElectroView: electroView => set({ electroView }),
+  setCableStart: cableStart => set({ cableStart }),
+  setCableType: cableType => set({ cableType }),
   toggle3d: () => set(s => ({ show3d: !s.show3d })),
   setHoveredWall: hoveredWall => set({ hoveredWall }),
   requestFit: () => set(s => ({ fitRequest: s.fitRequest + 1 })),

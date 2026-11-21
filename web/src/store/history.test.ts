@@ -6,7 +6,7 @@ const names = () => useProjectStore.getState().rooms.map(r => r.name)
 
 describe('historie (undo/redo)', () => {
   beforeEach(() => {
-    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [] })
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
     clearHistory()
   })
 

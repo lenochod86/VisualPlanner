@@ -19,6 +19,9 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
         magnet.ts             přichytávání místností k sousedům (sdílená zeď)
         walls.ts              model zdí: sdílené zdi, tloušťky, vnější obrys
         placement.ts          poloha překážek a nábytku: připnutí ke zdi, tažení, otáčení
+        openings.ts           otvory ve zdech pro okna a dveře
+        ceiling.ts            výška podhledu, rastr profilů SDK
+        electric.ts           poloha elektro bodů, auto-trasování kabelů, délky
       src/store/              Zustand: projectStore (data), uiStore (výběr, nástroj), history (undo/redo)
       src/api/                klient REST API
       src/features/
@@ -40,4 +43,4 @@ Závislosti míří jedním směrem: `features → store → geometry/domain`; `
    - [x] Undo/redo, sdílené zdi (tloušťka podle mezery), tloušťka a délka každé stěny v panelu
 4. [x] Nábytek: katalog (WC volné i Geberit, sprcha, vana, umyvadlo, TV, stůl, židle, linka, gauč, postele, skříň), snap ke zdi, otáčení, přesun mezi místnostmi
 5. [x] Otvory ve zdech pro okna a dveře, materiály zdí, stropy (omítnutý, SDK podhled s rastrem profilů, průhledný režim)
-6. [ ] Elektro: zásuvky, světla, kabely, auto-trasování
+6. [x] Elektro: zásuvky, vypínače, světla, rozvaděč; kabely s typem a okruhem, auto-trasování (editovatelné), zobrazení skrz zdi/strop/nábytek

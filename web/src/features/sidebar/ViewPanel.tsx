@@ -1,4 +1,4 @@
-import { useUiStore, type CeilingView } from '../../store/uiStore'
+import { useUiStore, type CeilingView, type ElectroView } from '../../store/uiStore'
 
 /** Posuvník neprůhlednosti: vlevo průhledné, vpravo plné. */
 function OpacitySlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
@@ -18,6 +18,8 @@ export function ViewPanel() {
   const setFurnitureOpacity = useUiStore(s => s.setFurnitureOpacity)
   const ceilingView = useUiStore(s => s.ceilingView)
   const setCeilingView = useUiStore(s => s.setCeilingView)
+  const electroView = useUiStore(s => s.electroView)
+  const setElectroView = useUiStore(s => s.setElectroView)
   const requestFit = useUiStore(s => s.requestFit)
 
   return (
@@ -31,6 +33,13 @@ export function ViewPanel() {
           <option value="off">skrytý</option>
           <option value="solid">plný</option>
           <option value="transparent">průhledný (rastr)</option>
+        </select>
+      </label>
+      <label className="field">Elektro ve 3D
+        <select value={electroView} onChange={e => setElectroView(e.target.value as ElectroView)}>
+          <option value="off">skryté</option>
+          <option value="on">zobrazené</option>
+          <option value="xray">skrz zdi a nábytek</option>
         </select>
       </label>
       <small>Posuvníky: vlevo průhledné, vpravo plné.</small>

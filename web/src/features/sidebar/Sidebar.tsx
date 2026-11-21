@@ -4,6 +4,8 @@ import { useUiStore } from '../../store/uiStore'
 import { AddPanel } from './AddPanel'
 import { FlatSummary } from './FlatSummary'
 import { HistoryButtons } from './HistoryButtons'
+import { CableProperties } from './CableProperties'
+import { ElectricProperties } from './ElectricProperties'
 import { FurnitureProperties } from './FurnitureProperties'
 import { ObstacleProperties } from './ObstacleProperties'
 import { ProjectFilePanel } from './ProjectFilePanel'
@@ -22,6 +24,8 @@ export function Sidebar({ syncStatus }: { syncStatus: SyncStatus }) {
   const room = useProjectStore(s => (selection?.type === 'room' ? s.rooms.find(r => r.id === selection.id) : undefined))
   const obstacle = useProjectStore(s => (selection?.type === 'obstacle' ? s.obstacles.find(o => o.id === selection.id) : undefined))
   const furniture = useProjectStore(s => (selection?.type === 'furniture' ? s.furniture.find(f => f.id === selection.id) : undefined))
+  const electric = useProjectStore(s => (selection?.type === 'electric' ? s.electric.find(p => p.id === selection.id) : undefined))
+  const cable = useProjectStore(s => (selection?.type === 'cable' ? s.cables.find(c => c.id === selection.id) : undefined))
 
   return (
     <aside className="sidebar">
@@ -33,6 +37,8 @@ export function Sidebar({ syncStatus }: { syncStatus: SyncStatus }) {
       {room && <RoomProperties room={room} />}
       {obstacle && <ObstacleProperties obstacle={obstacle} />}
       {furniture && <FurnitureProperties furniture={furniture} />}
+      {electric && <ElectricProperties point={electric} />}
+      {cable && <CableProperties cable={cable} />}
       <FlatSummary />
       <ViewPanel />
       <ProjectFilePanel />

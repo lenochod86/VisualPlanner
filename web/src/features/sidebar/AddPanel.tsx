@@ -3,6 +3,7 @@ import { FURNITURE_CATEGORIES, FURNITURE_KINDS, type FurnitureCategory } from '.
 import type { FurnitureKind, ObstacleKind, RoomShape } from '../../domain/types'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
+import { ElectroPanel } from './ElectroPanel'
 
 const SHAPES: { shape: RoomShape; label: string }[] = [
   { shape: 'rect', label: 'Obdélník' },
@@ -18,6 +19,7 @@ export function AddPanel() {
   const rooms = useProjectStore(s => s.rooms)
   const obstacles = useProjectStore(s => s.obstacles)
   const furniture = useProjectStore(s => s.furniture)
+  const electric = useProjectStore(s => s.electric)
   const addRoom = useProjectStore(s => s.addRoom)
   const addObstacle = useProjectStore(s => s.addObstacle)
   const addFurniture = useProjectStore(s => s.addFurniture)
@@ -27,6 +29,7 @@ export function AddPanel() {
   const selectedItem =
     selection?.type === 'obstacle' ? obstacles.find(o => o.id === selection.id)
     : selection?.type === 'furniture' ? furniture.find(f => f.id === selection.id)
+    : selection?.type === 'electric' ? electric.find(p => p.id === selection.id)
     : undefined
   const targetRoomId = selection?.type === 'room' ? selection.id : selectedItem?.roomId ?? rooms[0]?.id
 
@@ -86,6 +89,8 @@ export function AddPanel() {
         ))}
         <small>Přetažením přichytíte ke zdi; tažením za konce změníte šířku.</small>
       </section>
+
+      <ElectroPanel targetRoomId={targetRoomId} />
     </>
   )
 }

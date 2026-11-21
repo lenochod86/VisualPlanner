@@ -14,6 +14,8 @@ export function createInitialProject(): Project {
     }],
     obstacles: [],
     furniture: [],
+    electric: [],
+    cables: [],
   }
 }
 
@@ -34,6 +36,10 @@ export function parseProject(data: unknown): Project {
   }
   const roomsOk = d.rooms.every(r => r && typeof r.id === 'string' && Array.isArray(r.pts) && r.pts.length >= 3)
   if (!roomsOk) throw new Error('Projekt obsahuje neplatnou místnost.')
-  // `furniture` starší projekty nemají
-  return { rooms: d.rooms.map(normalizeRoom), obstacles: d.obstacles, furniture: Array.isArray(d.furniture) ? d.furniture : [] }
+  // kolekce přidané později (nábytek, elektro) starší projekty nemají
+  return {
+    rooms: d.rooms.map(normalizeRoom), obstacles: d.obstacles, furniture: Array.isArray(d.furniture) ? d.furniture : [],
+    electric: Array.isArray(d.electric) ? d.electric : [],
+    cables: Array.isArray(d.cables) ? d.cables : [],
+  }
 }

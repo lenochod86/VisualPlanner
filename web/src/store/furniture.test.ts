@@ -7,7 +7,7 @@ const state = () => useProjectStore.getState()
 describe('nábytek ve store', () => {
   let roomId: string
   beforeEach(() => {
-    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [] })
+    useProjectStore.setState({ rooms: [], obstacles: [], furniture: [], electric: [], cables: [] })
     clearHistory()
     roomId = state().addRoom('rect')
   })

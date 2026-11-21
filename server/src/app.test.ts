@@ -43,3 +43,13 @@ describe('nábytek v projektu', () => {
     expect((await server.inject({ method: 'GET', url: '/api/projects/b' })).json().furniture).toEqual([])
   })
 })
+
+describe('elektro v projektu', () => {
+  it('uloží body a kabely', async () => {
+    const server = app()
+    await server.inject({ method: 'PUT', url: '/api/projects/e', payload: { ...project, electric: [{ id: 'p' }], cables: [{ id: 'c' }] } })
+    const doc = (await server.inject({ method: 'GET', url: '/api/projects/e' })).json()
+    expect(doc.electric).toEqual([{ id: 'p' }])
+    expect(doc.cables).toEqual([{ id: 'c' }])
+  })
+})

@@ -11,6 +11,8 @@ const projectBodySchema = {
     rooms: { type: 'array' },
     obstacles: { type: 'array' },
     furniture: { type: 'array' },
+    electric: { type: 'array' },
+    cables: { type: 'array' },
   },
 } as const
 

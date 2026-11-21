@@ -2,12 +2,15 @@
 import { create } from 'zustand'
 import { DEFAULT_ROOM_HEIGHT, DEFAULT_WALL_THICKNESS, MAX_WALL, MIN_WALL } from '../config'
 import { OBSTACLE_KINDS, ROOM_TYPES } from '../domain/catalog'
+import { ELECTRIC_KINDS } from '../domain/electricCatalog'
 import { FURNITURE_KINDS } from '../domain/furnitureCatalog'
 import { DEFAULT_CEILING, DEFAULT_WALL_MATERIAL } from '../domain/materials'
 import { createInitialProject } from '../domain/project'
 import type {
-  Furniture, FurnitureKind, Obstacle, ObstacleKind, Placed, Project, Rect, Room, RoomShape,
+  Cable, CableType, ElectricKind, ElectricPoint, Furniture, FurnitureKind, Obstacle, ObstacleKind, Placed, Project, Rect,
+  Room, RoomShape, Waypoint,
 } from '../domain/types'
+import { autoRoute, cablePolyline, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
 import { clamp } from '../geometry/math'
 import { rotatePatch } from '../geometry/placement'
@@ -39,6 +42,23 @@ interface ProjectState extends Project {
   /** Otočí o 90°: u nábytku na zdi prohodí šířku a hloubku, volný natočí. */
   rotateFurniture: (id: string) => void
   deleteFurniture: (id: string) => void
+
+  /** Přidá elektrický bod do místnosti (nástěnný uprostřed první stěny, světlo uprostřed místnosti). */
+  addElectric: (kind: ElectricKind, roomId: string) => string | null
+  updateElectric: (id: string, patch: Partial<ElectricPoint>) => void
+  /** Smaže bod i všechny kabely, které do něj vedou. */
+  deleteElectric: (id: string) => void
+
+  /** Propojí dva body kabelem s automaticky vytvořenou trasou. Vrací id kabelu. */
+  addCable: (fromId: string, toId: string, type: CableType) => string | null
+  updateCable: (id: string, patch: Partial<Cable>) => void
+  deleteCable: (id: string) => void
+  /** Zahodí ruční úpravy a vytvoří trasu znovu automaticky. */
+  rerouteCable: (id: string) => void
+  rerouteAllCables: () => void
+  insertWaypoint: (cableId: string, index: number, waypoint: Waypoint) => void
+  updateWaypoint: (cableId: string, index: number, patch: Partial<Waypoint>) => void
+  deleteWaypoint: (cableId: string, index: number) => void
 }
 
 const newId = () => crypto.randomUUID()
@@ -77,7 +97,10 @@ function newPlaced(
 export const useProjectStore = create<ProjectState>()((set, get) => ({
   ...createInitialProject(),
 
-  loadProject: project => set({ rooms: project.rooms, obstacles: project.obstacles, furniture: project.furniture }),
+  loadProject: project => set({
+    rooms: project.rooms, obstacles: project.obstacles, furniture: project.furniture,
+    electric: project.electric, cables: project.cables,
+  }),
 
   addRoom: shape => {
     const { x, y } = nextRoomOrigin(get().rooms)
@@ -100,19 +123,30 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     set(s => {
       // volně stojící věci se posunou s místností; připnuté se přepočítají ze stěny samy
       const shift = <T extends Placed>(item: T): T => (item.roomId === id ? { ...item, x: item.x + dx, y: item.y + dy } : item)
+      // kabely, které začínají i končí v téhle místnosti, jedou s ní; ostatní zůstanou (lze je přetrasovat)
+      const inRoom = (pointId: string) => s.electric.find(p => p.id === pointId)?.roomId === id
       return {
         rooms: s.rooms.map(r => (r.id === id ? { ...r, pts: translatePts(r.pts, dx, dy) } : r)),
         obstacles: s.obstacles.map(shift),
         furniture: s.furniture.map(shift),
+        electric: s.electric.map(p => (p.roomId === id ? { ...p, x: p.x + dx, y: p.y + dy } : p)),
+        cables: s.cables.map(c =>
+          inRoom(c.fromId) && inRoom(c.toId) ? { ...c, via: c.via.map(w => ({ ...w, x: w.x + dx, y: w.y + dy })) } : c),
       }
     }),
 
   deleteRoom: id =>
-    set(s => ({
-      rooms: s.rooms.filter(r => r.id !== id),
-      obstacles: s.obstacles.filter(o => o.roomId !== id),
-      furniture: s.furniture.filter(f => f.roomId !== id),
-    })),
+    set(s => {
+      const electric = s.electric.filter(p => p.roomId !== id)
+      const alive = new Set(electric.map(p => p.id))
+      return {
+        rooms: s.rooms.filter(r => r.id !== id),
+        obstacles: s.obstacles.filter(o => o.roomId !== id),
+        furniture: s.furniture.filter(f => f.roomId !== id),
+        electric,
+        cables: s.cables.filter(c => alive.has(c.fromId) && alive.has(c.toId)),
+      }
+    }),
 
   setWallLength: (roomId, edge, length) => {
     const room = get().rooms.find(r => r.id === roomId)
@@ -155,11 +189,76 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   },
 
   deleteFurniture: id => set(s => ({ furniture: s.furniture.filter(f => f.id !== id) })),
+
+  addElectric: (kind, roomId) => {
+    const room = get().rooms.find(r => r.id === roomId)
+    if (!room) return null
+    const spec = ELECTRIC_KINDS[kind]
+    const box = bbox(room.pts)
+    const point: ElectricPoint = {
+      id: newId(), roomId, kind, name: '', height: spec.height,
+      x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2,   // světlo: střed místnosti
+      attach: spec.mount === 'wall' ? { edge: 0, along: edgeInfo(room.pts, 0).len / 2 } : undefined,
+    }
+    set(s => ({ electric: [...s.electric, point] }))
+    return point.id
+  },
+
+  updateElectric: (id, patch) =>
+    set(s => ({ electric: s.electric.map(p => (p.id === id ? { ...p, ...patch } : p)) })),
+
+  deleteElectric: id =>
+    set(s => ({
+      electric: s.electric.filter(p => p.id !== id),
+      cables: s.cables.filter(c => c.fromId !== id && c.toId !== id),   // kabel bez konce nedává smysl
+    })),
+
+  addCable: (fromId, toId, type) => {
+    if (fromId === toId) return null
+    const cable: Cable = {
+      id: newId(), type, circuit: `Okruh ${get().cables.length + 1}`, fromId, toId, via: [],
+    }
+    set(s => ({ cables: [...s.cables, cable] }))
+    get().rerouteCable(cable.id)
+    return cable.id
+  },
+
+  updateCable: (id, patch) =>
+    set(s => ({ cables: s.cables.map(c => (c.id === id ? { ...c, ...patch } : c)) })),
+
+  deleteCable: id => set(s => ({ cables: s.cables.filter(c => c.id !== id) })),
+
+  rerouteCable: id => {
+    const { cables, electric, rooms } = get()
+    const cable = cables.find(c => c.id === id)
+    const polyline = cable && cablePolyline({ ...cable, via: [] }, electric, rooms)
+    if (!cable || !polyline) return
+    const roomOf = (pointId: string) => rooms.find(r => r.id === electric.find(p => p.id === pointId)?.roomId)
+    const via = autoRoute(polyline[0], polyline[1], runHeight(roomOf(cable.fromId), roomOf(cable.toId)), rooms)
+    get().updateCable(id, { via })
+  },
+
+  rerouteAllCables: () => get().cables.forEach(c => get().rerouteCable(c.id)),
+
+  insertWaypoint: (cableId, index, waypoint) =>
+    set(s => ({
+      cables: s.cables.map(c => (c.id === cableId ? { ...c, via: [...c.via.slice(0, index), waypoint, ...c.via.slice(index)] } : c)),
+    })),
+
+  updateWaypoint: (cableId, index, patch) =>
+    set(s => ({
+      cables: s.cables.map(c => (c.id === cableId ? { ...c, via: c.via.map((w, i) => (i === index ? { ...w, ...patch } : w)) } : c)),
+    })),
+
+  deleteWaypoint: (cableId, index) =>
+    set(s => ({ cables: s.cables.map(c => (c.id === cableId ? { ...c, via: c.via.filter((_, i) => i !== index) } : c)) })),
 }))
 
 /** Vybere z celého stavu jen ukládaná data. */
-export const selectProject = ({ rooms, obstacles, furniture }: ProjectState): Project => ({ rooms, obstacles, furniture })
+export const selectProject = ({ rooms, obstacles, furniture, electric, cables }: ProjectState): Project =>
+  ({ rooms, obstacles, furniture, electric, cables })
 
 /** Změnila se ukládaná data (a ne jen třeba akce ve store)? */
 export const projectChanged = (a: Project, b: Project) =>
-  a.rooms !== b.rooms || a.obstacles !== b.obstacles || a.furniture !== b.furniture
+  a.rooms !== b.rooms || a.obstacles !== b.obstacles || a.furniture !== b.furniture ||
+  a.electric !== b.electric || a.cables !== b.cables

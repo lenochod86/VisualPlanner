@@ -2,7 +2,7 @@
 import { FURNITURE_WALL_SNAP, MIN_OBSTACLE_WIDTH, OBSTACLE_WALL_SNAP } from '../config'
 import type { Placed, Pt, Room } from '../domain/types'
 import { clamp, snap } from './math'
-import { containsPoint, edgeInfo } from './polygon'
+import { containsPoint, edgeInfo, type EdgeInfo } from './polygon'
 import type { WallModel } from './walls'
 
 export interface Placement { x: number; y: number; rot: number }
@@ -21,14 +21,21 @@ export function resolvePlacement(item: Placed, room: Room, walls: WallModel, inW
   const e = edgeInfo(room.pts, item.attach.edge)
   const along = clamp(item.attach.along, item.w / 2, e.len - item.w / 2)
   const offset = inWall ? -wallThicknessFor(item, room, walls) / 2 : item.d / 2
-  const rot = Math.atan2(e.dir.y, e.dir.x)
-  // u opačně orientovaných polygonů by "dopředu" mířilo ven; otočíme o 180°
-  const frontFacesRoom = e.dir.x * e.inward.y - e.dir.y * e.inward.x > 0
   return {
     x: e.a.x + e.dir.x * along + e.inward.x * offset,
     y: e.a.y + e.dir.y * along + e.inward.y * offset,
-    rot: frontFacesRoom ? rot : rot + Math.PI,
+    rot: frontRotation(e),
   }
+}
+
+/**
+ * Natočení věci u stěny tak, aby lokální osa "dopředu" (+y) mířila do místnosti.
+ * U opačně orientovaných polygonů by mířila ven, proto se otočí o 180°.
+ */
+export function frontRotation(e: EdgeInfo): number {
+  const rot = Math.atan2(e.dir.y, e.dir.x)
+  const frontFacesRoom = e.dir.x * e.inward.y - e.dir.y * e.inward.x > 0
+  return frontFacesRoom ? rot : rot + Math.PI
 }
 
 /** Nejbližší stěna k bodu `p` a pozice průmětu bodu podél ní. */

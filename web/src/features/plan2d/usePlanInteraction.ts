@@ -3,9 +3,10 @@
 import { useState, type PointerEvent, type RefObject } from 'react'
 import { MIN_DRAWN_ROOM } from '../../config'
 import { OBSTACLE_KINDS } from '../../domain/catalog'
-import type { Placed, Pt, Rect } from '../../domain/types'
+import type { Placed, Pt, Rect, Waypoint } from '../../domain/types'
 import { magnetEdgeCoord, magnetRoomShift } from '../../geometry/magnet'
 import { snap } from '../../geometry/math'
+import { dragElectricPatch } from '../../geometry/electric'
 import { dragFurniturePatch, dragObstaclePatch, resizeAlongWall } from '../../geometry/placement'
 import { edgeInfo, moveEdge, translatePts } from '../../geometry/polygon'
 import { rectFromCorners } from '../../geometry/shapes'
@@ -24,6 +25,8 @@ type Drag =
   | { kind: 'room'; roomId: string; last: Pt }
   | { kind: 'item'; ref: ItemRef }
   | { kind: 'itemEnd'; ref: ItemRef; end: 'start' | 'end' }
+  | { kind: 'point'; id: string }
+  | { kind: 'waypoint'; cableId: string; index: number }
   | { kind: 'draw'; from: Pt; to: Pt }
 
 const snapPt = (p: Pt): Pt => ({ x: snap(p.x), y: snap(p.y) })
@@ -68,6 +71,41 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
 
   const beginItemResize = (e: PointerEvent, ref: ItemRef, end: 'start' | 'end') => {
     begin(e, { kind: 'itemEnd', ref, end })
+  }
+
+  // ---- elektro ----
+
+  /** V režimu kabelu: první klik vybere začátek, druhý konec a vytvoří se kabel s automatickou trasou. Jinak tažení bodu. */
+  const beginPointDrag = (e: PointerEvent, id: string) => {
+    const ui = useUiStore.getState()
+    if (ui.tool === 'cable') {
+      e.stopPropagation()
+      if (!ui.cableStart) { ui.setCableStart(id); return }
+      if (ui.cableStart === id) return
+      beginGesture() // vytvoření + trasování = jeden krok v undo
+      const cableId = useProjectStore.getState().addCable(ui.cableStart, id, ui.cableType)
+      endGesture()
+      ui.setCableStart(null)
+      ui.setTool('select')
+      if (cableId) ui.select({ type: 'cable', id: cableId })
+      return
+    }
+    ui.select({ type: 'electric', id })
+    begin(e, { kind: 'point', id })
+  }
+
+  const selectCable = (e: PointerEvent, id: string) => {
+    e.stopPropagation()
+    useUiStore.getState().select({ type: 'cable', id })
+  }
+
+  const beginWaypointDrag = (e: PointerEvent, cableId: string, index: number) =>
+    begin(e, { kind: 'waypoint', cableId, index })
+
+  /** Tažení za "+" vloží bod do trasy a hned ho táhne. */
+  const beginWaypointInsert = (e: PointerEvent, cableId: string, index: number, at: Waypoint) => {
+    begin(e, { kind: 'waypoint', cableId, index })
+    useProjectStore.getState().insertWaypoint(cableId, index, at)
   }
 
   const onBackgroundPointerDown = (e: PointerEvent) => {
@@ -120,6 +158,12 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     if (room) patchItem(ref, dragObstaclePatch(room, p, inWall))
   }
 
+  function dragPoint(id: string, p: Pt) {
+    const { electric, rooms, updateElectric } = useProjectStore.getState()
+    const point = electric.find(x => x.id === id)
+    if (point) updateElectric(id, dragElectricPatch(point, rooms, p))
+  }
+
   function dragItemEnd(d: Extract<Drag, { kind: 'itemEnd' }>, p: Pt) {
     const item = findItem(d.ref)
     const room = item && useProjectStore.getState().rooms.find(r => r.id === item.roomId)
@@ -141,6 +185,8 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     else if (drag.kind === 'room') dragRoom(drag, p)
     else if (drag.kind === 'item') dragItem(drag.ref, p)
     else if (drag.kind === 'itemEnd') dragItemEnd(drag, p)
+    else if (drag.kind === 'point') dragPoint(drag.id, p)
+    else if (drag.kind === 'waypoint') useProjectStore.getState().updateWaypoint(drag.cableId, drag.index, { x: snap(p.x), y: snap(p.y) })
     else setDrag({ ...drag, to: snapPt(p) })
   }
 
@@ -154,6 +200,7 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
 
   return {
     drawRect, beginRoomDrag, beginEdgeDrag, beginItemDrag, beginItemResize,
+    beginPointDrag, selectCable, beginWaypointDrag, beginWaypointInsert,
     onBackgroundPointerDown, onPointerMove, onPointerUp,
   }
 }

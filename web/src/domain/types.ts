@@ -63,4 +63,38 @@ export interface Project {
   rooms: Room[]
   obstacles: Obstacle[]
   furniture: Furniture[]
+  electric: ElectricPoint[]
+  cables: Cable[]
+}
+
+export type ElectricKind = 'socket' | 'socket-double' | 'switch' | 'light' | 'board'
+
+/** Elektroinstalační bod: zásuvka, vypínač, rozvaděč (na zdi) nebo světlo (na stropě). */
+export interface ElectricPoint {
+  id: string
+  roomId: string
+  kind: ElectricKind
+  name: string
+  /** Poloha v půdorysu; platí u stropních bodů (světlo). Nástěnné body se počítají ze stěny. */
+  x: number
+  y: number
+  /** Nástěnné body jsou připnuté ke stěně a drží se jí při změně rozměrů místnosti. */
+  attach?: { edge: number; along: number }
+  /** Výška nad podlahou (cm) u nástěnných bodů; stropní body jsou ve výšce stropu. */
+  height: number
+}
+
+export type CableType = 'cyky-3x1.5' | 'cyky-3x2.5' | 'cyky-5x1.5' | 'cyky-5x2.5' | 'cyky-5x4'
+
+/** Bod trasy kabelu v prostoru (x, y v půdorysu, z = výška nad podlahou). */
+export interface Waypoint { x: number; y: number; z: number }
+
+/** Kabel mezi dvěma body. `via` jsou mezilehlé body trasy (editovatelné); konce se berou z bodů `fromId` a `toId`. */
+export interface Cable {
+  id: string
+  type: CableType
+  circuit: string
+  fromId: string
+  toId: string
+  via: Waypoint[]
 }
