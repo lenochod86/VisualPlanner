@@ -50,8 +50,9 @@ export function electricPosition(point: ElectricPoint, room: Room): ElectricPosi
 export function dragElectricPatch(point: ElectricPoint, rooms: Room[], cursor: Pt): Partial<ElectricPoint> {
   const room = roomAt(rooms, cursor) ?? rooms.find(r => r.id === point.roomId)
   if (!room) return {}
-  if (ELECTRIC_KINDS[point.kind].mount === 'ceiling') {
-    return { roomId: room.id, x: snap(cursor.x), y: snap(cursor.y) }
+  // stropní body a body s vypnutým přichycením stojí volně, kde je kurzor
+  if (ELECTRIC_KINDS[point.kind].mount === 'ceiling' || point.snapToWalls === false) {
+    return { roomId: room.id, attach: undefined, x: snap(cursor.x), y: snap(cursor.y) }
   }
   const near = nearestEdge(room.pts, cursor)
   return { roomId: room.id, attach: { edge: near.edge, along: snap(near.along) } }

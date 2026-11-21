@@ -10,7 +10,7 @@ import type {
   Cable, CableType, ElectricPoint, Furniture, FurnitureKind, Obstacle, ObstacleKind, PipeType, Placed, PointKind, Project, Rect,
   Room, RoomShape, WallMode, Waypoint,
 } from '../domain/types'
-import { autoRoute, cablePolyline, PIPE_RUN_HEIGHT, planAutoConnections, runHeight } from '../geometry/electric'
+import { autoRoute, cablePolyline, electricPosition, PIPE_RUN_HEIGHT, planAutoConnections, runHeight } from '../geometry/electric'
 import { magnetizeRoom } from '../geometry/magnet'
 import { clamp } from '../geometry/math'
 import { resolvePlacement, rotatedPatch } from '../geometry/placement'
@@ -52,6 +52,8 @@ interface ProjectState extends Project {
   /** Přidá elektrický bod do místnosti (nástěnný uprostřed první stěny, světlo uprostřed místnosti). */
   addElectric: (kind: PointKind, roomId: string) => string | null
   updateElectric: (id: string, patch: Partial<ElectricPoint>) => void
+  /** Zapne / vypne přichytávání bodu ke zdi. Při vypnutí se bod uvolní ze zdi a zůstane přesně tam, kde je. */
+  setElectricSnapToWalls: (id: string, snapToWalls: boolean) => void
   /** Smaže bod i všechny kabely, které do něj vedou. */
   deleteElectric: (id: string) => void
 
@@ -252,7 +254,9 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       id: newId(), roomId, kind, name: '', height: spec.height,
       x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2,   // světlo: střed místnosti
       // nástěnný bod se přidá do čtvrtiny první stěny: na středu by ho zakrývala kóta s délkou stěny
-      attach: spec.mount === 'wall' ? { edge: 0, along: edgeInfo(room.pts, 0).len * 0.25 } : undefined,
+      attach: spec.mount === 'wall' && kind !== 'sewer' ? { edge: 0, along: edgeInfo(room.pts, 0).len * 0.25 } : undefined,
+      // odpadní stoupačka málokdy stojí u zdi: přidá se volně doprostřed a přichytávání je vypnuté
+      snapToWalls: kind === 'sewer' ? false : undefined,
     }
     set(s => ({ electric: [...s.electric, point] }))
     return point.id
@@ -260,6 +264,14 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   updateElectric: (id, patch) =>
     set(s => ({ electric: s.electric.map(p => (p.id === id ? { ...p, ...patch } : p)) })),
+
+  setElectricSnapToWalls: (id, snapToWalls) => {
+    const point = get().electric.find(p => p.id === id)
+    const room = point && get().rooms.find(r => r.id === point.roomId)
+    if (!point || !room || snapToWalls || !point.attach) { get().updateElectric(id, { snapToWalls }); return }
+    const here = electricPosition(point, room)
+    get().updateElectric(id, { snapToWalls: false, attach: undefined, x: here.x, y: here.y })
+  },
 
   deleteElectric: id =>
     set(s => ({

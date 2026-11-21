@@ -124,6 +124,8 @@ export interface ElectricPoint {
   y: number
   /** Nástěnné body jsou připnuté ke stěně a drží se jí při změně rozměrů místnosti. */
   attach?: { edge: number; along: number }
+  /** Přichytává se tažením ke zdi? Výchozí ano; vypnutý bod stojí volně v místnosti (např. odpadní stoupačka). */
+  snapToWalls?: boolean
   /** Výška nad podlahou (cm) u nástěnných bodů; stropní body jsou ve výšce stropu. U rozvaděče je to jeho SPODNÍ hrana, u ostatních bodů střed. */
   height: number
   /** Rozvaděč: šířka, výška a hloubka skříně (cm); bez nich platí výchozí rozměry. */

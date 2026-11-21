@@ -11,6 +11,7 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
   const updateElectric = useProjectStore(s => s.updateElectric)
   const deleteElectric = useProjectStore(s => s.deleteElectric)
   const autoConnectPoint = useProjectStore(s => s.autoConnectPoint)
+  const setSnapToWalls = useProjectStore(s => s.setElectricSnapToWalls)
   const [result, setResult] = useState<string | null>(null)
   const cables = useProjectStore(s => s.cables)
   const { select, setTool, setCableStart } = useUiStore()
@@ -41,6 +42,18 @@ export function ElectricProperties({ point }: { point: ElectricPoint }) {
             label={isBoard ? 'Spodní hrana od podlahy (cm)' : 'Výška středu od podlahy (cm)'}
             value={point.height} onCommit={v => updateElectric(point.id, { height: Math.max(0, v) })} />
         : <small>Světlo je na stropě (u SDK na desce podhledu).</small>}
+      {plumbing && (
+        <>
+          <label className="check">
+            <input type="checkbox" checked={point.snapToWalls !== false} onChange={e => setSnapToWalls(point.id, e.target.checked)} />
+            Přichytit ke zdi
+          </label>
+          <small>
+            {point.attach ? 'Je na zdi a drží se jí při změně rozměrů místnosti.'
+              : point.snapToWalls === false ? 'Stojí volně v místnosti a ke zdi se nepřichytává.' : 'Stojí volně; při tažení ke zdi se přichytí.'}
+          </small>
+        </>
+      )}
       {isBoard && <small>Kabely se do rozvaděče připojují na jeho horní hraně.</small>}
 
       <small>{plumbing ? 'Připojené potrubí' : 'Připojené kabely'}: {connected.length}</small>
