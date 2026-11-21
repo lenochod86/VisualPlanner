@@ -12,7 +12,7 @@ const toVector = (p: Pos3) => new THREE.Vector3(p.x, p.z, p.y)
 /** Materiál, který se u "rentgenu" kreslí přes všechno ostatní (zdi, strop, nábytek). */
 function Material({ color, xray, emissive }: { color: string; xray: boolean; emissive?: string }) {
   return (
-    <meshStandardMaterial color={color} emissive={emissive} depthTest={!xray} transparent={xray} />
+    <meshStandardMaterial key={xray ? 'xray' : 'normal'} color={color} emissive={emissive} depthTest={!xray} transparent={xray} />
   )
 }
 

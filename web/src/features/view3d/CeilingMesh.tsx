@@ -36,6 +36,7 @@ export function CeilingMesh({ room, view }: { room: Room; view: Exclude<CeilingV
       {/* plný strop zakrývá objekty pod sebou (pro myš); průhledný ne */}
       <mesh geometry={board} onPointerDown={() => {}} userData={{ occluder: !ghost }}>
         <meshStandardMaterial
+          key={ghost ? 'transparent' : 'opaque'}
           color={type === 'sdk' ? '#f7f7f5' : '#ececec'} side={THREE.DoubleSide}
           transparent={ghost} opacity={ghost ? 0.18 : 1} depthWrite={!ghost} />
       </mesh>

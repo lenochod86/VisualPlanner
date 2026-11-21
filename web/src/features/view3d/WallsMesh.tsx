@@ -27,7 +27,7 @@ export function WallsMesh({ opacity }: { opacity: number }) {
         // zeď zakrývá objekty za sebou (pro myš), dokud není průhledná; handler je tu kvůli tomu, aby se zeď
         // započítala do paprsku, sám nic nedělá
         <mesh key={i} geometry={solid.geometry} onPointerDown={noop} userData={{ occluder: opacity >= OCCLUDE_MIN_OPACITY }}>
-          <meshStandardMaterial color={WALL_MATERIALS[rooms.find(r => r.id === solid.roomId)?.wallMaterials[solid.edge] ?? 'plaster'].color} side={THREE.DoubleSide}
+          <meshStandardMaterial key={transparent ? 'transparent' : 'opaque'} color={WALL_MATERIALS[rooms.find(r => r.id === solid.roomId)?.wallMaterials[solid.edge] ?? 'plaster'].color} side={THREE.DoubleSide}
             transparent={transparent} opacity={opacity} depthWrite={!transparent} />
         </mesh>
       ))}

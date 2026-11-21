@@ -38,7 +38,10 @@ export function FurnitureMesh({ furniture: f, room, walls, opacity, selected, is
         return (
           <mesh key={i} position={position} scale={size}>
             {part.shape === 'box' ? <boxGeometry args={[1, 1, 1]} /> : <cylinderGeometry args={[0.5, 0.5, 1, 24]} />}
-            <meshStandardMaterial color={part.color} transparent={partOpacity < 1} opacity={partOpacity} depthWrite={partOpacity >= 1} />
+            {/* key: three.js přepnutí `transparent` za běhu bez překompilování shaderu nepromítne (alfa zůstane 1), proto nový materiál */}
+            <meshStandardMaterial
+              key={partOpacity < 1 ? 'transparent' : 'opaque'}
+              color={part.color} transparent={partOpacity < 1} opacity={partOpacity} depthWrite={partOpacity >= 1} />
           </mesh>
         )
       })}
