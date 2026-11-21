@@ -1,7 +1,9 @@
 import { OBSTACLE_KINDS } from '../../domain/catalog'
-import type { Obstacle, Room } from '../../domain/types'
+import type { ThreeEvent } from '@react-three/fiber'
+import type { Obstacle, Pt, Room } from '../../domain/types'
 import { resolvePlacement, wallThicknessFor } from '../../geometry/placement'
 import type { WallModel } from '../../geometry/walls'
+import { SelectionBox } from './SelectionBox'
 
 /** Šířka rámu okna/dveří (cm). */
 const FRAME = 5
@@ -40,27 +42,36 @@ function DoorModel({ w, h, depth }: { w: number; h: number; depth: number }) {
   )
 }
 
-export function ObstacleMesh({ obstacle, room, walls }: { obstacle: Obstacle; room: Room; walls: WallModel }) {
+interface Props {
+  obstacle: Obstacle
+  room: Room
+  walls: WallModel
+  selected: boolean
+  /** Stisk myši na prvku (výběr a začátek přesouvání); dostává jeho střed v půdorysu. */
+  onGrab: (e: ThreeEvent<PointerEvent>, center: Pt) => void
+}
+
+export function ObstacleMesh({ obstacle, room, walls, selected, onGrab }: Props) {
   const spec = OBSTACLE_KINDS[obstacle.kind]
   const p = resolvePlacement(obstacle, room, walls, spec.inWall)
+  // okna a dveře leží v otvoru ve zdi (ten je vyříznutý v WallsMesh); rám je o něco tenčí než zeď
+  const depth = spec.inWall ? Math.min(wallThicknessFor(obstacle, room, walls), 12) : obstacle.d
 
-  if (spec.inWall) {
-    // v otvoru ve zdi (ten je vyříznutý v WallsMesh); rám je o něco tenčí než zeď
-    const depth = Math.min(wallThicknessFor(obstacle, room, walls), 12)
-    return (
-      <group position={[p.x, obstacle.elev, p.y]} rotation={[0, -p.rot, 0]}>
-        {obstacle.kind === 'window'
-          ? <WindowModel w={obstacle.w} h={obstacle.h} depth={depth} />
-          : <DoorModel w={obstacle.w} h={obstacle.h} depth={depth} />}
-      </group>
-    )
-  }
-
-  // stoupačka, topení: obyčejný kvádr
   return (
-    <mesh position={[p.x, obstacle.elev + obstacle.h / 2, p.y]} rotation={[0, -p.rot, 0]}>
-      <boxGeometry args={[obstacle.w, obstacle.h, obstacle.d]} />
-      <meshStandardMaterial color={spec.color} />
-    </mesh>
+    <group
+      position={[p.x, obstacle.elev, p.y]} rotation={[0, -p.rot, 0]}
+      onPointerDown={e => onGrab(e, { x: p.x, y: p.y })}
+    >
+      {selected && <SelectionBox size={[obstacle.w, obstacle.h, depth]} center={[0, obstacle.h / 2, 0]} />}
+      {obstacle.kind === 'window' && <WindowModel w={obstacle.w} h={obstacle.h} depth={depth} />}
+      {obstacle.kind === 'door' && <DoorModel w={obstacle.w} h={obstacle.h} depth={depth} />}
+      {!spec.inWall && (
+        // stoupačka, topení: obyčejný kvádr
+        <mesh position={[0, obstacle.h / 2, 0]}>
+          <boxGeometry args={[obstacle.w, obstacle.h, obstacle.d]} />
+          <meshStandardMaterial color={spec.color} />
+        </mesh>
+      )}
+    </group>
   )
 }

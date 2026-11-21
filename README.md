@@ -27,7 +27,9 @@ Projekt se ukládá na server do `./data/<id>.json` (není v gitu). Testy: `dock
       src/features/
         plan2d/               2D editor: viewport, tažení, vykreslení místností/překážek
         view3d/               3D scéna (react-three-fiber)
-        sidebar/              panely: přidávání, vlastnosti, přehled bytu, soubor
+        topbar/               horní lišta: záložky Půdorys / Vybavení / Elektro, zpět/znovu, export/import
+        sidebar/              levý panel: nástroje podle záložky a vlastnosti vybraného
+        interaction/          sdílená logika přesouvání věcí (2D i 3D)
         persistence/          načtení + automatické ukládání na server
     server/                   backend (Fastify + TypeScript)
       src/routes/             HTTP routy (jen validace vstupu a volání služby)

@@ -4,7 +4,7 @@ import { selectProject, useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 
 /** Záloha projektu do JSON souboru a načtení zpět. */
-export function ProjectFilePanel() {
+export function FileButtons() {
   const fileInput = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,15 +29,12 @@ export function ProjectFilePanel() {
   }
 
   return (
-    <section>
-      <h2>Soubor</h2>
-      <div className="row">
-        <button onClick={exportProject}>Exportovat JSON</button>
-        <button onClick={() => fileInput.current?.click()}>Importovat…</button>
-      </div>
+    <div className="row">
+      <button onClick={exportProject} title="Stáhne projekt jako JSON">Export</button>
+      <button onClick={() => fileInput.current?.click()} title="Načte projekt z JSON souboru">Import…</button>
       <input ref={fileInput} type="file" accept="application/json" hidden
         onChange={e => { const f = e.target.files?.[0]; if (f) importProject(f); e.target.value = '' }} />
       {error && <small className="error">{error}</small>}
-    </section>
+    </div>
   )
 }

@@ -2,15 +2,16 @@
 html, body, #root { height: 100%; margin: 0; font: 14px system-ui, sans-serif; color: #222; }
 
 /* ---- rozložení ---- */
-.app { display: flex; height: 100%; }
+.app { display: flex; flex-direction: column; height: 100%; }
+.workspace { flex: 1; display: flex; min-height: 0; }
 main { flex: 1; display: flex; min-width: 0; }
 .pane { position: relative; flex: 1; min-width: 0; }
 .pane-title { position: absolute; z-index: 2; top: 8px; left: 10px; font-size: 12px; color: #667; pointer-events: none; }
 .pane canvas { position: absolute; inset: 0; }
 
 /* ---- postranní panel ---- */
-.sidebar { width: 280px; padding: 12px; overflow-y: auto; border-right: 1px solid #d5d9df; background: #fff; }
-.sidebar h1 { font-size: 18px; margin: 0 0 2px; }
+.sidebar { width: 280px; flex-shrink: 0; padding: 4px 12px 12px; overflow-y: auto; border-right: 1px solid #d5d9df; background: #fff; }
+
 .sidebar h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #667; margin: 16px 0 6px; }
 .sidebar small { display: block; color: #667; margin-top: 4px; }
 .status.saved { color: #2e7d32; }
@@ -63,3 +64,24 @@ button.danger { margin-top: 8px; color: #b3261e; }
 .waypoint-row { display: grid; grid-template-columns: 18px 1fr 1fr 1fr 24px; gap: 4px; align-items: center; margin-bottom: 3px; font-size: 12px; }
 .waypoint-row input { width: 100%; padding: 2px 4px; text-align: right; }
 .waypoint-row button { padding: 1px 0; }
+
+/* ---- horní lišta ---- */
+.topbar { display: flex; align-items: center; gap: 16px; height: 48px; padding: 0 12px; background: #fff; border-bottom: 1px solid #d5d9df; flex-shrink: 0; }
+.topbar .brand { display: flex; flex-direction: column; min-width: 200px; line-height: 1.2; }
+.topbar .brand small { font-size: 11px; }
+.tabs { display: flex; gap: 4px; align-self: stretch; }
+.tab { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 0 18px; font-size: 14px; }
+.tab:hover:not(:disabled) { background: #f0f3f8; }
+.tab.active { border-bottom-color: #2f6fed; font-weight: 600; background: none; }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.topbar-actions .row { margin-top: 0; }
+.topbar .error { color: #b3261e; max-width: 240px; }
+.status.saved { color: #2e7d32; }
+.status.offline { color: #b3261e; }
+
+/* ---- plátno a 3D: plovoucí ovládací prvky ---- */
+.fit-button { position: absolute; z-index: 3; top: 6px; right: 8px; }
+.view-menu { position: absolute; z-index: 3; top: 6px; left: 38px; }
+.view-menu-popover { margin-top: 4px; width: 280px; padding: 8px 12px; background: #fff; border: 1px solid #d5d9df; border-radius: 8px; box-shadow: 0 4px 16px #0002; }
+.view-menu-popover small { display: block; color: #667; margin-top: 4px; }
+.view3d-panel.open .pane-title { left: 150px; }

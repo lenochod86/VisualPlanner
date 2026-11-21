@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { CABLE_TYPES } from '../../domain/electricCatalog'
-import type { Cable, ElectricPoint, Room } from '../../domain/types'
+import type { Cable, ElectricPoint, Pt, Room } from '../../domain/types'
 import { electricPosition, type Pos3 } from '../../geometry/electric'
+import { SelectionBox } from './SelectionBox'
+import type { ThreeEvent } from '@react-three/fiber'
 
 /** Plán (x, y, výška z) -> 3D (x, výška, z = y). */
 const toVector = (p: Pos3) => new THREE.Vector3(p.x, p.z, p.y)
@@ -14,12 +16,22 @@ function Material({ color, xray, emissive }: { color: string; xray: boolean; emi
   )
 }
 
+interface PointProps {
+  point: ElectricPoint
+  room: Room
+  xray: boolean
+  selected: boolean
+  /** Stisk myši na bodu (výběr a začátek přesouvání); dostává jeho polohu v půdorysu. */
+  onGrab: (e: ThreeEvent<PointerEvent>, center: Pt) => void
+}
+
 /** Zásuvka, vypínač, rozvaděč (na zdi) a světlo (na stropě). Lokální osa z míří od zdi do místnosti. */
-export function ElectricPointMesh({ point, room, xray }: { point: ElectricPoint; room: Room; xray: boolean }) {
+export function ElectricPointMesh({ point, room, xray, selected, onGrab }: PointProps) {
   const p = electricPosition(point, room)
   const order = xray ? 10 : 0
   return (
-    <group position={[p.x, p.z, p.y]} rotation={[0, -p.rot, 0]}>
+    <group position={[p.x, p.z, p.y]} rotation={[0, -p.rot, 0]} onPointerDown={e => onGrab(e, { x: p.x, y: p.y })}>
+      {selected && <SelectionBox size={[20, 20, 20]} center={[0, 0, 6]} />}
       {point.kind === 'socket' && (
         <mesh position={[0, 0, 0.8]} renderOrder={order}><boxGeometry args={[8, 8, 1.6]} /><Material color="#ffffff" xray={xray} /></mesh>
       )}

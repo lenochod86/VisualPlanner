@@ -1,7 +1,9 @@
-import type { Furniture, Room } from '../../domain/types'
+import type { Furniture, Pt, Room } from '../../domain/types'
 import { resolvePlacement } from '../../geometry/placement'
 import type { WallModel } from '../../geometry/walls'
 import { FURNITURE_MODELS } from './furnitureModels'
+import { SelectionBox } from './SelectionBox'
+import type { ThreeEvent } from '@react-three/fiber'
 
 interface Props {
   furniture: Furniture
@@ -9,16 +11,20 @@ interface Props {
   walls: WallModel
   /** 0-1; menší hodnota udělá nábytek průhledný (aby šlo vidět za něj). */
   opacity: number
+  selected: boolean
+  /** Stisk myši na nábytku (výběr a začátek přesouvání); dostává jeho střed v půdorysu. */
+  onGrab: (e: ThreeEvent<PointerEvent>, center: Pt) => void
 }
 
 /**
  * Kus nábytku jako skupina těles. Lokální osy skupiny: x = šířka, z = hloubka (+z míří od zdi do místnosti),
  * stejně jako v půdorysu, takže otočení kolem Y o -rot sedí na 2D symbol.
  */
-export function FurnitureMesh({ furniture: f, room, walls, opacity }: Props) {
+export function FurnitureMesh({ furniture: f, room, walls, opacity, selected, onGrab }: Props) {
   const p = resolvePlacement(f, room, walls)
   return (
-    <group position={[p.x, f.elev, p.y]} rotation={[0, -p.rot, 0]}>
+    <group position={[p.x, f.elev, p.y]} rotation={[0, -p.rot, 0]} onPointerDown={e => onGrab(e, { x: p.x, y: p.y })}>
+      {selected && <SelectionBox size={[f.w, f.h, f.d]} center={[0, f.h / 2, 0]} />}
       {FURNITURE_MODELS[f.kind].map((part, i) => {
         const partOpacity = (part.opacity ?? 1) * opacity
         const size: [number, number, number] = [

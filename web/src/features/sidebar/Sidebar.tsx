@@ -1,25 +1,21 @@
-import type { SyncStatus } from '../persistence/useProjectSync'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
-import { AddPanel } from './AddPanel'
-import { FlatSummary } from './FlatSummary'
-import { HistoryButtons } from './HistoryButtons'
 import { CableProperties } from './CableProperties'
 import { ElectricProperties } from './ElectricProperties'
+import { ElectroPanel } from './ElectroPanel'
+import { FlatSummary } from './FlatSummary'
 import { FurnitureProperties } from './FurnitureProperties'
+import { FurniturePanel } from './FurniturePanel'
 import { ObstacleProperties } from './ObstacleProperties'
-import { ProjectFilePanel } from './ProjectFilePanel'
 import { RoomProperties } from './RoomProperties'
-import { ViewPanel } from './ViewPanel'
+import { RoomsPanel } from './RoomsPanel'
 
-const STATUS_LABEL: Record<SyncStatus, string> = {
-  loading: 'Načítám…',
-  saving: 'Ukládám…',
-  saved: 'Uloženo',
-  offline: 'Server nedostupný - změny se neukládají',
-}
-
-export function Sidebar({ syncStatus }: { syncStatus: SyncStatus }) {
+/**
+ * Levý panel. Nahoře nástroje podle záložky z horní lišty (Půdorys / Vybavení / Elektro),
+ * pod nimi vlastnosti toho, co je právě vybráno, ať je to cokoli.
+ */
+export function Sidebar() {
+  const mode = useUiStore(s => s.mode)
   const selection = useUiStore(s => s.selection)
   const room = useProjectStore(s => (selection?.type === 'room' ? s.rooms.find(r => r.id === selection.id) : undefined))
   const obstacle = useProjectStore(s => (selection?.type === 'obstacle' ? s.obstacles.find(o => o.id === selection.id) : undefined))
@@ -29,23 +25,22 @@ export function Sidebar({ syncStatus }: { syncStatus: SyncStatus }) {
 
   return (
     <aside className="sidebar">
-      <h1>Visual Planner</h1>
-      <small className={`status ${syncStatus}`}>{STATUS_LABEL[syncStatus]}</small>
+      {mode === 'plan' && <RoomsPanel />}
+      {mode === 'equipment' && <FurniturePanel />}
+      {mode === 'electro' && <ElectroPanel />}
 
-      <HistoryButtons />
-      <AddPanel />
       {room && <RoomProperties room={room} />}
       {obstacle && <ObstacleProperties obstacle={obstacle} />}
       {furniture && <FurnitureProperties furniture={furniture} />}
       {electric && <ElectricProperties point={electric} />}
       {cable && <CableProperties cable={cable} />}
-      <FlatSummary />
-      <ViewPanel />
-      <ProjectFilePanel />
+
+      {mode === 'plan' && <FlatSummary />}
 
       <small className="hint">
         Táhni stěnu = změna rozměru. Klik na číslo = zadání rozměru. Kolečko = zoom, tažení pozadí = posun.
-        Delete = smazat vybrané, R = otočit nábytek, Esc = zrušit výběr, Ctrl+Z / Ctrl+Y = zpět / znovu.
+        Nábytek a prvky jdou tahat i ve 3D. Delete = smazat vybrané, R = otočit nábytek, Esc = zrušit výběr,
+        Ctrl+Z / Ctrl+Y = zpět / znovu.
       </small>
     </aside>
   )

@@ -2,9 +2,11 @@ import { CABLE_TYPES, ELECTRIC_KINDS } from '../../domain/electricCatalog'
 import type { CableType, ElectricKind } from '../../domain/types'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
+import { useTargetRoomId } from './useTargetRoomId'
 
 /** Elektro: přidání zásuvek/světel/rozvaděče do vybrané místnosti a kreslení kabelů mezi body. */
-export function ElectroPanel({ targetRoomId }: { targetRoomId: string | undefined }) {
+export function ElectroPanel() {
+  const targetRoomId = useTargetRoomId()
   const addElectric = useProjectStore(s => s.addElectric)
   const cables = useProjectStore(s => s.cables)
   const rerouteAllCables = useProjectStore(s => s.rerouteAllCables)

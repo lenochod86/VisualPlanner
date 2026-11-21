@@ -3,6 +3,8 @@ import { create } from 'zustand'
 import type { CableType } from '../domain/types'
 
 export type Selection = { type: 'room' | 'obstacle' | 'furniture' | 'electric' | 'cable'; id: string } | null
+/** Záložka v horní liště; určuje, jaké nástroje jsou v levém panelu. */
+export type Mode = 'plan' | 'equipment' | 'electro'
 export type Tool = 'select' | 'draw' | 'cable'
 /** Elektro ve 3D: skryté, zobrazené (zakryté zdmi a stropem), nebo "rentgen" (vidět skrz zdi, strop i nábytek). */
 export type ElectroView = 'off' | 'on' | 'xray'
@@ -14,6 +16,7 @@ export type WallHighlight = { roomId: string; edge: number } | null
 interface UiState {
   selection: Selection
   tool: Tool
+  mode: Mode
   wallOpacity: number
   furnitureOpacity: number
   ceilingView: CeilingView
@@ -29,6 +32,8 @@ interface UiState {
   fitRequest: number
   select: (selection: Selection) => void
   setTool: (tool: Tool) => void
+  /** Přepne záložku; rozpracovaný nástroj (kreslení místnosti, kabelu) se ukončí. */
+  setMode: (mode: Mode) => void
   setWallOpacity: (value: number) => void
   setFurnitureOpacity: (value: number) => void
   setCeilingView: (view: CeilingView) => void
@@ -43,6 +48,7 @@ interface UiState {
 export const useUiStore = create<UiState>()(set => ({
   selection: null,
   tool: 'select',
+  mode: 'plan',
   wallOpacity: 1,
   furnitureOpacity: 1,
   ceilingView: 'off',
@@ -54,6 +60,7 @@ export const useUiStore = create<UiState>()(set => ({
   fitRequest: 0,
   select: selection => set({ selection }),
   setTool: tool => set({ tool }),
+  setMode: mode => set({ mode, tool: 'select', cableStart: null }),
   setWallOpacity: wallOpacity => set({ wallOpacity }),
   setFurnitureOpacity: furnitureOpacity => set({ furnitureOpacity }),
   setCeilingView: ceilingView => set({ ceilingView }),

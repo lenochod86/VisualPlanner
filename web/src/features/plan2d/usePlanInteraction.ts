@@ -2,22 +2,17 @@
 // (překážky a nábytek), tažení za konec věci a kreslení nové místnosti.
 import { useState, type PointerEvent, type RefObject } from 'react'
 import { MIN_DRAWN_ROOM } from '../../config'
-import { OBSTACLE_KINDS } from '../../domain/catalog'
-import type { Placed, Pt, Rect, Waypoint } from '../../domain/types'
+import type { Pt, Rect, Waypoint } from '../../domain/types'
 import { magnetEdgeCoord, magnetRoomShift } from '../../geometry/magnet'
 import { snap } from '../../geometry/math'
-import { dragElectricPatch } from '../../geometry/electric'
-import { dragFurniturePatch, dragObstaclePatch, resizeAlongWall } from '../../geometry/placement'
+import { resizeAlongWall } from '../../geometry/placement'
 import { edgeInfo, moveEdge, translatePts } from '../../geometry/polygon'
 import { rectFromCorners } from '../../geometry/shapes'
-import { buildWallModel } from '../../geometry/walls'
+import { dragTargetTo, findItem, patchItem, type ItemRef } from '../interaction/dragTargets'
 import { beginGesture, endGesture } from '../../store/history'
 import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import type { Viewport } from './useViewport'
-
-/** Odkaz na věc v jednom ze dvou seznamů projektu. */
-type ItemRef = { collection: 'obstacles' | 'furniture'; id: string }
 
 type Drag =
   | { kind: 'pan'; lastClient: Pt }
@@ -30,17 +25,6 @@ type Drag =
   | { kind: 'draw'; from: Pt; to: Pt }
 
 const snapPt = (p: Pt): Pt => ({ x: snap(p.x), y: snap(p.y) })
-
-function findItem(ref: ItemRef): Placed | undefined {
-  const s = useProjectStore.getState()
-  return (ref.collection === 'obstacles' ? s.obstacles : s.furniture).find(i => i.id === ref.id)
-}
-
-function patchItem(ref: ItemRef, patch: Partial<Placed>) {
-  const s = useProjectStore.getState()
-  if (ref.collection === 'obstacles') s.updateObstacle(ref.id, patch)
-  else s.updateFurniture(ref.id, patch)
-}
 
 export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, viewport: Viewport) {
   const [drag, setDrag] = useState<Drag | null>(null)
@@ -144,26 +128,6 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     setDrag({ ...d, last: { x: d.last.x + dx, y: d.last.y + dy } })
   }
 
-  function dragItem(ref: ItemRef, p: Pt) {
-    const { rooms } = useProjectStore.getState()
-    const item = findItem(ref)
-    if (!item) return
-    if (ref.collection === 'furniture') {
-      patchItem(ref, dragFurniturePatch(item, rooms, buildWallModel(rooms), p))
-      return
-    }
-    const room = rooms.find(r => r.id === item.roomId)
-    const obstacle = useProjectStore.getState().obstacles.find(o => o.id === ref.id)
-    const inWall = !!obstacle && OBSTACLE_KINDS[obstacle.kind].inWall
-    if (room) patchItem(ref, dragObstaclePatch(room, p, inWall))
-  }
-
-  function dragPoint(id: string, p: Pt) {
-    const { electric, rooms, updateElectric } = useProjectStore.getState()
-    const point = electric.find(x => x.id === id)
-    if (point) updateElectric(id, dragElectricPatch(point, rooms, p))
-  }
-
   function dragItemEnd(d: Extract<Drag, { kind: 'itemEnd' }>, p: Pt) {
     const item = findItem(d.ref)
     const room = item && useProjectStore.getState().rooms.find(r => r.id === item.roomId)
@@ -183,9 +147,9 @@ export function usePlanInteraction(svgRef: RefObject<SVGSVGElement | null>, view
     const p = viewport.toWorld(e)
     if (drag.kind === 'edge') dragEdge(drag, p)
     else if (drag.kind === 'room') dragRoom(drag, p)
-    else if (drag.kind === 'item') dragItem(drag.ref, p)
+    else if (drag.kind === 'item') dragTargetTo(drag.ref, p)
     else if (drag.kind === 'itemEnd') dragItemEnd(drag, p)
-    else if (drag.kind === 'point') dragPoint(drag.id, p)
+    else if (drag.kind === 'point') dragTargetTo({ collection: 'electric', id: drag.id }, p)
     else if (drag.kind === 'waypoint') useProjectStore.getState().updateWaypoint(drag.cableId, drag.index, { x: snap(p.x), y: snap(p.y) })
     else setDrag({ ...drag, to: snapPt(p) })
   }
