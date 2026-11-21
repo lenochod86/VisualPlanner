@@ -15,7 +15,7 @@ import { useDrag3D } from './useDrag3D'
 import { WallsMesh } from './WallsMesh'
 
 /** V záložce Elektro je nábytek průsvitný (nejvýš tolik), ať vynikne elektro. */
-const ELECTRO_TAB_FURNITURE_OPACITY = 0.25
+const ELECTRO_TAB_FURNITURE_OPACITY = 0.15
 
 /** Vlastní 3D scéna; musí být uvnitř <Canvas>, aby mohla používat three.js hooky (např. přesouvání). */
 function Scene() {
