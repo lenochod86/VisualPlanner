@@ -163,3 +163,53 @@ describe('planAutoConnections: primárně k rozvaděči', () => {
     expect(plan).toEqual([{ fromId: 's1', toId: 's2', type: 'cyky-3x2.5', circuit: 'Kuchyň' }])   // s2 je blíž k s1 než k rozvaděči
   })
 })
+
+describe('planAutoConnections: vypínače a světla', () => {
+  const at = (id: string, kind: ElectricPoint['kind'], x: number, y: number, roomId = 'A'): ElectricPoint =>
+    ({ id, roomId, kind, name: '', x, y, height: 105 })
+  const board: ElectricPoint = { id: 'rozv', roomId: 'A', kind: 'board', name: '', x: 0, y: 0, height: 150, attach: { edge: 3, along: 150 } }
+
+  it('vypínače se napojí každý přímo na rozvaděč', () => {
+    const electric = [board, at('v1', 'switch', 100, 0), at('v2', 'switch', 300, 0)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    expect(plan.map(c => [c.fromId, c.toId])).toEqual([['rozv', 'v1'], ['rozv', 'v2']])
+    expect(new Set(plan.map(c => c.circuit)).size).toBe(2)           // každý odvod z rozvaděče = vlastní okruh
+  })
+
+  it('světlo se napojí na nejbližší vypínač a převezme jeho okruh', () => {
+    const electric = [board, at('v1', 'switch', 50, 0), at('v2', 'switch', 350, 0), at('l1', 'light', 320, 150), at('l2', 'light', 80, 150)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    const toV2 = plan.find(c => c.toId === 'l1')!
+    const toV1 = plan.find(c => c.toId === 'l2')!
+    expect([toV2.fromId, toV1.fromId]).toEqual(['v2', 'v1'])
+    const viaCircuit = (id: string) => plan.find(c => c.toId === id)!.circuit
+    expect(toV2.circuit).toBe(viaCircuit('v2'))
+    expect(toV1.circuit).toBe(viaCircuit('v1'))
+    expect(toV2.circuit).not.toBe(toV1.circuit)
+  })
+
+  it('víc světel na jeden vypínač se nezřetězí mezi sebou, všechna jdou na vypínač', () => {
+    const electric = [board, at('v', 'switch', 50, 0), at('l1', 'light', 100, 100), at('l2', 'light', 250, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    expect(plan.filter(c => c.type === 'cyky-3x1.5' && c.toId.startsWith('l')).map(c => c.fromId)).toEqual(['v', 'v'])
+  })
+
+  it('bez vypínačů se světla napojují jako dřív: k rozvaděči a řetězově', () => {
+    const electric = [board, at('l1', 'light', 60, 100), at('l2', 'light', 160, 100)]
+    const plan = planAutoConnections({ rooms: [A], electric, cables: [] })
+    expect(plan.map(c => [c.fromId, c.toId])).toEqual([['rozv', 'l1'], ['l1', 'l2']])
+  })
+
+  it('už napojené světlo se znovu nenapojuje', () => {
+    const electric = [board, at('v', 'switch', 50, 0), at('l1', 'light', 100, 100)]
+    const done: Cable = { id: 'x', type: 'cyky-3x1.5', circuit: 'Ložnice', fromId: 'v', toId: 'l1', via: [] }
+    expect(planAutoConnections({ rooms: [A], electric, cables: [done] }).some(c => c.toId === 'l1')).toBe(false)
+  })
+
+  it('přednostně napojuje v rámci téže místnosti', () => {
+    const room2: Room = { ...A, id: 'B' }
+    const electric = [board, at('vA', 'switch', 300, 0, 'A'), at('vB', 'switch', 60, 0, 'B'), at('l', 'light', 80, 100, 'A')]
+    const plan = planAutoConnections({ rooms: [A, room2], electric, cables: [] })
+    expect(plan.find(c => c.toId === 'l')!.fromId).toBe('vA')          // vB je blíž, ale v jiné místnosti
+  })
+})

@@ -114,18 +114,26 @@ export interface PlannedCable {
   circuit: string
 }
 
-/** Skupiny, které se napojují mezi sebou: zásuvky na zásuvky, světla na světla. */
-const WIRING_GROUPS: { kinds: ElectricKind[]; type: CableType; label: string }[] = [
-  { kinds: ['socket', 'socket-double'], type: 'cyky-3x2.5', label: 'Zásuvky' },
-  { kinds: ['light'], type: 'cyky-3x1.5', label: 'Světla' },
+/** Role skupiny při napojování: vypínač, světlo, zásuvka. */
+type WiringRole = 'switch' | 'light' | 'socket'
+
+const WIRING_GROUPS: { role: WiringRole; kinds: ElectricKind[]; type: CableType; label: string }[] = [
+  { role: 'switch', kinds: ['switch'], type: 'cyky-3x1.5', label: 'Osvětlení' },
+  { role: 'light', kinds: ['light'], type: 'cyky-3x1.5', label: 'Světla' },
+  { role: 'socket', kinds: ['socket', 'socket-double'], type: 'cyky-3x2.5', label: 'Zásuvky' },
 ]
 
+/** Penalizace vzdálenosti za spojení mezi různými místnostmi: napojuje se přednostně v rámci místnosti (cm). */
+const OTHER_ROOM_PENALTY = 1000
+
 /**
- * Navrhne kabely pro body, které zatím žádný kabel nemají. Primárně se napojuje k ROZVADĚČI: ten je kořenem
- * sítě, takže se k němu připojí nejbližší bod a od něj se řetězí další (zásuvky se zásuvkami, světla se světly,
- * vždy na nejbližší už napojený bod nebo rozvaděč). Každý kabel vedoucí přímo z rozvaděče začíná nový okruh
- * ("Zásuvky", "Zásuvky 2" …), řetězené body převezmou okruh souseda. Bez rozvaděče se začne od prvního bodu
- * skupiny. Hotové kabely se nemění.
+ * Navrhne kabely pro body, které zatím žádný kabel nemají (hotové kabely se nemění):
+ *  - **vypínače** na rozvaděč (každý přímo; bez rozvaděče se řetězí mezi sebou),
+ *  - **světla** na nejbližší vypínač (každé přímo a okruh přebírá od vypínače; bez vypínačů viz zásuvky),
+ *  - **zásuvky** primárně k rozvaděči: ten je kořenem sítě, nejbližší zásuvka se připojí k němu a další se
+ *    řetězí na nejbližší už napojený bod (zásuvka). Bez rozvaděče se začne od první zásuvky.
+ * Každý kabel vedoucí přímo z rozvaděče začíná nový okruh; ostatní převezmou okruh bodu, na který se napojují.
+ * Napojuje se přednostně v rámci téže místnosti.
  */
 export function planAutoConnections(project: { rooms: Room[]; electric: ElectricPoint[]; cables: Cable[] }): PlannedCable[] {
   const { rooms, electric, cables } = project
@@ -138,10 +146,10 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
     const room = rooms.find(r => r.id === p.roomId)
     return room ? electricPosition(p, room) : { x: p.x, y: p.y, z: 0, rot: 0 }
   }
-  // vzdálenost po pravoúhlé trase (kabely vedou v pravých úhlech)
+  // vzdálenost po pravoúhlé trase (kabely vedou v pravých úhlech); jiná místnost je "dál"
   const distance = (a: ElectricPoint, b: ElectricPoint) => {
     const pa = position(a), pb = position(b)
-    return Math.abs(pa.x - pb.x) + Math.abs(pa.y - pb.y)
+    return Math.abs(pa.x - pb.x) + Math.abs(pa.y - pb.y) + (a.roomId === b.roomId ? 0 : OTHER_ROOM_PENALTY)
   }
   const uniqueCircuit = (label: string) => {
     let name = label
@@ -149,16 +157,27 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
     usedCircuits.add(name)
     return name
   }
+  const hasCable = (p: ElectricPoint) => cables.some(c => c.fromId === p.id || c.toId === p.id)
+  const isConnected = (p: ElectricPoint) => hasCable(p) || planned.some(c => c.fromId === p.id || c.toId === p.id)
+
+  const boards = electric.filter(p => p.kind === 'board')
+  const switches = electric.filter(p => p.kind === 'switch')
 
   for (const group of WIRING_GROUPS) {
     const points = electric.filter(p => group.kinds.includes(p.kind))
-    const connected = (p: ElectricPoint) => cables.some(c => c.fromId === p.id || c.toId === p.id)
-    const boards = electric.filter(p => p.kind === 'board')
-    const network = [...boards, ...points.filter(connected)]       // rozvaděč je vždy součástí sítě
-    const pending = points.filter(p => !connected(p))
+    const pending = points.filter(p => !hasCable(p))
     if (pending.length === 0) continue
-    if (network.length === 0) {                                     // bez rozvaděče a bez napojených: začneme prvním bodem
-      if (pending.length < 2) continue
+
+    // kam se napojuje a smí se řetězit mezi body skupiny?
+    let targets: ElectricPoint[]
+    let chain: boolean
+    if (group.role === 'switch') { targets = boards; chain = boards.length === 0 }
+    else if (group.role === 'light' && switches.length > 0) { targets = switches; chain = false }
+    else { targets = boards; chain = true }
+
+    const network = [...targets, ...(chain ? points.filter(isConnected) : [])]
+    if (network.length === 0) {                           // není na co napojit: začneme prvním bodem skupiny
+      if (!chain || pending.length < 2) continue
       network.push(pending.shift()!)
     }
 
@@ -169,12 +188,12 @@ export function planAutoConnections(project: { rooms: Room[]; electric: Electric
         if (!best || d < best.d) best = { p, q, d }
       }
       const { p, q } = best!
-      // z rozvaděče začíná vždy nový okruh; od bodu se okruh přebírá (a rozvaděči se okruh nepřiřazuje)
+      // z rozvaděče začíná vždy nový okruh; od vypínače nebo bodu se okruh přebírá
       const circuit = q.kind === 'board' ? uniqueCircuit(group.label) : (circuitOf.get(q.id) ?? uniqueCircuit(group.label))
       planned.push({ fromId: q.id, toId: p.id, type: group.type, circuit })
       circuitOf.set(p.id, circuit)
       if (q.kind !== 'board') circuitOf.set(q.id, circuit)
-      network.push(p)
+      if (chain) network.push(p)
       pending.splice(pending.indexOf(p), 1)
     }
   }
