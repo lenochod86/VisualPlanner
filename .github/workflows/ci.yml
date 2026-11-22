@@ -1,0 +1,51 @@
+name: CI
+
+# `test` is a required check of the ruleset on `main`: it must run for every pull request (no path filter).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels its running build; builds of main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            server/package-lock.json
+      - name: Server - install
+        working-directory: server
+        run: npm ci
+      - name: Server - typecheck
+        working-directory: server
+        run: npm run typecheck
+      - name: Server - tests
+        working-directory: server
+        run: npm test
+      - name: Server - build
+        working-directory: server
+        run: npm run build
+      - name: Web - install
+        working-directory: web
+        run: npm ci
+      - name: Web - typecheck and build
+        working-directory: web
+        run: npm run build
+      - name: Web - tests
+        working-directory: web
+        run: npm test
