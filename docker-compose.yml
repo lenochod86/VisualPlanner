@@ -15,6 +15,7 @@ services:
     environment:
       DATA_DIR: /data
       CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"      # pollování po sekundě (výchozích 100 ms zbytečně zatěžuje CPU)
     volumes:
       - ./server:/app
       - api_node_modules:/app/node_modules
